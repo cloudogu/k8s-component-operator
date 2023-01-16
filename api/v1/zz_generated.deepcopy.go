@@ -47,7 +47,7 @@ func (in *ComponentList) DeepCopyInto(out *ComponentList) {
 	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
-		*out = make([]ComponentSpec, len(*in))
+		*out = make([]Component, len(*in))
 		copy(*out, *in)
 	}
 }

@@ -22,6 +22,14 @@ const (
 	ComponentVersion = "component.version"
 )
 
+const (
+	ComponentStatusNotInstalled = ""
+	ComponentStatusInstalling   = "installing"
+	ComponentStatusUpgrading    = "upgrading"
+	ComponentStatusDeleting     = "deleting"
+	ComponentStatusInstalled    = "installed"
+)
+
 // ComponentSpec defines the desired state of a component
 type ComponentSpec struct {
 	// Name of the component (e.g. official/ldap)
@@ -54,7 +62,7 @@ type Component struct {
 type ComponentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []ComponentSpec `json:"items"`
+	Items           []Component `json:"items"`
 }
 
 func init() {

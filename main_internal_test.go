@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	v1 "github.com/cloudogu/k8s-component-operator/api/v1"
 
 	"os"
 	"testing"
@@ -18,7 +19,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -84,11 +84,12 @@ func Test_startDoguOperator(t *testing.T) {
 
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	myClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+	utilruntime.Must(v1.AddToScheme(scheme))
+	myConfig := &rest.Config{}
 
 	defaultMockDefinitions := map[string]mockDefinition{
 		"GetScheme":            {ReturnValue: scheme},
-		"GetClient":            {ReturnValue: myClient},
+		"GetConfig":            {ReturnValue: myConfig},
 		"Add":                  {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
 		"AddHealthzCheck":      {Arguments: []interface{}{mock.Anything, mock.Anything}, ReturnValue: nil},
 		"AddReadyzCheck":       {Arguments: []interface{}{mock.Anything, mock.Anything}, ReturnValue: nil},

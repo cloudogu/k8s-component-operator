@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/api/ecoSystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/cloudogu/k8s-component-operator/pkg/controllers"
 	"github.com/cloudogu/k8s-component-operator/pkg/logging"
+	"k8s.io/client-go/kubernetes"
 	"os"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -127,9 +129,24 @@ func startK8sManager(k8sManager manager.Manager) error {
 
 func configureReconciler(k8sManager manager.Manager, operatorConfig *config.OperatorConfig) error {
 	eventRecorder := k8sManager.GetEventRecorderFor("k8s-component-operator")
-	backupReconciler := controllers.NewComponentController(k8sManager.GetClient(), eventRecorder)
+	componentClient, err := ecoSystem.NewForConfig(k8sManager.GetConfig())
+	if err != nil {
+		return fmt.Errorf("failed to create componentClient: %w", err)
+	}
 
-	err := backupReconciler.SetupWithManager(k8sManager)
+	clientSet, err := kubernetes.NewForConfig(k8sManager.GetConfig())
+	if err != nil {
+		return fmt.Errorf("failed to create clientset: %w", err)
+	}
+
+	componentClientSet := ecoSystem.ClientSetWithComponent{
+		EcoSystemV1Alpha1Client: *componentClient,
+		Clientset:               *clientSet,
+	}
+
+	backupReconciler := controllers.NewComponentReconciler(componentClientSet, eventRecorder)
+
+	err = backupReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)
 	}
