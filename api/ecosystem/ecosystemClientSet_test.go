@@ -1,4 +1,4 @@
-package ecoSystem
+package ecosystem
 
 import (
 	"github.com/stretchr/testify/require"

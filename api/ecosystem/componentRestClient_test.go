@@ -1,4 +1,4 @@
-package ecoSystem
+package ecosystem
 
 import (
 	"context"

@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/api/ecoSystem"
+	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/internal"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,13 +24,13 @@ const (
 
 // componentReconciler watches every Component object in the cluster and handles them accordingly.
 type componentReconciler struct {
-	client          ecoSystem.ClientSetWithComponent
+	client          *ecosystem.EcosystemClientset
 	recorder        record.EventRecorder
 	componentManger internal.ComponentManager
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(client ecoSystem.ClientSetWithComponent, recorder record.EventRecorder) *componentReconciler {
+func NewComponentReconciler(client *ecosystem.EcosystemClientset, recorder record.EventRecorder) *componentReconciler {
 	return &componentReconciler{
 		client:   client,
 		recorder: recorder,
@@ -43,7 +43,7 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile this crd")
 
-	component, err := r.client.Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
+	component, err := r.client.EcosystemV1Alpha1().Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
 		logger.Info(fmt.Sprintf("failed to get component %+v: %s", req, err))
 		return ctrl.Result{}, client.IgnoreNotFound(err)
