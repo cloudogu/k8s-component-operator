@@ -7,6 +7,8 @@ endif
 ## Variables
 
 BINARY_YQ = $(UTILITY_BIN_PATH)/yq
+BINARY_HELM = $(UTILITY_BIN_PATH)/helm
+BINARY_HELMIFY = $(UTILITY_BIN_PATH)/helmify
 
 # The cluster root variable is used to the build images to the cluster. It can be defined in a .myenv file.
 K8S_CLUSTER_ROOT ?=
@@ -21,6 +23,7 @@ K3CES_REGISTRY_URL_PREFIX="${K3S_CLUSTER_FQDN}:${K3S_LOCAL_REGISTRY_PORT}"
 # the current namespace and the dev image.
 K8S_RESOURCE_TEMP_FOLDER ?= $(TARGET_DIR)/make/k8s
 K8S_RESOURCE_TEMP_YAML ?= $(K8S_RESOURCE_TEMP_FOLDER)/$(ARTIFACT_ID)_$(VERSION).yaml
+K8S_HELM_TEMP_CHART ?= $(K8S_RESOURCE_TEMP_FOLDER)/helm/$(ARTIFACT_ID)
 
 # The current namespace is extracted from the current context.
 K8S_CURRENT_NAMESPACE=$(shell kubectl config view --minify -o jsonpath='{..namespace}')
@@ -80,6 +83,27 @@ k8s-apply: k8s-generate $(K8S_POST_GENERATE_TARGETS) ## Applies all generated K8
 	@echo "Apply generated K8s resources..."
 	@kubectl apply -f $(K8S_RESOURCE_TEMP_YAML)
 
+##@ K8s - Helm
+
+.PHONY: k8s-helm-generate
+k8s-helm-generate: k8s-generate ${BINARY_HELMIFY} $(K8S_RESOURCE_TEMP_FOLDER) $(K8S_PRE_GENERATE_TARGETS) ## Generates the final helm chart.
+	@echo "Generate helm chart..."
+	@cat $(K8S_RESOURCE_TEMP_YAML) | ${BINARY_HELMIFY} ${K8S_HELM_TEMP_CHART}
+
+
+.PHONY: k8s-helm-apply
+k8s-helm-apply: image-import k8s-helm-generate $(K8S_POST_GENERATE_TARGETS)
+	@echo "Apply generated helm chart"
+	@helm install ${ARTIFACT_ID} ${K8S_HELM_TEMP_CHART}
+
+.PHONY: k8s-helm-delete
+k8s-helm-delete:
+	@echo "Uninstall helm chart"
+	@helm uninstall ${ARTIFACT_ID} || true
+
+.PHONY: k8s-helm-reinstall
+k8s-helm-reinstall: k8s-helm-delete k8s-helm-apply
+
 ##@ K8s - Docker
 
 .PHONY: docker-build
@@ -120,5 +144,11 @@ __check_defined = \
     $(if $(value $1),, \
       $(error Undefined $1$(if $2, ($2))))
 
-${BINARY_YQ}: $(UTILITY_BIN_PATH) ## Download controller-gen locally if necessary.
+${BINARY_YQ}: $(UTILITY_BIN_PATH) ## Download yq locally if necessary.
 	$(call go-get-tool,$(BINARY_YQ),github.com/mikefarah/yq/v4@v4.25.1)
+
+${BINARY_HELM}: $(UTILITY_BIN_PATH) ## Download helm locally if necessary.
+	$(call go-get-tool,$(BINARY_HELM),helm.sh/helm/v3/cmd/helm@latest)
+
+${BINARY_HELMIFY}: $(UTILITY_BIN_PATH)  ## Download helmify locally if necessary.
+	$(call go-get-tool,$(BINARY_HELMIFY),github.com/arttor/helmify/cmd/helmify@latest)

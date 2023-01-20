@@ -34,27 +34,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: DOGU_REGISTRY_ENDPOINT
-            valueFrom:
-              secretKeyRef:
-                name: k8s-component-operator-dogu-registry
-                key: endpoint
-          - name: DOGU_REGISTRY_USERNAME
-            valueFrom:
-              secretKeyRef:
-                name: k8s-component-operator-dogu-registry
-                key: username
-          - name: DOGU_REGISTRY_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: k8s-component-operator-dogu-registry
-                key: password
-          - name: DOGU_REGISTRY_URLSCHEMA
-            valueFrom:
-              secretKeyRef:
-                name: k8s-component-operator-dogu-registry
-                key: urlschema
-                optional: true
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager

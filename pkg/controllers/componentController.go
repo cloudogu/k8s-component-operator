@@ -6,6 +6,7 @@ import (
 	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/internal"
+	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,11 +31,17 @@ type componentReconciler struct {
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(client *ecosystem.EcosystemClientset, recorder record.EventRecorder) *componentReconciler {
-	return &componentReconciler{
-		client:   client,
-		recorder: recorder,
+func NewComponentReconciler(client *ecosystem.EcosystemClientset, recorder record.EventRecorder, config *config.OperatorConfig) (*componentReconciler, error) {
+	manager, err := NewComponentManager(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create component manager: %w", err)
 	}
+
+	return &componentReconciler{
+		client:          client,
+		recorder:        recorder,
+		componentManger: manager,
+	}, nil
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -54,6 +61,7 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to evaluate required operation: %w", err)
 	}
+	logger.Info(fmt.Sprintf("Required operation is %s", operation))
 
 	switch operation {
 	case Install:

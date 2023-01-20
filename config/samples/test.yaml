@@ -1,7 +1,0 @@
-apiVersion: k8s.cloudogu.com/v1
-kind: Component
-metadata:
-  name: component-sample
-spec:
-  name: dogu-operator
-  version: 3.6.4-3

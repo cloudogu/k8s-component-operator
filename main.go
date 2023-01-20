@@ -140,9 +140,12 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 		return fmt.Errorf("failed to create component client set: %w", err)
 	}
 
-	backupReconciler := controllers.NewComponentReconciler(componentClientSet, eventRecorder)
+	componentReconciler, err := controllers.NewComponentReconciler(componentClientSet, eventRecorder, operatorConfig)
+	if err != nil {
+		return err
+	}
 
-	err = backupReconciler.SetupWithManager(k8sManager)
+	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)
 	}

@@ -48,7 +48,9 @@ func (in *ComponentList) DeepCopyInto(out *ComponentList) {
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Component, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 }
 

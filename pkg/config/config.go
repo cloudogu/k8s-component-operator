@@ -65,16 +65,16 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 		return nil, fmt.Errorf("failed to read namespace: %w", err)
 	}
 	log.Info(fmt.Sprintf("Deploying the k8s dogu operator in namespace %s", namespace))
-	doguRegistryData, err := readDoguRegistryData()
-	if err != nil {
-		return nil, fmt.Errorf("failed to read dogu registry data: %w", err)
-	}
-	log.Info(fmt.Sprintf("Found stored dogu registry data! Using dogu registry %s", doguRegistryData.Endpoint))
+	// doguRegistryData, err := readDoguRegistryData()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to read dogu registry data: %w", err)
+	// }
+	// log.Info(fmt.Sprintf("Found stored dogu registry data! Using dogu registry %s", doguRegistryData.Endpoint))
 
 	return &OperatorConfig{
 		Namespace:    namespace,
 		Version:      &parsedVersion,
-		DoguRegistry: doguRegistryData,
+		DoguRegistry: DoguRegistryData{},
 	}, nil
 }
 
