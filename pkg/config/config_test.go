@@ -19,7 +19,7 @@ func TestNewOperatorConfig(t *testing.T) {
 
 		// then
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "failed to get env var [NAMESPACE]: environment variable NAMESPACE must be set")
+		assert.ErrorContains(t, err, "failed to read namespace: environment variable NAMESPACE must be set")
 		assert.Nil(t, operatorConfig)
 	})
 	t.Setenv("NAMESPACE", expectedNamespace)

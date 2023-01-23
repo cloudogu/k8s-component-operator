@@ -109,7 +109,7 @@ func Test_startDoguOperator(t *testing.T) {
 
 		// then
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "failed to read namespace: failed to get env var [NAMESPACE]")
+		require.Contains(t, err.Error(), "failed to create new operator configuration: failed to read namespace: environment variable NAMESPACE must be set")
 	})
 
 	t.Setenv("NAMESPACE", "mynamespace")
