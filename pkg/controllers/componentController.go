@@ -31,14 +31,14 @@ type componentReconciler struct {
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(client *ecosystem.EcosystemClientset, recorder record.EventRecorder, config *config.OperatorConfig) (*componentReconciler, error) {
-	manager, err := NewComponentManager(config)
+func NewComponentReconciler(clientset *ecosystem.EcosystemClientset, recorder record.EventRecorder, config *config.OperatorConfig) (*componentReconciler, error) {
+	manager, err := NewComponentManager(config, clientset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create component manager: %w", err)
 	}
 
 	return &componentReconciler{
-		client:          client,
+		client:          clientset,
 		recorder:        recorder,
 		componentManger: manager,
 	}, nil

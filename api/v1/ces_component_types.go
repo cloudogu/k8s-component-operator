@@ -30,6 +30,8 @@ const (
 	ComponentStatusInstalled    = "installed"
 )
 
+const FinalizerName = "component-finalizer"
+
 // ComponentSpec defines the desired state of a component
 type ComponentSpec struct {
 	// Name of the component (e.g. official/ldap)

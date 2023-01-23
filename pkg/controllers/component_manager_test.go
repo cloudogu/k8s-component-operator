@@ -17,9 +17,9 @@ package controllers
 // 	"github.com/stretchr/testify/require"
 // 	corev1 "k8s.io/api/core/v1"
 // 	"k8s.io/apimachinery/pkg/runtime"
-// 	"k8s.io/client-go/rest"
+// 	"k8s.io/clientset-go/rest"
 // 	ctrl "sigs.k8s.io/controller-runtime"
-// 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+// 	"sigs.k8s.io/controller-runtime/pkg/clientset/fake"
 // )
 //
 // func TestDoguManager_HandleVolumeExpansion(t *testing.T) {
@@ -120,7 +120,7 @@ package controllers
 //
 // 	t.Run("success", func(t *testing.T) {
 // 		// given
-// 		client := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
 // 		operatorConfig := &config.OperatorConfig{}
 // 		operatorConfig.Namespace = "test"
 // 		cesRegistry := cesmocks.NewRegistry(t)
@@ -132,7 +132,7 @@ package controllers
 // 		cesRegistry.On("DoguRegistry").Return(doguRegistry)
 //
 // 		// when
-// 		doguManager, err := NewComponentManager(client, operatorConfig, cesRegistry, eventRecorder)
+// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
 //
 // 		// then
 // 		require.NoError(t, err)
@@ -141,7 +141,7 @@ package controllers
 //
 // 	t.Run("successfully set default key provider", func(t *testing.T) {
 // 		// given
-// 		client := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
 // 		operatorConfig := &config.OperatorConfig{}
 // 		operatorConfig.Namespace = "test"
 // 		cesRegistry := cesmocks.NewRegistry(t)
@@ -154,7 +154,7 @@ package controllers
 // 		cesRegistry.On("DoguRegistry").Return(doguRegistry)
 //
 // 		// when
-// 		doguManager, err := NewComponentManager(client, operatorConfig, cesRegistry, eventRecorder)
+// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
 //
 // 		// then
 // 		require.NoError(t, err)
@@ -163,7 +163,7 @@ package controllers
 //
 // 	t.Run("failed to query existing key provider", func(t *testing.T) {
 // 		// given
-// 		client := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
 // 		operatorConfig := &config.OperatorConfig{}
 // 		eventRecorder := external.NewEventRecorder(t)
 // 		operatorConfig.Namespace = "test"
@@ -173,7 +173,7 @@ package controllers
 // 		cesRegistry.On("GlobalConfig").Return(globalConfig)
 //
 // 		// when
-// 		doguManager, err := NewComponentManager(client, operatorConfig, cesRegistry, eventRecorder)
+// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
 //
 // 		// then
 // 		require.Error(t, err)
@@ -183,7 +183,7 @@ package controllers
 //
 // 	t.Run("failed to set default key provider", func(t *testing.T) {
 // 		// given
-// 		client := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
+// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
 // 		operatorConfig := &config.OperatorConfig{}
 // 		operatorConfig.Namespace = "test"
 // 		cesRegistry := cesmocks.NewRegistry(t)
@@ -194,7 +194,7 @@ package controllers
 // 		eventRecorder := external.NewEventRecorder(t)
 //
 // 		// when
-// 		doguManager, err := NewComponentManager(client, operatorConfig, cesRegistry, eventRecorder)
+// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
 //
 // 		// then
 // 		require.Error(t, err)

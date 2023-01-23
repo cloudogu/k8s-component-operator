@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/mittwald/go-helm-client"
@@ -15,13 +16,17 @@ const k8sDoguOperatorFieldManagerName = "k8s-component-operator"
 
 // componentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
 type componentInstallManager struct {
-	namespace string
+	clientset       *ecosystem.EcosystemClientset
+	componentClient ecosystem.ComponentInterface
+	namespace       string
 }
 
 // NewComponentInstallManager creates a new instance of componentInstallManager.
-func NewComponentInstallManager(config *config.OperatorConfig) (*componentInstallManager, error) {
+func NewComponentInstallManager(config *config.OperatorConfig, clientset *ecosystem.EcosystemClientset) (*componentInstallManager, error) {
 	return &componentInstallManager{
-		namespace: config.Namespace,
+		clientset:       clientset,
+		namespace:       config.Namespace,
+		componentClient: clientset.EcosystemV1Alpha1().Components(config.Namespace),
 	}, nil
 }
 
@@ -29,10 +34,24 @@ func NewComponentInstallManager(config *config.OperatorConfig) (*componentInstal
 func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	logger.Info("Creating helm client...")
+	component, err := cim.componentClient.UpdateStatusInstalling(ctx, component)
+	if err != nil {
+		return err
+	}
+
+	// Set the finalizer at the beginning of the installation procedure.
+	// This is required because an error during installation would leave a component resource with its
+	// k8s resources in the cluster. A deletion would tidy up those resources but would not start the
+	// deletion procedure from the controller.
+	component, err = cim.componentClient.AddFinalizer(ctx, component, k8sv1.FinalizerName)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("Creating helm clientset...")
 	opt := &helmclient.RestConfClientOptions{
 		Options: &helmclient.Options{
-			Namespace:        cim.namespace, // Change this to the namespace you wish the client to operate in.
+			Namespace:        cim.namespace, // Change this to the namespace you wish the clientset to operate in.
 			RepositoryCache:  "/tmp/.helmcache",
 			RepositoryConfig: "/tmp/.helmrepo",
 			Debug:            true,
@@ -44,7 +63,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	helmClient, err := helmclient.NewClientFromRestConf(opt)
 	if err != nil {
-		return fmt.Errorf("failed to create helm client: %w", err)
+		return fmt.Errorf("failed to create helm clientset: %w", err)
 	}
 
 	logger.Info("Add helm repo...")
@@ -75,6 +94,11 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	_, err = helmClient.InstallOrUpgradeChart(ctx, chartSpec, nil)
 	if err != nil {
 		return fmt.Errorf("failed to install chart: %w", err)
+	}
+
+	component, err = cim.componentClient.UpdateStatusInstalled(ctx, component)
+	if err != nil {
+		return err
 	}
 
 	logger.Info("Done...")

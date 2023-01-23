@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/internal"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
@@ -19,8 +20,8 @@ type DoguManager struct {
 }
 
 // NewComponentManager creates a new instance of DoguManager
-func NewComponentManager(operatorConfig *config.OperatorConfig) (*DoguManager, error) {
-	installManager, err := NewComponentInstallManager(operatorConfig)
+func NewComponentManager(operatorConfig *config.OperatorConfig, clientset *ecosystem.EcosystemClientset) (*DoguManager, error) {
+	installManager, err := NewComponentInstallManager(operatorConfig, clientset)
 	if err != nil {
 		return nil, err
 	}

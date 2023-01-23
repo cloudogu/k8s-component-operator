@@ -16,11 +16,11 @@ package controllers
 // 	"github.com/stretchr/testify/require"
 // 	corev1 "k8s.io/api/core/v1"
 // 	"k8s.io/apimachinery/pkg/runtime"
-// 	"k8s.io/client-go/rest"
-// 	"k8s.io/client-go/tools/clientcmd/api"
+// 	"k8s.io/clientset-go/rest"
+// 	"k8s.io/clientset-go/tools/clientcmd/api"
 // 	ctrl "sigs.k8s.io/controller-runtime"
-// 	"sigs.k8s.io/controller-runtime/pkg/client"
-// 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+// 	"sigs.k8s.io/controller-runtime/pkg/clientset"
+// 	"sigs.k8s.io/controller-runtime/pkg/clientset/fake"
 //
 // 	"github.com/cloudogu/cesapp-lib/core"
 // 	cesmocks "github.com/cloudogu/cesapp-lib/registry/mocks"
@@ -42,7 +42,7 @@ package controllers
 // 	doguSecretHandlerMock     *mocks.DoguSecretHandler
 // 	applierMock               *mocks.Applier
 // 	fileExtractorMock         *mocks.FileExtractor
-// 	client                    client.WithWatch
+// 	clientset                    clientset.WithWatch
 // 	resourceUpserter          *mocks.ResourceUpserter
 // 	recorder                  *external.EventRecorder
 // 	execPodFactory            *mocks.ExecPodFactory
@@ -86,7 +86,7 @@ package controllers
 // 	podFactory := mocks.NewExecPodFactory(t)
 //
 // 	componentInstallManager := &componentInstallManager{
-// 		client:                k8sClient,
+// 		clientset:                k8sClient,
 // 		recorder:              eventRecorderMock,
 // 		imageRegistry:         imageRegistry,
 // 		doguRegistrator:       doguRegistrator,
@@ -103,7 +103,7 @@ package controllers
 //
 // 	return doguInstallManagerWithMocks{
 // 		installManager:            componentInstallManager,
-// 		client:                    k8sClient,
+// 		clientset:                    k8sClient,
 // 		recorder:                  eventRecorderMock,
 // 		localDoguFetcher:          localDoguFetcher,
 // 		resourceDoguFetcher:       resourceDoguFetcher,
@@ -154,10 +154,10 @@ package controllers
 // 		mock.AssertExpectationsForObjects(t, cesRegistry, doguRegistry)
 // 	})
 //
-// 	t.Run("fail when creating client", func(t *testing.T) {
+// 	t.Run("fail when creating clientset", func(t *testing.T) {
 // 		// given
 //
-// 		// override default controller method to return a config that fail the client creation
+// 		// override default controller method to return a config that fail the clientset creation
 // 		oldGetConfigOrDieDelegate := ctrl.GetConfigOrDie
 // 		defer func() { ctrl.GetConfigOrDie = oldGetConfigOrDieDelegate }()
 // 		ctrl.GetConfigOrDie = func() *rest.Config {
@@ -196,7 +196,7 @@ package controllers
 //
 // 		yamlResult := map[string]string{"my-custom-resource.yml": "kind: Namespace"}
 // 		managerWithMocks.fileExtractorMock.On("ExtractK8sResourcesFromContainer", mock.Anything, mock.Anything, mock.Anything).Return(yamlResult, nil)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 		managerWithMocks.applierMock.On("ApplyWithOwner", mock.Anything, "", ldapCr).Return(nil)
 // 		managerWithMocks.resourceUpserter.On("UpsertDoguDeployment", ctx, ldapCr, ldapDogu, mock.Anything).Once().Return(nil, nil)
@@ -238,8 +238,8 @@ package controllers
 // 		managerWithMocks.serviceAccountCreatorMock.On("CreateAll", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 // 		yamlResult := make(map[string]string, 0)
 // 		managerWithMocks.fileExtractorMock.On("ExtractK8sResourcesFromContainer", mock.Anything, mock.Anything, mock.Anything).Return(yamlResult, nil)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapDevelopmentDoguMap)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapDevelopmentDoguMap)
 //
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...").
 // 			On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...").
@@ -265,7 +265,7 @@ package controllers
 // 		managerWithMocks.AssertMocks(t)
 //
 // 		actualDevelopmentDoguMap := new(corev1.ConfigMap)
-// 		err = managerWithMocks.installManager.client.Get(ctx, ldapCr.GetDevelopmentDoguMapKey(), actualDevelopmentDoguMap)
+// 		err = managerWithMocks.installManager.clientset.Get(ctx, ldapCr.GetDevelopmentDoguMapKey(), actualDevelopmentDoguMap)
 // 		require.True(t, apierrors.IsNotFound(err))
 //
 // 	})
@@ -276,7 +276,7 @@ package controllers
 // 		ldapCr, ldapDogu, _, _ := getDoguInstallManagerTestData(t)
 // 		managerWithMocks.resourceDoguFetcher.On("FetchWithResource", ctx, ldapCr).Return(ldapDogu, nil, nil)
 // 		managerWithMocks.dependencyValidatorMock.On("ValidateDependencies", ctx, mock.Anything).Return(assert.AnError)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...")
 //
@@ -297,7 +297,7 @@ package controllers
 // 		managerWithMocks.resourceDoguFetcher.On("FetchWithResource", ctx, ldapCr).Return(ldapDogu, nil, nil)
 // 		managerWithMocks.doguRegistratorMock.On("RegisterNewDogu", mock.Anything, mock.Anything, mock.Anything).Return(assert.AnError)
 // 		managerWithMocks.dependencyValidatorMock.On("ValidateDependencies", ctx, mock.Anything).Return(nil)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...")
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...")
@@ -320,7 +320,7 @@ package controllers
 // 		managerWithMocks.doguRegistratorMock.On("RegisterNewDogu", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 // 		managerWithMocks.dependencyValidatorMock.On("ValidateDependencies", ctx, mock.Anything).Return(nil)
 // 		managerWithMocks.doguSecretHandlerMock.On("WriteDoguSecretsToRegistry", mock.Anything, mock.Anything).Return(assert.AnError)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...")
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...")
@@ -345,7 +345,7 @@ package controllers
 // 		managerWithMocks.dependencyValidatorMock.On("ValidateDependencies", ctx, mock.Anything).Return(nil)
 // 		managerWithMocks.doguSecretHandlerMock.On("WriteDoguSecretsToRegistry", mock.Anything, mock.Anything).Return(nil)
 // 		managerWithMocks.serviceAccountCreatorMock.On("CreateAll", mock.Anything, mock.Anything, mock.Anything).Return(assert.AnError)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...")
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...")
@@ -381,7 +381,7 @@ package controllers
 // 		ldapCr, _, _, _ := getDoguInstallManagerTestData(t)
 // 		managerWithMocks.resourceDoguFetcher.On("FetchWithResource", ctx, ldapCr).Return(nil, nil, assert.AnError)
 //
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 		// when
 // 		err := managerWithMocks.installManager.Install(ctx, ldapCr)
@@ -403,7 +403,7 @@ package controllers
 // 		managerWithMocks.dependencyValidatorMock.On("ValidateDependencies", ctx, mock.Anything).Return(nil)
 // 		managerWithMocks.doguSecretHandlerMock.On("WriteDoguSecretsToRegistry", mock.Anything, mock.Anything).Return(nil)
 // 		managerWithMocks.serviceAccountCreatorMock.On("CreateAll", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-// 		_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 		_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...")
 // 		managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...")
@@ -433,7 +433,7 @@ package controllers
 // 			yamlResult := make(map[string]string, 0)
 // 			managerWithMocks.fileExtractorMock.On("ExtractK8sResourcesFromContainer", mock.Anything, mock.Anything, mock.Anything).Return(yamlResult, nil)
 // 			ldapCr.ResourceVersion = ""
-// 			_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 			_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 			managerWithMocks.resourceUpserter.On("UpsertDoguDeployment", ctx, ldapCr, ldapDogu, mock.Anything).Once().Return(nil, nil)
 // 			managerWithMocks.resourceUpserter.On("UpsertDoguService", ctx, ldapCr, imageConfig).Once().Return(nil, nil)
@@ -471,7 +471,7 @@ package controllers
 // 			yamlResult := make(map[string]string, 0)
 // 			managerWithMocks.fileExtractorMock.On("ExtractK8sResourcesFromContainer", mock.Anything, mock.Anything, mock.Anything).Return(yamlResult, nil)
 // 			ldapCr.ResourceVersion = ""
-// 			_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 			_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 			managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...").
 // 				On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...").
@@ -508,7 +508,7 @@ package controllers
 // 			managerWithMocks.doguSecretHandlerMock.On("WriteDoguSecretsToRegistry", mock.Anything, mock.Anything).Return(nil)
 // 			managerWithMocks.serviceAccountCreatorMock.On("CreateAll", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 // 			ldapCr.ResourceVersion = ""
-// 			_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 			_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 			managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...").
 // 				On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...").
@@ -537,7 +537,7 @@ package controllers
 // 			managerWithMocks.doguSecretHandlerMock.On("WriteDoguSecretsToRegistry", mock.Anything, mock.Anything).Return(nil)
 // 			managerWithMocks.serviceAccountCreatorMock.On("CreateAll", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 // 			ldapCr.ResourceVersion = ""
-// 			_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 			_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 			managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...").
 // 				On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...").
@@ -569,7 +569,7 @@ package controllers
 // 			yamlResult := make(map[string]string, 0)
 // 			managerWithMocks.fileExtractorMock.On("ExtractK8sResourcesFromContainer", mock.Anything, mock.Anything, mock.Anything).Return(yamlResult, nil)
 // 			ldapCr.ResourceVersion = ""
-// 			_ = managerWithMocks.installManager.client.Create(ctx, ldapCr)
+// 			_ = managerWithMocks.installManager.clientset.Create(ctx, ldapCr)
 //
 // 			managerWithMocks.recorder.On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Checking dependencies...").
 // 				On("Event", mock.Anything, corev1.EventTypeNormal, InstallEventReason, "Registering in the local dogu registry...").

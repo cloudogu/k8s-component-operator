@@ -2,12 +2,14 @@ package ecosystem
 
 import (
 	"context"
+	"fmt"
 	v1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 )
 
@@ -15,17 +17,57 @@ type ComponentInterface interface {
 	Create(ctx context.Context, component *v1.Component, opts metav1.CreateOptions) (*v1.Component, error)
 	Update(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (*v1.Component, error)
 	UpdateStatus(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (*v1.Component, error)
+	UpdateStatusInstalling(ctx context.Context, component *v1.Component) (*v1.Component, error)
+	UpdateStatusInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error)
+	UpdateStatusUpgrading(ctx context.Context, component *v1.Component) (*v1.Component, error)
+	UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Component, error)
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.ComponentList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Component, err error)
+	AddFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error)
 }
 
 type componentClient struct {
 	client rest.Interface
 	ns     string
+}
+
+// UpdateStatusInstalling sets the status of the component to "installing".
+func (d *componentClient) UpdateStatusInstalling(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusInstalling}
+	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+}
+
+// UpdateStatusInstalled sets the status of the component to "installed".
+func (d *componentClient) UpdateStatusInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusInstalled}
+	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+}
+
+// UpdateStatusUpgrading sets the status of the component to "upgrading".
+func (d *componentClient) UpdateStatusUpgrading(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusUpgrading}
+	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+}
+
+// UpdateStatusDeleting sets the status of the component to "deleting".
+func (d *componentClient) UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusDeleting}
+	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+}
+
+// AddFinalizer adds the given finalizer to the component.
+func (d *componentClient) AddFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error) {
+	controllerutil.AddFinalizer(component, finalizer)
+	result, err := d.Update(ctx, component, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to add finalizer %s to component: %w", finalizer, err)
+	}
+
+	return result, nil
 }
 
 // Get takes name of the component, and returns the corresponding component object, and an error if there is any.
