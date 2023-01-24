@@ -1,16 +1,25 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"github.com/cloudogu/cesapp-lib/core"
+	"gopkg.in/yaml.v3"
+	"k8s.io/apimachinery/pkg/api/errors"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (
-	StageDevelopment         = "development"
-	StageProduction          = "production"
-	StageEnvironmentVariable = "STAGE"
+	StageDevelopment           = "development"
+	StageProduction            = "production"
+	StageEnvironmentVariable   = "STAGE"
+	runtimeEnvironmentVariable = "RUNTIME"
+	runtimeLocal               = "local"
+	devHelmRepoDataPath        = "k8s/helm-repository.yaml"
+	helmRepositorySecretName   = "component-operator-helm-repository"
 )
 
 var Stage = StageProduction
@@ -33,7 +42,7 @@ type OperatorConfig struct {
 	// Version contains the current version of the operator
 	Version *core.Version `json:"version"`
 	// HelmRepositoryData contains all necessary data for the helm repository.
-	HelmRepositoryData HelmRepositoryData `json:"helm_repository"`
+	HelmRepositoryData *HelmRepositoryData `json:"helm_repository"`
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
@@ -64,6 +73,54 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 		Namespace: namespace,
 		Version:   &parsedVersion,
 	}, nil
+}
+
+// GetHelmRepositoryData reads the repository data either from file or from a secret in the cluster.
+func GetHelmRepositoryData(secretClient v1.SecretInterface) (*HelmRepositoryData, error) {
+	runtime, err := getEnvVar(runtimeEnvironmentVariable)
+	if err != nil {
+		log.Info("Runtime env var not found.")
+	}
+
+	if runtime == runtimeLocal {
+		return getHelmRepositoryDataFromFile()
+	} else {
+		return getHelmRepositoryFromSecret(secretClient)
+	}
+}
+
+func getHelmRepositoryFromSecret(secretClient v1.SecretInterface) (*HelmRepositoryData, error) {
+	secret, err := secretClient.Get(context.TODO(), helmRepositorySecretName, v12.GetOptions{})
+	if errors.IsNotFound(err) {
+		return nil, fmt.Errorf("helm repository secret %s not found: %w", helmRepositorySecretName, err)
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to get helm repository secret %s: %w", helmRepositorySecretName, err)
+	}
+
+	return &HelmRepositoryData{
+		Endpoint: string(secret.Data["endpoint"]),
+		Username: string(secret.Data["username"]),
+		Password: string(secret.Data["password"]),
+	}, nil
+}
+
+func getHelmRepositoryDataFromFile() (*HelmRepositoryData, error) {
+	data := &HelmRepositoryData{}
+	if _, err := os.Stat(devHelmRepoDataPath); os.IsNotExist(err) {
+		return data, fmt.Errorf("could not find configuration at %s", devHelmRepoDataPath)
+	}
+
+	fileData, err := os.ReadFile(devHelmRepoDataPath)
+	if err != nil {
+		return data, fmt.Errorf("failed to read configuration %s: %w", devHelmRepoDataPath, err)
+	}
+
+	err = yaml.Unmarshal(fileData, data)
+	if err != nil {
+		return data, fmt.Errorf("failed to unmarshal configuration %s: %w", devHelmRepoDataPath, err)
+	}
+
+	return data, nil
 }
 
 func readNamespace() (string, error) {

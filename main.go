@@ -77,9 +77,6 @@ func startOperator() error {
 		return fmt.Errorf("failed to configure manager: %w", err)
 	}
 
-	// print starting info to stderr; we don't use the logger here because by default the level must be ERROR
-	println("Starting manager...")
-
 	return startK8sManager(k8sManager)
 }
 
@@ -135,6 +132,12 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 	if err != nil {
 		return fmt.Errorf("failed to create clientset: %w", err)
 	}
+
+	helmRepoData, err := config.GetHelmRepositoryData(clientSet.CoreV1().Secrets(operatorConfig.Namespace))
+	if err != nil {
+		return err
+	}
+	operatorConfig.HelmRepositoryData = helmRepoData
 
 	componentClientSet, err := ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	if err != nil {

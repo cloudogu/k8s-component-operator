@@ -17,6 +17,7 @@ type componentInstallManager struct {
 	componentClient ecosystem.ComponentInterface
 	helmClient      helmclient.Client
 	namespace       string
+	helmRepoSecret  *config.HelmRepositoryData
 }
 
 // NewComponentInstallManager creates a new instance of componentInstallManager.
@@ -26,6 +27,7 @@ func NewComponentInstallManager(config *config.OperatorConfig, clientset *ecosys
 		namespace:       config.Namespace,
 		componentClient: clientset.EcosystemV1Alpha1().Components(config.Namespace),
 		helmClient:      helmClient,
+		helmRepoSecret:  config.HelmRepositoryData,
 	}
 }
 
@@ -48,10 +50,9 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	}
 
 	logger.Info("Add helm repo...")
-	// TODO - create Helm repo secret
 	helmRepository := repo.Entry{
 		Name:                  component.Spec.Namespace,
-		URL:                   fmt.Sprintf("http://chartmuseum.ecosystem.svc.cluster.local:8080/%s", component.Spec.Namespace),
+		URL:                   fmt.Sprintf("%s/%s", cim.helmRepoSecret.Endpoint, component.Spec.Namespace),
 		InsecureSkipTLSverify: true,
 		PassCredentialsAll:    false,
 	}
