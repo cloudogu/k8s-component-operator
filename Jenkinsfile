@@ -97,6 +97,9 @@ node('docker') {
             }
 
             stage('Deploy Manager') {
+                // TODO Install dev repo like chartmuseum.
+                k3d.kubectl("create secret generic component-operator-helm-repository --from-literal=username=changeme " +
+                        "--from-literal=password=changeme --from-literal=endpoint=changeme --namespace default")
                 k3d.kubectl("apply -f ${sourceDeploymentYaml}")
             }
 
