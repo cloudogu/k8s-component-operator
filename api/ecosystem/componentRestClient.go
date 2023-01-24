@@ -28,6 +28,7 @@ type ComponentInterface interface {
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Component, err error)
 	AddFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error)
+	RemoveFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error)
 }
 
 type componentClient struct {
@@ -68,6 +69,17 @@ func (d *componentClient) AddFinalizer(ctx context.Context, component *v1.Compon
 	}
 
 	return result, nil
+}
+
+// RemoveFinalizer removes the given finalizer to the component.
+func (d *componentClient) RemoveFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error) {
+	controllerutil.RemoveFinalizer(component, finalizer)
+	result, err := d.Update(ctx, component, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to remove finalizer %s to component: %w", finalizer, err)
+	}
+
+	return result, err
 }
 
 // Get takes name of the component, and returns the corresponding component object, and an error if there is any.

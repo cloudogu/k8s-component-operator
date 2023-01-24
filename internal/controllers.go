@@ -11,7 +11,21 @@ type InstallManager interface {
 	Install(ctx context.Context, component *v1.Component) error
 }
 
+// DeleteManager includes functionality to delete components in the cluster.
+type DeleteManager interface {
+	// Delete deletes a component resource.
+	Delete(ctx context.Context, component *v1.Component) error
+}
+
+// UpgradeManager includes functionality to upgrade components in the cluster.
+type UpgradeManager interface {
+	// Upgrade upgrades a component resource.
+	Upgrade(ctx context.Context, component *v1.Component) error
+}
+
 // ComponentManager abstracts the simple component operations in a k8s CES.
 type ComponentManager interface {
 	InstallManager
+	DeleteManager
+	UpgradeManager
 }

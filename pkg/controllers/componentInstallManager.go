@@ -7,27 +7,26 @@ import (
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/mittwald/go-helm-client"
-	repo "helm.sh/helm/v3/pkg/repo"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"helm.sh/helm/v3/pkg/repo"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
-
-const k8sDoguOperatorFieldManagerName = "k8s-component-operator"
 
 // componentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
 type componentInstallManager struct {
 	clientset       *ecosystem.EcosystemClientset
 	componentClient ecosystem.ComponentInterface
+	helmClient      helmclient.Client
 	namespace       string
 }
 
 // NewComponentInstallManager creates a new instance of componentInstallManager.
-func NewComponentInstallManager(config *config.OperatorConfig, clientset *ecosystem.EcosystemClientset) (*componentInstallManager, error) {
+func NewComponentInstallManager(config *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentInstallManager {
 	return &componentInstallManager{
 		clientset:       clientset,
 		namespace:       config.Namespace,
 		componentClient: clientset.EcosystemV1Alpha1().Components(config.Namespace),
-	}, nil
+		helmClient:      helmClient,
+	}
 }
 
 // Install installs a given Component Resource.
@@ -48,50 +47,22 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 		return err
 	}
 
-	logger.Info("Creating helm clientset...")
-	opt := &helmclient.RestConfClientOptions{
-		Options: &helmclient.Options{
-			Namespace:        cim.namespace, // Change this to the namespace you wish the clientset to operate in.
-			RepositoryCache:  "/tmp/.helmcache",
-			RepositoryConfig: "/tmp/.helmrepo",
-			Debug:            true,
-			Linting:          true, // Change this to false if you don't want linting.
-			DebugLog:         logger.Info,
-		},
-		RestConfig: ctrl.GetConfigOrDie(),
-	}
-
-	helmClient, err := helmclient.NewClientFromRestConf(opt)
-	if err != nil {
-		return fmt.Errorf("failed to create helm clientset: %w", err)
-	}
-
 	logger.Info("Add helm repo...")
-	devRepo := repo.Entry{
-		Name:                  "k8s",
-		URL:                   "http://chartmuseum.ecosystem.svc.cluster.local:8080/k8s",
+	// TODO - create Helm repo secret
+	helmRepository := repo.Entry{
+		Name:                  component.Spec.Namespace,
+		URL:                   fmt.Sprintf("http://chartmuseum.ecosystem.svc.cluster.local:8080/%s", component.Spec.Namespace),
 		InsecureSkipTLSverify: true,
 		PassCredentialsAll:    false,
 	}
-	err = helmClient.AddOrUpdateChartRepo(devRepo)
+
+	err = cim.helmClient.AddOrUpdateChartRepo(helmRepository)
 	if err != nil {
 		return fmt.Errorf("failed to add helm repository: %w", err)
 	}
 
-	err = helmClient.UpdateChartRepos()
-	if err != nil {
-		return fmt.Errorf("failed to update chart repositories: %w", err)
-	}
-
 	logger.Info("Install helm chart...")
-	chartSpec := &helmclient.ChartSpec{
-		ReleaseName: component.Spec.Name,
-		ChartName:   fmt.Sprintf("k8s/%s", component.Spec.Name),
-		Namespace:   cim.namespace,
-		ValuesYaml:  "",
-		Version:     component.Spec.Version,
-	}
-	_, err = helmClient.InstallOrUpgradeChart(ctx, chartSpec, nil)
+	_, err = cim.helmClient.InstallOrUpgradeChart(ctx, component.GetHelmChartSpec(), nil)
 	if err != nil {
 		return fmt.Errorf("failed to install chart: %w", err)
 	}

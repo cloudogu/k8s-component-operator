@@ -27,7 +27,7 @@ package controllers
 // 	dogu := &k8sv1.Dogu{}
 // 	volumeManagerMock := mocks.NewVolumeManager(t)
 // 	eventRecorderMock := external.NewEventRecorder(t)
-// 	manager := DoguManager{volumeManager: volumeManagerMock, recorder: eventRecorderMock}
+// 	manager := componentManager{volumeManager: volumeManagerMock, recorder: eventRecorderMock}
 //
 // 	eventRecorderMock.On("Event", dogu, "Normal", "VolumeExpansion", "Start volume expansion...")
 // 	volumeManagerMock.On("SetDoguDataVolumeSize", mock.Anything, mock.Anything).Return(nil)
@@ -44,7 +44,7 @@ package controllers
 // 	dogu := &k8sv1.Dogu{}
 // 	supportManagerMock := mocks.NewSupportManager(t)
 // 	eventRecorderMock := external.NewEventRecorder(t)
-// 	manager := DoguManager{supportManager: supportManagerMock, recorder: eventRecorderMock}
+// 	manager := componentManager{supportManager: supportManagerMock, recorder: eventRecorderMock}
 //
 // 	supportManagerMock.On("HandleSupportMode", mock.Anything, mock.Anything).Return(true, nil)
 //
@@ -63,7 +63,7 @@ package controllers
 // 	deleteManager := mocks.NewDeleteManager(t)
 // 	deleteManager.On("Delete", inputContext, inputDogu).Return(nil)
 // 	eventRecorder := external.NewEventRecorder(t)
-// 	m := DoguManager{deleteManager: deleteManager, recorder: eventRecorder}
+// 	m := componentManager{deleteManager: deleteManager, recorder: eventRecorder}
 //
 // 	eventRecorder.On("Event", inputDogu, corev1.EventTypeNormal, "Deinstallation", "Starting deinstallation...")
 //
@@ -81,7 +81,7 @@ package controllers
 // 	installManager := mocks.NewInstallManager(t)
 // 	installManager.On("Install", inputContext, inputDogu).Return(nil)
 // 	eventRecorder := external.NewEventRecorder(t)
-// 	m := DoguManager{installManager: installManager, recorder: eventRecorder}
+// 	m := componentManager{installManager: installManager, recorder: eventRecorder}
 //
 // 	eventRecorder.On("Event", inputDogu, corev1.EventTypeNormal, InstallEventReason, "Starting installation...")
 //
@@ -99,7 +99,7 @@ package controllers
 // 	upgradeManager := mocks.NewUpgradeManager(t)
 // 	upgradeManager.On("Upgrade", inputContext, inputDogu).Return(nil)
 // 	eventRecorder := external.NewEventRecorder(t)
-// 	m := DoguManager{upgradeManager: upgradeManager, recorder: eventRecorder}
+// 	m := componentManager{upgradeManager: upgradeManager, recorder: eventRecorder}
 //
 // 	eventRecorder.On("Event", inputDogu, corev1.EventTypeNormal, upgrade.EventReason, "Starting upgrade...")
 //

@@ -3,10 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/cesapp-lib/core"
 	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/internal"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	helmclient "github.com/mittwald/go-helm-client"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -25,23 +27,20 @@ const (
 
 // componentReconciler watches every Component object in the cluster and handles them accordingly.
 type componentReconciler struct {
-	client          *ecosystem.EcosystemClientset
-	recorder        record.EventRecorder
-	componentManger internal.ComponentManager
+	client           *ecosystem.EcosystemClientset
+	recorder         record.EventRecorder
+	componentManager internal.ComponentManager
+	helmClient       helmclient.Client
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientset *ecosystem.EcosystemClientset, recorder record.EventRecorder, config *config.OperatorConfig) (*componentReconciler, error) {
-	manager, err := NewComponentManager(config, clientset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create component manager: %w", err)
-	}
-
+func NewComponentReconciler(clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client, recorder record.EventRecorder, config *config.OperatorConfig) *componentReconciler {
 	return &componentReconciler{
-		client:          clientset,
-		recorder:        recorder,
-		componentManger: manager,
-	}, nil
+		client:           clientset,
+		recorder:         recorder,
+		componentManager: NewComponentManager(config, clientset, helmClient),
+		helmClient:       helmClient,
+	}
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -65,8 +64,11 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	switch operation {
 	case Install:
-		err = r.componentManger.Install(ctx, component)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, r.componentManager.Install(ctx, component)
+	case Delete:
+		return ctrl.Result{}, r.componentManager.Delete(ctx, component)
+	case Upgrade:
+		return ctrl.Result{}, r.componentManager.Upgrade(ctx, component)
 	case Ignore:
 		return ctrl.Result{}, nil
 	default:
@@ -84,6 +86,14 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	case k8sv1.ComponentStatusNotInstalled:
 		return Install, nil
 	case k8sv1.ComponentStatusInstalled:
+		upgrade, err := r.checkUpgradeAbility(component)
+		if err != nil {
+			return "", err
+		}
+
+		if upgrade {
+			return Upgrade, nil
+		}
 		return Ignore, nil
 	case k8sv1.ComponentStatusInstalling:
 		return Ignore, nil
@@ -93,6 +103,41 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 		logger.Info(fmt.Sprintf("Found unknown operation for component status: %s", component.Status.Status))
 		return Ignore, nil
 	}
+}
+
+func (r *componentReconciler) checkUpgradeAbility(component *k8sv1.Component) (bool, error) {
+	deployedReleases, err := r.helmClient.ListDeployedReleases()
+	if err != nil {
+		return false, fmt.Errorf("failed to get deployed helm releases: %w", err)
+	}
+
+	for _, release := range deployedReleases {
+		// This will allow a namespace switch e. g. k8s/dogu-operator -> k8s-testing/dogu-operator.
+		if release.Name == component.Spec.Name && release.Namespace == component.Namespace {
+			chart := release.Chart
+			deployedVersion, err := core.ParseVersion(chart.AppVersion())
+			if err != nil {
+				return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
+			}
+
+			componentVersion, err := core.ParseVersion(component.Spec.Version)
+			if err != nil {
+				return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
+			}
+
+			if deployedVersion.IsOlderThan(componentVersion) {
+				return true, nil
+			}
+
+			if deployedVersion.IsNewerThan(componentVersion) {
+				return false, fmt.Errorf("downgrades are not allowed")
+			}
+
+			break
+		}
+	}
+
+	return false, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

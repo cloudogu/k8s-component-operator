@@ -2,6 +2,8 @@ package v1
 
 import (
 	"embed"
+	"fmt"
+	helmclient "github.com/mittwald/go-helm-client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,9 +34,11 @@ const (
 
 const FinalizerName = "component-finalizer"
 
-// ComponentSpec defines the desired state of a component
+// ComponentSpec defines the desired state of a component.
 type ComponentSpec struct {
-	// Name of the component (e.g. official/ldap)
+	// Namespace of the component (e.g. k8s)
+	Namespace string `json:"namespace,omitempty"`
+	// Name of the component (e.g. k8s-dogu-operator)
 	Name string `json:"name,omitempty"`
 	// Version of the component (e.g. 2.4.48-3)
 	Version string `json:"version,omitempty"`
@@ -42,7 +46,7 @@ type ComponentSpec struct {
 
 // ComponentStatus defines the observed state of a Component.
 type ComponentStatus struct {
-	// Status represents the state of the Dogu in the ecosystem
+	// Status represents the state of the component in the ecosystem.
 	Status string `json:"status"`
 }
 
@@ -56,6 +60,16 @@ type Component struct {
 
 	Spec   ComponentSpec   `json:"spec,omitempty"`
 	Status ComponentStatus `json:"status,omitempty"`
+}
+
+// GetHelmChartSpec returns the helm chart for the component cr without custom values.
+func (c *Component) GetHelmChartSpec() *helmclient.ChartSpec {
+	return &helmclient.ChartSpec{
+		ReleaseName: c.Spec.Name,
+		ChartName:   fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name),
+		Namespace:   c.Namespace,
+		Version:     c.Spec.Version,
+	}
 }
 
 // +kubebuilder:object:root=true

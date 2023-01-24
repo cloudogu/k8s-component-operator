@@ -5,7 +5,6 @@ import (
 	"github.com/cloudogu/cesapp-lib/core"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"strings"
 )
 
 const (
@@ -17,19 +16,14 @@ const (
 var Stage = StageProduction
 
 var (
-	envVarNamespace             = "NAMESPACE"
-	envVarDoguRegistryEndpoint  = "DOGU_REGISTRY_ENDPOINT"
-	envVarDoguRegistryUsername  = "DOGU_REGISTRY_USERNAME"
-	envVarDoguRegistryPassword  = "DOGU_REGISTRY_PASSWORD"
-	envVarDoguRegistryURLSchema = "DOGU_REGISTRY_URLSCHEMA"
-	log                         = ctrl.Log.WithName("config")
+	envVarNamespace = "NAMESPACE"
+	log             = ctrl.Log.WithName("config")
 )
 
-type DoguRegistryData struct {
-	Endpoint  string `json:"endpoint"`
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	URLSchema string `json:"urlschema"`
+type HelmRepositoryData struct {
+	Endpoint string `json:"endpoint"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 // OperatorConfig contains all configurable values for the dogu operator.
@@ -38,8 +32,8 @@ type OperatorConfig struct {
 	Namespace string `json:"namespace"`
 	// Version contains the current version of the operator
 	Version *core.Version `json:"version"`
-	// DoguRegistry contains all necessary data for the dogu registry.
-	DoguRegistry DoguRegistryData `json:"dogu_registry"`
+	// HelmRepositoryData contains all necessary data for the helm repository.
+	HelmRepositoryData HelmRepositoryData `json:"helm_repository"`
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
@@ -65,48 +59,10 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 		return nil, fmt.Errorf("failed to read namespace: %w", err)
 	}
 	log.Info(fmt.Sprintf("Deploying the k8s dogu operator in namespace %s", namespace))
-	// doguRegistryData, err := readDoguRegistryData()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to read dogu registry data: %w", err)
-	// }
-	// log.Info(fmt.Sprintf("Found stored dogu registry data! Using dogu registry %s", doguRegistryData.Endpoint))
 
 	return &OperatorConfig{
-		Namespace:    namespace,
-		Version:      &parsedVersion,
-		DoguRegistry: DoguRegistryData{},
-	}, nil
-}
-
-func readDoguRegistryData() (DoguRegistryData, error) {
-	endpoint, err := getEnvVar(envVarDoguRegistryEndpoint)
-	if err != nil {
-		return DoguRegistryData{}, fmt.Errorf("failed to get env var [%s]: %w", envVarDoguRegistryEndpoint, err)
-	}
-	// remove tailing slash
-	endpoint = strings.TrimSuffix(endpoint, "/")
-
-	username, err := getEnvVar(envVarDoguRegistryUsername)
-	if err != nil {
-		return DoguRegistryData{}, fmt.Errorf("failed to get env var [%s]: %w", envVarDoguRegistryUsername, err)
-	}
-
-	password, err := getEnvVar(envVarDoguRegistryPassword)
-	if err != nil {
-		return DoguRegistryData{}, fmt.Errorf("failed to get env var [%s]: %w", envVarDoguRegistryPassword, err)
-	}
-
-	urlschema, err := getEnvVar(envVarDoguRegistryURLSchema)
-	if err != nil {
-		log.Info(envVarDoguRegistryURLSchema + " not set, using default")
-		urlschema = "default"
-	}
-
-	return DoguRegistryData{
-		Endpoint:  endpoint,
-		Username:  username,
-		Password:  password,
-		URLSchema: urlschema,
+		Namespace: namespace,
+		Version:   &parsedVersion,
 	}, nil
 }
 

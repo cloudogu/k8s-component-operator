@@ -6,32 +6,42 @@ import (
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
 	"github.com/cloudogu/k8s-component-operator/internal"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"github.com/mittwald/go-helm-client"
 	"k8s.io/client-go/tools/record"
 )
 
-// NewManager is an alias mainly used for testing the main package
+// NewManager is an alias mainly used for testing the main package.
 var NewManager = NewComponentManager
 
-// DoguManager is a central unit in the process of handling dogu custom resources
-// The DoguManager creates, updates and deletes dogus
-type DoguManager struct {
+// componentManager is a central unit in the process of handling component custom resources.
+// The componentManager creates, updates and deletes components.
+type componentManager struct {
 	installManager internal.InstallManager
+	deleteManager  internal.DeleteManager
+	upgradeManager internal.UpgradeManager
 	recorder       record.EventRecorder
 }
 
-// NewComponentManager creates a new instance of DoguManager
-func NewComponentManager(operatorConfig *config.OperatorConfig, clientset *ecosystem.EcosystemClientset) (*DoguManager, error) {
-	installManager, err := NewComponentInstallManager(operatorConfig, clientset)
-	if err != nil {
-		return nil, err
+// NewComponentManager creates a new instance of componentManager.
+func NewComponentManager(operatorConfig *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentManager {
+	return &componentManager{
+		installManager: NewComponentInstallManager(operatorConfig, clientset, helmClient),
+		deleteManager:  NewComponentDeleteManager(operatorConfig, clientset, helmClient),
+		upgradeManager: NewComponentUpgradeManager(operatorConfig, clientset, helmClient),
 	}
-
-	return &DoguManager{
-		installManager: installManager,
-	}, nil
 }
 
-// Install installs component resource.
-func (m *DoguManager) Install(ctx context.Context, component *k8sv1.Component) error {
+// Install installs  the given component resource.
+func (m *componentManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	return m.installManager.Install(ctx, component)
+}
+
+// Delete deletes the given component resource.
+func (m *componentManager) Delete(ctx context.Context, component *k8sv1.Component) error {
+	return m.deleteManager.Delete(ctx, component)
+}
+
+// Upgrade upgrades the given component resource.
+func (m *componentManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
+	return m.upgradeManager.Upgrade(ctx, component)
 }
