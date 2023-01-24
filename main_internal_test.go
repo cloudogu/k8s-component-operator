@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	v1 "github.com/cloudogu/k8s-component-operator/api/v1"
-
 	"os"
 	"testing"
 
@@ -47,6 +46,7 @@ func getNewMockManager(expectedErrorOnNewManager error, definitions map[string]m
 	ctrl.SetLogger = func(l logr.Logger) {
 		k8sManager.Mock.On("GetLogger").Return(l)
 	}
+
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
 	return k8sManager
@@ -113,6 +113,7 @@ func Test_startDoguOperator(t *testing.T) {
 	})
 
 	t.Setenv("NAMESPACE", "mynamespace")
+	t.Setenv("RUNTIME", "local")
 	t.Run("Test without logger environment variables", func(t *testing.T) {
 		// given
 		k8sManager := getNewMockManager(nil, defaultMockDefinitions)
