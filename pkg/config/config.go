@@ -18,11 +18,13 @@ const (
 	StageEnvironmentVariable   = "STAGE"
 	runtimeEnvironmentVariable = "RUNTIME"
 	runtimeLocal               = "local"
-	devHelmRepoDataPath        = "k8s/helm-repository.yaml"
 	helmRepositorySecretName   = "component-operator-helm-repository"
 )
 
-var Stage = StageProduction
+var (
+	Stage               = StageProduction
+	devHelmRepoDataPath = "k8s/helm-repository.yaml"
+)
 
 var (
 	envVarNamespace = "NAMESPACE"
@@ -43,6 +45,10 @@ type OperatorConfig struct {
 	Version *core.Version `json:"version"`
 	// HelmRepositoryData contains all necessary data for the helm repository.
 	HelmRepositoryData *HelmRepositoryData `json:"helm_repository"`
+}
+
+type OperatorConfigBuilder struct {
+	helmRepositorySecretPath string
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
