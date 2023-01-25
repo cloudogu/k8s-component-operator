@@ -1,0 +1,12 @@
+env:
+  open:
+    STORAGE: local
+    DISABLE_API: false
+    DEPTH: 1
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 100Mi
+service:
+  type: NodePort
+  nodePort: 30100
