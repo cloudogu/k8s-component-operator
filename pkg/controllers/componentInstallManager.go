@@ -62,7 +62,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 		return fmt.Errorf("failed to install chart: %w", err)
 	}
 
-	component, err = cim.componentClient.UpdateStatusInstalled(ctx, component)
+	_, err = cim.componentClient.UpdateStatusInstalled(ctx, component)
 	if err != nil {
 		return fmt.Errorf("failed to set status installed: %w", err)
 	}

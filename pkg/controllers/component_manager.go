@@ -6,6 +6,7 @@ import (
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/mittwald/go-helm-client"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
 
@@ -57,15 +58,18 @@ func NewComponentManager(operatorConfig *config.OperatorConfig, clientset ecosys
 
 // Install installs  the given component resource.
 func (m *componentManager) Install(ctx context.Context, component *k8sv1.Component) error {
+	m.recorder.Event(component, corev1.EventTypeNormal, InstallEventReason, "Starting installation...")
 	return m.installManager.Install(ctx, component)
 }
 
 // Delete deletes the given component resource.
 func (m *componentManager) Delete(ctx context.Context, component *k8sv1.Component) error {
+	m.recorder.Event(component, corev1.EventTypeNormal, DeinstallEventReason, "Starting deinstallation...")
 	return m.deleteManager.Delete(ctx, component)
 }
 
 // Upgrade upgrades the given component resource.
 func (m *componentManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
+	m.recorder.Event(component, corev1.EventTypeNormal, UpgradeEventReason, "Starting upgrade...")
 	return m.upgradeManager.Upgrade(ctx, component)
 }

@@ -18,6 +18,18 @@ import (
 type operation string
 
 const (
+	InstallEventReason = "Installation"
+)
+
+const (
+	DeinstallEventReason = "Deinstallation"
+)
+
+const (
+	UpgradeEventReason = "Upgrade"
+)
+
+const (
 	Install = operation("Install")
 	Upgrade = operation("Upgrade")
 	Delete  = operation("Delete")

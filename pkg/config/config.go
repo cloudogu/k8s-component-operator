@@ -47,10 +47,6 @@ type OperatorConfig struct {
 	HelmRepositoryData *HelmRepositoryData `json:"helm_repository"`
 }
 
-type OperatorConfigBuilder struct {
-	helmRepositorySecretPath string
-}
-
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
 func NewOperatorConfig(version string) (*OperatorConfig, error) {
 	stage, err := getEnvVar(StageEnvironmentVariable)
