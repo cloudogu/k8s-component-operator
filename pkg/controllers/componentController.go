@@ -6,7 +6,6 @@ import (
 	"github.com/cloudogu/cesapp-lib/core"
 	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
-	"github.com/cloudogu/k8s-component-operator/internal"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	helmclient "github.com/mittwald/go-helm-client"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,11 +24,18 @@ const (
 	Ignore  = operation("Ignore")
 )
 
+// ComponentManager abstracts the simple component operations in a k8s CES.
+type ComponentManager interface {
+	InstallManager
+	DeleteManager
+	UpgradeManager
+}
+
 // componentReconciler watches every Component object in the cluster and handles them accordingly.
 type componentReconciler struct {
 	client           *ecosystem.EcosystemClientset
 	recorder         record.EventRecorder
-	componentManager internal.ComponentManager
+	componentManager ComponentManager
 	helmClient       helmclient.Client
 }
 

@@ -4,11 +4,28 @@ import (
 	"context"
 	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
-	"github.com/cloudogu/k8s-component-operator/internal"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/mittwald/go-helm-client"
 	"k8s.io/client-go/tools/record"
 )
+
+// InstallManager includes functionality to install components in the cluster.
+type InstallManager interface {
+	// Install installs a component resource.
+	Install(ctx context.Context, component *k8sv1.Component) error
+}
+
+// DeleteManager includes functionality to delete components in the cluster.
+type DeleteManager interface {
+	// Delete deletes a component resource.
+	Delete(ctx context.Context, component *k8sv1.Component) error
+}
+
+// UpgradeManager includes functionality to upgrade components in the cluster.
+type UpgradeManager interface {
+	// Upgrade upgrades a component resource.
+	Upgrade(ctx context.Context, component *k8sv1.Component) error
+}
 
 // NewManager is an alias mainly used for testing the main package.
 var NewManager = NewComponentManager
@@ -16,9 +33,9 @@ var NewManager = NewComponentManager
 // componentManager is a central unit in the process of handling component custom resources.
 // The componentManager creates, updates and deletes components.
 type componentManager struct {
-	installManager internal.InstallManager
-	deleteManager  internal.DeleteManager
-	upgradeManager internal.UpgradeManager
+	installManager InstallManager
+	deleteManager  DeleteManager
+	upgradeManager UpgradeManager
 	recorder       record.EventRecorder
 }
 
