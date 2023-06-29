@@ -56,7 +56,7 @@ func NewComponentManager(operatorConfig *config.OperatorConfig, clientset *ecosy
 	return &componentManager{
 		installManager: NewComponentInstallManager(operatorConfig, clientset, helmClient),
 		deleteManager:  NewComponentDeleteManager(componentClient, helmClient),
-		upgradeManager: NewComponentUpgradeManager(operatorConfig, clientset, helmClient),
+		upgradeManager: NewComponentUpgradeManager(componentClient, helmClient),
 	}
 }
 
