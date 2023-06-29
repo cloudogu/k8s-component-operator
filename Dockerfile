@@ -16,7 +16,6 @@ RUN go mod download
 # Copy the go source
 COPY main.go main.go
 COPY pkg/ pkg/
-COPY api/ api/
 
 # Copy .git files as the build process builds the current commit id into the binary via ldflags.
 # We removed this entry as changes in the repository makes all cached layers invalid leading to rebuilding all layers.

@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"context"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"

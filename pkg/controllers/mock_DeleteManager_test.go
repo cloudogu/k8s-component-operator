@@ -5,7 +5,7 @@ package controllers
 import (
 	context "context"
 
-	v1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	mock "github.com/stretchr/testify/mock"
 )
 

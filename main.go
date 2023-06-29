@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/cloudogu/k8s-component-operator/pkg/controllers"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"

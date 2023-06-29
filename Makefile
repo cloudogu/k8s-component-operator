@@ -40,7 +40,7 @@ build-boot: image-import k8s-apply kill-operator-pod ## Builds a new version of 
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	@echo "Generate manifests..."
 	@$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	@cp config/crd/bases/k8s.cloudogu.com_components.yaml api/v1/
+	@cp config/crd/bases/k8s.cloudogu.com_components.yaml pkg/api/v1/
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.

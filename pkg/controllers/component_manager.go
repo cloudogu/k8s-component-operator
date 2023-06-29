@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"context"
-	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/mittwald/go-helm-client"
 	"k8s.io/client-go/tools/record"
