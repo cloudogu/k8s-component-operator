@@ -50,8 +50,8 @@ type componentManager struct {
 func NewComponentManager(operatorConfig *config.OperatorConfig, clientset ecosystem.ComponentInterface, helmClient helmclient.Client) *componentManager {
 	return &componentManager{
 		installManager: NewComponentInstallManager(operatorConfig, clientset, helmClient),
-		deleteManager:  NewComponentDeleteManager(operatorConfig, clientset, helmClient),
-		upgradeManager: NewComponentUpgradeManager(operatorConfig, clientset, helmClient),
+		deleteManager:  NewComponentDeleteManager(clientset, helmClient),
+		upgradeManager: NewComponentUpgradeManager(clientset, helmClient),
 	}
 }
 
