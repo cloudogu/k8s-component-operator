@@ -3,20 +3,20 @@ package controllers
 import (
 	"context"
 	v1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-// func TestNewComponentManager(t *testing.T) {
-// 	t.Run("success", func(t *testing.T) {
-// 		// when
-//
-// 		sut := NewComponentManager(&config.OperatorConfig{}, nil, nil)
-//
-// 		// then
-// 		require.NotNil(t, sut)
-// 	})
-// }
+func TestNewComponentManager(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// when
+		sut := NewComponentManager(&config.OperatorConfig{}, nil, nil)
+
+		// then
+		require.NotNil(t, sut)
+	})
+}
 
 func Test_componentManager_Install(t *testing.T) {
 	t.Run("success", func(t *testing.T) {

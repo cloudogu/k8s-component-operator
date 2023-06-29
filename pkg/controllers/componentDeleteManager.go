@@ -12,18 +12,16 @@ import (
 
 // componentDeleteManager is a central unit in the process of handling the deletion process of a custom component resource.
 type componentDeleteManager struct {
-	clientset       *ecosystem.EcosystemClientset
 	componentClient ecosystem.ComponentInterface
 	helmClient      helmclient.Client
 	namespace       string
 }
 
 // NewComponentDeleteManager creates a new instance of componentDeleteManager.
-func NewComponentDeleteManager(config *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentDeleteManager {
+func NewComponentDeleteManager(config *config.OperatorConfig, componentClient ecosystem.ComponentInterface, helmClient helmclient.Client) *componentDeleteManager {
 	return &componentDeleteManager{
-		clientset:       clientset,
 		namespace:       config.Namespace,
-		componentClient: clientset.EcosystemV1Alpha1().Components(config.Namespace),
+		componentClient: componentClient,
 		helmClient:      helmClient,
 	}
 }

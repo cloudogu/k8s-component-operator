@@ -37,9 +37,6 @@ type ComponentClient interface {
 	ecosystem.ComponentInterface
 }
 
-// NewManager is an alias mainly used for testing the main package.
-var NewManager = NewComponentManager
-
 // componentManager is a central unit in the process of handling component custom resources.
 // The componentManager creates, updates and deletes components.
 type componentManager struct {
@@ -50,9 +47,9 @@ type componentManager struct {
 }
 
 // NewComponentManager creates a new instance of componentManager.
-func NewComponentManager(operatorConfig *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentManager {
+func NewComponentManager(operatorConfig *config.OperatorConfig, clientset ecosystem.ComponentInterface, helmClient helmclient.Client) *componentManager {
 	return &componentManager{
-		installManager: NewComponentInstallManager(operatorConfig, clientset.EcosystemV1Alpha1().Components(operatorConfig.Namespace), helmClient),
+		installManager: NewComponentInstallManager(operatorConfig, clientset, helmClient),
 		deleteManager:  NewComponentDeleteManager(operatorConfig, clientset, helmClient),
 		upgradeManager: NewComponentUpgradeManager(operatorConfig, clientset, helmClient),
 	}

@@ -12,18 +12,16 @@ import (
 
 // componentUpgradeManager is a central unit in the process of handling the upgrade process of a custom component resource.
 type componentUpgradeManager struct {
-	clientset       *ecosystem.EcosystemClientset
 	componentClient ecosystem.ComponentInterface
 	helmClient      helmclient.Client
 	namespace       string
 }
 
 // NewComponentUpgradeManager creates a new instance of componentUpgradeManager.
-func NewComponentUpgradeManager(config *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentUpgradeManager {
+func NewComponentUpgradeManager(config *config.OperatorConfig, componentClient ecosystem.ComponentInterface, helmClient helmclient.Client) *componentUpgradeManager {
 	return &componentUpgradeManager{
-		clientset:       clientset,
 		namespace:       config.Namespace,
-		componentClient: clientset.EcosystemV1Alpha1().Components(config.Namespace),
+		componentClient: componentClient,
 		helmClient:      helmClient,
 	}
 }

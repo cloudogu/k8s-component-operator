@@ -33,16 +33,15 @@ type ComponentManager interface {
 
 // componentReconciler watches every Component object in the cluster and handles them accordingly.
 type componentReconciler struct {
-	client           *ecosystem.EcosystemClientset
+	componentClient  ecosystem.ComponentInterface
 	recorder         record.EventRecorder
 	componentManager ComponentManager
 	helmClient       helmclient.Client
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client, recorder record.EventRecorder, config *config.OperatorConfig) *componentReconciler {
+func NewComponentReconciler(clientset ecosystem.ComponentInterface, helmClient helmclient.Client, recorder record.EventRecorder, config *config.OperatorConfig) *componentReconciler {
 	return &componentReconciler{
-		client:           clientset,
 		recorder:         recorder,
 		componentManager: NewComponentManager(config, clientset, helmClient),
 		helmClient:       helmClient,
@@ -55,7 +54,7 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile this crd")
 
-	component, err := r.client.EcosystemV1Alpha1().Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
+	component, err := r.componentClient.Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
 		logger.Info(fmt.Sprintf("failed to get component %+v: %s", req, err))
 		return ctrl.Result{}, client.IgnoreNotFound(err)
