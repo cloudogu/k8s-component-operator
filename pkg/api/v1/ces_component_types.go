@@ -18,13 +18,6 @@ import (
 var _ embed.FS
 
 const (
-	// ComponentName is used to select a component pod by name.
-	ComponentName = "component.name"
-	// ComponentVersion is used to select a component pod by version.
-	ComponentVersion = "component.version"
-)
-
-const (
 	ComponentStatusNotInstalled = ""
 	ComponentStatusInstalling   = "installing"
 	ComponentStatusUpgrading    = "upgrading"
