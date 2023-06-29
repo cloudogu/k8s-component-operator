@@ -13,7 +13,6 @@ import (
 
 // componentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
 type componentInstallManager struct {
-	clientset       *ecosystem.EcosystemClientset
 	componentClient ecosystem.ComponentInterface
 	helmClient      helmclient.Client
 	helmRepoSecret  *config.HelmRepositoryData
@@ -34,7 +33,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	component, err := cim.componentClient.UpdateStatusInstalling(ctx, component)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to set status installing: %w", err)
 	}
 
 	// Set the finalizer at the beginning of the installation procedure.
@@ -43,21 +42,18 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	// deletion procedure from the controller.
 	component, err = cim.componentClient.AddFinalizer(ctx, component, k8sv1.FinalizerName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to add finalizer %s: %w", k8sv1.FinalizerName, err)
 	}
 
 	logger.Info("Add helm repo...")
 	helmRepository := repo.Entry{
 		Name: component.Spec.Namespace,
 		URL:  fmt.Sprintf("%s/%s", cim.helmRepoSecret.Endpoint, component.Spec.Namespace),
-		// TODO Always false or configurable via helm repo secret
-		InsecureSkipTLSverify: true,
-		PassCredentialsAll:    false,
 	}
 
 	err = cim.helmClient.AddOrUpdateChartRepo(helmRepository)
 	if err != nil {
-		return fmt.Errorf("failed to add helm repository: %w", err)
+		return fmt.Errorf("failed to add or update helm repository: %w", err)
 	}
 
 	logger.Info("Install helm chart...")
@@ -68,7 +64,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	component, err = cim.componentClient.UpdateStatusInstalled(ctx, component)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to set status installed: %w", err)
 	}
 
 	logger.Info("Done...")
