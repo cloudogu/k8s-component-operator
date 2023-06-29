@@ -51,8 +51,9 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	logger.Info("Add helm repo...")
 	helmRepository := repo.Entry{
-		Name:                  component.Spec.Namespace,
-		URL:                   fmt.Sprintf("%s/%s", cim.helmRepoSecret.Endpoint, component.Spec.Namespace),
+		Name: component.Spec.Namespace,
+		URL:  fmt.Sprintf("%s/%s", cim.helmRepoSecret.Endpoint, component.Spec.Namespace),
+		// TODO Always false or configurable via helm repo secret
 		InsecureSkipTLSverify: true,
 		PassCredentialsAll:    false,
 	}

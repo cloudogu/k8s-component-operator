@@ -5,9 +5,9 @@ HELM_CHART_VERSION=0.0.1
 ## Image URL to use all building/pushing image targets
 IMAGE_DEV=${K3CES_REGISTRY_URL_PREFIX}/${ARTIFACT_ID}:${VERSION}
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
-GOTAG?=1.18
-MAKEFILES_VERSION=7.0.1
-LINT_VERSION=v1.45.2
+GOTAG?=1.20.3
+MAKEFILES_VERSION=7.6.0
+LINT_VERSION?=v1.52.1
 STAGE?=production
 
 ADDITIONAL_CLEAN=dist-clean
@@ -104,3 +104,8 @@ ${MOCKERY_BIN}: ${UTILITY_BIN_PATH}
 mocks: ${MOCKERY_BIN} ## This target is used to generate all mocks for the dogu operator.
 	@cd $(WORKDIR)/internal && ${MOCKERY_BIN} --all
 	@echo "Mocks successfully created."
+
+
+# TODO Target to install dev helm repo "helm install chartmuseum chartmuseum/chartmuseum -f poc/chartmuseum/values.yaml"
+# Repo add helm repo add k3ces.local http://192.168.56.3:30100/
+# helm cm-push poc/install/chart/k8s-dogu-operator http://192.168.56.3:30100/k8s
