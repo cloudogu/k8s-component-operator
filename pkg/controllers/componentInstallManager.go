@@ -16,16 +16,13 @@ type componentInstallManager struct {
 	clientset       *ecosystem.EcosystemClientset
 	componentClient ecosystem.ComponentInterface
 	helmClient      helmclient.Client
-	namespace       string
 	helmRepoSecret  *config.HelmRepositoryData
 }
 
 // NewComponentInstallManager creates a new instance of componentInstallManager.
-func NewComponentInstallManager(config *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentInstallManager {
+func NewComponentInstallManager(config *config.OperatorConfig, componentClient ecosystem.ComponentInterface, helmClient helmclient.Client) *componentInstallManager {
 	return &componentInstallManager{
-		clientset:       clientset,
-		namespace:       config.Namespace,
-		componentClient: clientset.EcosystemV1Alpha1().Components(config.Namespace),
+		componentClient: componentClient,
 		helmClient:      helmClient,
 		helmRepoSecret:  config.HelmRepositoryData,
 	}
