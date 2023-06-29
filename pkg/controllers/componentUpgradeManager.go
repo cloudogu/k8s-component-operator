@@ -3,24 +3,19 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
-	"github.com/mittwald/go-helm-client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // componentUpgradeManager is a central unit in the process of handling the upgrade process of a custom component resource.
 type componentUpgradeManager struct {
-	componentClient ecosystem.ComponentInterface
-	helmClient      helmclient.Client
-	namespace       string
+	componentClient ComponentClient
+	helmClient      HelmClient
 }
 
 // NewComponentUpgradeManager creates a new instance of componentUpgradeManager.
-func NewComponentUpgradeManager(config *config.OperatorConfig, componentClient ecosystem.ComponentInterface, helmClient helmclient.Client) *componentUpgradeManager {
+func NewComponentUpgradeManager(componentClient ComponentClient, helmClient HelmClient) *componentUpgradeManager {
 	return &componentUpgradeManager{
-		namespace:       config.Namespace,
 		componentClient: componentClient,
 		helmClient:      helmClient,
 	}
@@ -32,7 +27,7 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 
 	component, err := cum.componentClient.UpdateStatusUpgrading(ctx, component)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update status-upgrading for component %s: %w", component.Spec.Name, err)
 	}
 
 	err = cum.helmClient.UpdateChartRepos()
@@ -42,15 +37,15 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 
 	_, err = cum.helmClient.UpgradeChart(ctx, component.GetHelmChartSpec(), nil)
 	if err != nil {
-		return fmt.Errorf("failed to upgrade chart: %w", err)
+		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 
 	_, err = cum.componentClient.UpdateStatusInstalled(ctx, component)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
 	}
 
-	logger.Info("Done...")
+	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))
 
 	return nil
 }
