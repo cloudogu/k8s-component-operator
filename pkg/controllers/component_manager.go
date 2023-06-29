@@ -27,6 +27,16 @@ type UpgradeManager interface {
 	Upgrade(ctx context.Context, component *k8sv1.Component) error
 }
 
+// HelmClient embeds the helmclient.Client interface for usage in this package.
+type HelmClient interface {
+	helmclient.Client
+}
+
+// ComponentClient embeds the ecosystem.ComponentInterface interface for usage in this package.
+type ComponentClient interface {
+	ecosystem.ComponentInterface
+}
+
 // NewManager is an alias mainly used for testing the main package.
 var NewManager = NewComponentManager
 
