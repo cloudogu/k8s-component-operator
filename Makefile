@@ -21,6 +21,7 @@ include build/make/test-unit.mk
 include build/make/static-analysis.mk
 include build/make/clean.mk
 include build/make/digital-signature.mk
+include build/make/mocks.mk
 
 K8S_RUN_PRE_TARGETS=install setup-etcd-port-forward
 PRE_COMPILE=generate
@@ -92,18 +93,6 @@ helm-repo-secret: ## Creates a secret for the helm repo connection from env vars
 print-debug-info: ## Generates indo and the list of environment variables required to start the operator in debug mode.
 	@echo "The target generates a list of env variables required to start the operator in debug mode. These can be pasted directly into the 'go build' run configuration in IntelliJ to run and debug the operator on-demand."
 	@echo "STAGE=$(STAGE);LOG_LEVEL=$(LOG_LEVEL);KUBECONFIG=$(KUBECONFIG);NAMESPACE=$(NAMESPACE);DOGU_REGISTRY_ENDPOINT=$(DOGU_REGISTRY_ENDPOINT);DOGU_REGISTRY_USERNAME=$(DOGU_REGISTRY_USERNAME);DOGU_REGISTRY_PASSWORD=$(DOGU_REGISTRY_PASSWORD);DOCKER_REGISTRY={\"auths\":{\"$(docker_registry_server)\":{\"username\":\"$(docker_registry_username)\",\"password\":\"$(docker_registry_password)\",\"email\":\"ignore@me.com\",\"auth\":\"ignoreMe\"}}}"
-
-##@ Mockery
-
-MOCKERY_BIN=${UTILITY_BIN_PATH}/mockery
-MOCKERY_VERSION=v2.15.0
-
-${MOCKERY_BIN}: ${UTILITY_BIN_PATH}
-	$(call go-get-tool,$(MOCKERY_BIN),github.com/vektra/mockery/v2@$(MOCKERY_VERSION))
-
-mocks: ${MOCKERY_BIN} ## This target is used to generate all mocks for the dogu operator.
-	@cd $(WORKDIR)/internal && ${MOCKERY_BIN} --all
-	@echo "Mocks successfully created."
 
 
 # TODO Target to install dev helm repo "helm install chartmuseum chartmuseum/chartmuseum -f poc/chartmuseum/values.yaml"
