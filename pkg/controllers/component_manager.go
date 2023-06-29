@@ -51,9 +51,11 @@ type componentManager struct {
 
 // NewComponentManager creates a new instance of componentManager.
 func NewComponentManager(operatorConfig *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentManager {
+	componentClient := clientset.EcosystemV1Alpha1().Components(operatorConfig.Namespace)
+
 	return &componentManager{
 		installManager: NewComponentInstallManager(operatorConfig, clientset, helmClient),
-		deleteManager:  NewComponentDeleteManager(operatorConfig, clientset, helmClient),
+		deleteManager:  NewComponentDeleteManager(componentClient, helmClient),
 		upgradeManager: NewComponentUpgradeManager(operatorConfig, clientset, helmClient),
 	}
 }
