@@ -38,13 +38,18 @@ type ComponentClient interface {
 	ecosystem.ComponentInterface
 }
 
+// EventRecorder embeds the record.EventRecorder interface for usage in this package.
+type EventRecorder interface {
+	record.EventRecorder
+}
+
 // componentManager is a central unit in the process of handling component custom resources.
 // The componentManager creates, updates and deletes components.
 type componentManager struct {
 	installManager InstallManager
 	deleteManager  DeleteManager
 	upgradeManager UpgradeManager
-	recorder       record.EventRecorder
+	recorder       EventRecorder
 }
 
 // NewComponentManager creates a new instance of componentManager.
