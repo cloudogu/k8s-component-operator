@@ -230,6 +230,15 @@ void stageAutomaticRelease() {
             registry.pushK8sYaml(targetOperatorResourceYaml, repositoryName, "k8s", "${controllerVersion}")
         }
 
+        stage('Push Helm chart to Harbor') {
+            make 'k8s-helm-package'
+
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
+//                 sh 'helm registry login "registry.cloudogu.com" -u <name> -p <password>'
+                sh 'helm push --username ${HARBOR_USERNAME} --password ${HARBOR_PASSWORD} "target/helm/${repositoryName}/${repositoryName}-0.1.0.tgz" "oci://registry.cloudogu.com/official/"'
+            }
+        }
+
         stage('Add Github-Release') {
             releaseId = github.createReleaseWithChangelog(releaseVersion, changelog, productionReleaseBranch)
         }
