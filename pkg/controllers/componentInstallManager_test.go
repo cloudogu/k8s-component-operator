@@ -30,7 +30,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		Password: password,
 	}
 	namespace := "ecosystem"
-	component := getComponent(namespace, "dogu-op", "0.1.0")
+	helmNamespace := "k8s"
+	component := getComponent(namespace, "k8s", "dogu-op", "0.1.0")
 
 	t.Run("success", func(t *testing.T) {
 		// given
@@ -40,7 +41,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		helmRepo := getHelmRepo(component, endpoint, namespace)
+		helmRepo := getHelmRepo(component, endpoint, helmNamespace, username, password)
 		mockHelmClient.EXPECT().AddOrUpdateChartRepo(helmRepo).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgradeChart(context.TODO(), component.GetHelmChartSpec(), mock.Anything).Return(nil, nil)
 
@@ -109,7 +110,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		helmRepo := getHelmRepo(component, endpoint, namespace)
+		helmRepo := getHelmRepo(component, endpoint, helmNamespace, username, password)
 		mockHelmClient.EXPECT().AddOrUpdateChartRepo(helmRepo).Return(assert.AnError)
 
 		sut := componentInstallManager{
@@ -134,7 +135,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		helmRepo := getHelmRepo(component, endpoint, namespace)
+		helmRepo := getHelmRepo(component, endpoint, helmNamespace, username, password)
 		mockHelmClient.EXPECT().AddOrUpdateChartRepo(helmRepo).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgradeChart(context.TODO(), component.GetHelmChartSpec(), mock.Anything).Return(nil, assert.AnError)
 
@@ -161,7 +162,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		helmRepo := getHelmRepo(component, endpoint, namespace)
+		helmRepo := getHelmRepo(component, endpoint, helmNamespace, username, password)
 		mockHelmClient.EXPECT().AddOrUpdateChartRepo(helmRepo).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgradeChart(context.TODO(), component.GetHelmChartSpec(), mock.Anything).Return(nil, nil)
 
@@ -181,9 +182,11 @@ func Test_componentInstallManager_Install(t *testing.T) {
 	})
 }
 
-func getHelmRepo(component *v1.Component, endpoint string, namespace string) repo.Entry {
+func getHelmRepo(component *v1.Component, endpoint string, namespace string, username string, password string) repo.Entry {
 	return repo.Entry{
-		Name: component.Spec.Namespace,
-		URL:  fmt.Sprintf("%s/%s", endpoint, namespace),
+		Name:     component.Spec.Namespace,
+		URL:      fmt.Sprintf("%s/%s", endpoint, namespace),
+		Username: username,
+		Password: password,
 	}
 }

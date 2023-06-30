@@ -5,6 +5,7 @@ import (
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 )
 
@@ -21,7 +22,7 @@ func TestNewComponentManager(t *testing.T) {
 func Test_componentManager_Install(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
-		component := getComponent("ecosystem", "dogu-op", "0.1.0")
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
 		installManagerMock := NewMockInstallManager(t)
 		installManagerMock.EXPECT().Install(context.TODO(), component).Return(nil)
 		eventRecorderMock := NewMockEventRecorder(t)
@@ -43,7 +44,7 @@ func Test_componentManager_Install(t *testing.T) {
 func Test_componentManager_Upgrade(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
-		component := getComponent("ecosystem", "dogu-op", "0.1.0")
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
 		upgradeManagerMock := NewMockUpgradeManager(t)
 		upgradeManagerMock.EXPECT().Upgrade(context.TODO(), component).Return(nil)
 		eventRecorderMock := NewMockEventRecorder(t)
@@ -64,7 +65,7 @@ func Test_componentManager_Upgrade(t *testing.T) {
 func Test_componentManager_Delete(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
-		component := getComponent("ecosystem", "dogu-op", "0.1.0")
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
 		deleteManagerMock := NewMockDeleteManager(t)
 		deleteManagerMock.EXPECT().Delete(context.TODO(), component).Return(nil)
 		eventRecorderMock := NewMockEventRecorder(t)
@@ -82,10 +83,12 @@ func Test_componentManager_Delete(t *testing.T) {
 	})
 }
 
-func getComponent(namespace string, name string, version string) *v1.Component {
-	return &v1.Component{Spec: v1.ComponentSpec{
-		Namespace: namespace,
-		Name:      name,
-		Version:   version,
-	}}
+func getComponent(namespace string, helmNamespace string, name string, version string) *v1.Component {
+	return &v1.Component{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec: v1.ComponentSpec{
+			Namespace: helmNamespace,
+			Name:      name,
+			Version:   version,
+		}}
 }

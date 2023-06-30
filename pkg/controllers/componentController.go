@@ -116,6 +116,8 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 		return Ignore, nil
 	case k8sv1.ComponentStatusDeleting:
 		return Ignore, nil
+	case k8sv1.ComponentStatusUpgrading:
+		return Ignore, nil
 	default:
 		logger.Info(fmt.Sprintf("Found unknown operation for component status: %s", component.Status.Status))
 		return Ignore, nil
@@ -132,21 +134,24 @@ func (r *componentReconciler) checkUpgradeAbility(component *k8sv1.Component) (b
 		// This will allow a namespace switch e. g. k8s/dogu-operator -> k8s-testing/dogu-operator.
 		if release.Name == component.Spec.Name && release.Namespace == component.Namespace {
 			chart := release.Chart
-			deployedVersion, err := core.ParseVersion(chart.AppVersion())
+			deployedAppVersion, err := core.ParseVersion(chart.AppVersion())
 			if err != nil {
 				return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
 			}
+
+			// TODO If chart and app version won't be equal we have to look at both versions...
+			// deployedChartVersion := getChartVersion(chart)...
 
 			componentVersion, err := core.ParseVersion(component.Spec.Version)
 			if err != nil {
 				return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
 			}
 
-			if deployedVersion.IsOlderThan(componentVersion) {
+			if deployedAppVersion.IsOlderThan(componentVersion) {
 				return true, nil
 			}
 
-			if deployedVersion.IsNewerThan(componentVersion) {
+			if deployedAppVersion.IsNewerThan(componentVersion) {
 				return false, fmt.Errorf("downgrades are not allowed")
 			}
 
@@ -163,3 +168,10 @@ func (r *componentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&k8sv1.Component{}).
 		Complete(r)
 }
+
+// func getChartVersion(ch *chart.Chart) string {
+// 	if ch.Metadata == nil {
+// 		return ""
+// 	}
+// 	return ch.Metadata.Version
+// }

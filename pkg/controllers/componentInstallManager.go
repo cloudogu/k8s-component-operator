@@ -47,8 +47,10 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	logger.Info("Add helm repo...")
 	helmRepository := repo.Entry{
-		Name: component.Spec.Namespace,
-		URL:  fmt.Sprintf("%s/%s", cim.helmRepoSecret.Endpoint, component.Spec.Namespace),
+		Name:     component.Spec.Namespace,
+		URL:      fmt.Sprintf("%s/%s", cim.helmRepoSecret.Endpoint, component.Spec.Namespace),
+		Username: cim.helmRepoSecret.Username,
+		Password: cim.helmRepoSecret.Password,
 	}
 
 	err = cim.helmClient.AddOrUpdateChartRepo(helmRepository)
