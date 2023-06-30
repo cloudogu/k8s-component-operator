@@ -76,7 +76,7 @@ func (d *componentClient) RemoveFinalizer(ctx context.Context, component *v1.Com
 	controllerutil.RemoveFinalizer(component, finalizer)
 	result, err := d.Update(ctx, component, metav1.UpdateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to remove finalizer %s to component: %w", finalizer, err)
+		return nil, fmt.Errorf("failed to remove finalizer %s from component: %w", finalizer, err)
 	}
 
 	return result, err
