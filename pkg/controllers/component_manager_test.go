@@ -12,7 +12,7 @@ import (
 func TestNewComponentManager(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// when
-		sut := NewComponentManager(&config.OperatorConfig{}, nil, nil)
+		sut := NewComponentManager(&config.OperatorConfig{}, nil, nil, nil)
 
 		// then
 		require.NotNil(t, sut)

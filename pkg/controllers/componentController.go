@@ -53,10 +53,11 @@ type componentReconciler struct {
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientset ecosystem.ComponentInterface, helmClient helmclient.Client, recorder record.EventRecorder, config *config.OperatorConfig) *componentReconciler {
+func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmClient helmclient.Client, recorder record.EventRecorder, config *config.OperatorConfig) *componentReconciler {
 	return &componentReconciler{
+		componentClient:  componentClient,
 		recorder:         recorder,
-		componentManager: NewComponentManager(config, clientset, helmClient),
+		componentManager: NewComponentManager(config, componentClient, helmClient, recorder),
 		helmClient:       helmClient,
 	}
 }
