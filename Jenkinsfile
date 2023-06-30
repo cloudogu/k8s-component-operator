@@ -231,12 +231,19 @@ void stageAutomaticRelease() {
         }
 
         stage('Push Helm chart to Harbor') {
-            make 'k8s-helm-package'
+            new Docker(this)
+                .image("golang:1.20")
+                .mountJenkinsUser()
+                .inside("--volume ${WORKSPACE}:/go/src/${project} -w /go/src/${project}")
+                        {
+                            make 'k8s-helm-package'
 
-            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
-//                 sh 'helm registry login "registry.cloudogu.com" -u <name> -p <password>'
-                sh 'helm push --username ${HARBOR_USERNAME} --password ${HARBOR_PASSWORD} "target/helm/${repositoryName}/${repositoryName}-0.1.0.tgz" "oci://registry.cloudogu.com/official/"'
-            }
+                            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
+                                sh '.bin/helm registry login "registry.cloudogu.com" --username ${HARBOR_USERNAME} --password ${HARBOR_PASSWORD}'
+                                sh '.bin/helm push "target/helm/k8s-component-operator/k8s-component-operator-0.1.0.tgz" "oci://registry.cloudogu.com/official/"'
+                            }
+                        }
+
         }
 
         stage('Add Github-Release') {
