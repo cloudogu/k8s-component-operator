@@ -8,6 +8,7 @@ import (
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	helmclient "github.com/mittwald/go-helm-client"
+	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -130,33 +131,37 @@ func (r *componentReconciler) checkUpgradeAbility(component *k8sv1.Component) (b
 		return false, fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
 
-	for _, release := range deployedReleases {
+	for _, deployedRelease := range deployedReleases {
 		// This will allow a namespace switch e. g. k8s/dogu-operator -> k8s-testing/dogu-operator.
-		if release.Name == component.Spec.Name && release.Namespace == component.Namespace {
-			chart := release.Chart
-			deployedAppVersion, err := core.ParseVersion(chart.AppVersion())
-			if err != nil {
-				return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
-			}
-
-			// TODO If chart and app version won't be equal we have to look at both versions...
-			// deployedChartVersion := getChartVersion(chart)...
-
-			componentVersion, err := core.ParseVersion(component.Spec.Version)
-			if err != nil {
-				return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
-			}
-
-			if deployedAppVersion.IsOlderThan(componentVersion) {
-				return true, nil
-			}
-
-			if deployedAppVersion.IsNewerThan(componentVersion) {
-				return false, fmt.Errorf("downgrades are not allowed")
-			}
-
-			break
+		if deployedRelease.Name == component.Spec.Name && deployedRelease.Namespace == component.Namespace {
+			return compareComponentVersion(component, deployedRelease)
 		}
+	}
+
+	return false, nil
+}
+
+func compareComponentVersion(component *k8sv1.Component, release *release.Release) (bool, error) {
+	chart := release.Chart
+	deployedAppVersion, err := core.ParseVersion(chart.AppVersion())
+	if err != nil {
+		return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
+	}
+
+	// TODO If chart and app version won't be equal we have to look at both versions...
+	// deployedChartVersion := getChartVersion(chart)...
+
+	componentVersion, err := core.ParseVersion(component.Spec.Version)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
+	}
+
+	if deployedAppVersion.IsOlderThan(componentVersion) {
+		return true, nil
+	}
+
+	if deployedAppVersion.IsNewerThan(componentVersion) {
+		return false, fmt.Errorf("downgrades are not allowed")
 	}
 
 	return false, nil
