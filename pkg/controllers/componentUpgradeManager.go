@@ -34,7 +34,7 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 
-	_, err = cum.componentClient.UpdateStatusInstalled(ctx, component)
+	component, err = cum.componentClient.UpdateStatusInstalled(ctx, component)
 	if err != nil {
 		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
 	}
