@@ -12,6 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 type operation string
@@ -65,8 +66,8 @@ func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmCl
 func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile this crd")
-
 	component, err := r.componentClient.Get(ctx, req.Name, v1.GetOptions{})
+
 	if err != nil {
 		logger.Info(fmt.Sprintf("failed to get component %+v: %s", req, err))
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -169,6 +170,7 @@ func compareComponentVersion(component *k8sv1.Component, release *release.Releas
 // SetupWithManager sets up the controller with the Manager.
 func (r *componentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		For(&k8sv1.Component{}).
 		Complete(r)
 }
