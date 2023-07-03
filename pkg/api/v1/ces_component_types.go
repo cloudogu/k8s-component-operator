@@ -60,7 +60,7 @@ func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.Char
 	return &helmclient.ChartSpec{
 		ReleaseName: c.Spec.Name,
 		ChartName:   fmt.Sprintf("%s/%s/%s", repositoryEndpoint, c.Spec.Namespace, c.Spec.Name),
-		Namespace:   c.ObjectMeta.Namespace,
+		Namespace:   c.Namespace,
 		Version:     c.Spec.Version,
 	}
 }

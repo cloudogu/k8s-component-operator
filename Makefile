@@ -79,8 +79,8 @@ template-dev-only-image-pull-policy: $(BINARY_YQ)
 
 .PHONY: kill-operator-pod
 kill-operator-pod:
-	@echo "Restarting k8s-dogu-operator!"
-	@kubectl -n ${NAMESPACE} delete pods -l 'app.kubernetes.io/name=k8s-dogu-operator'
+	@echo "Restarting k8s-component-operator!"
+	@kubectl -n ${NAMESPACE} delete pods -l 'app.kubernetes.io/name=k8s-component-operator'
 
 ##@ Helm-Repo-Config
 .PHONY: helm-repo-config
