@@ -17,9 +17,13 @@ const (
 	helmRegistryConfigFile = "/tmp/.helmregistry/config.json"
 )
 
+type HelmClient interface {
+	helmclient.Client
+}
+
 type Client struct {
-	helmClient     helmclient.Client
-	helmRepoSecret *config.HelmRepositoryData
+	helmClient   HelmClient
+	helmRepoData *config.HelmRepositoryData
 }
 
 // NewClient create a new instance of the helm client.
@@ -42,11 +46,11 @@ func NewClient(namespace string, helmRepoSecret *config.HelmRepositoryData, debu
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	return &Client{helmClient: helmClient, helmRepoSecret: helmRepoSecret}, nil
+	return &Client{helmClient: helmClient, helmRepoData: helmRepoSecret}, nil
 }
 
 func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error {
-	endpoint, err := c.helmRepoSecret.GetOciEndpoint()
+	endpoint, err := c.helmRepoData.GetOciEndpoint()
 	if err != nil {
 		return fmt.Errorf("error while installOrUpgrade chart %s: %w", component.Spec.Name, err)
 	}

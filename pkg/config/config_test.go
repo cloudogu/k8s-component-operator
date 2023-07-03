@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/mocks/external"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/core/v1"
@@ -124,4 +125,59 @@ func TestGetHelmRepositoryData(t *testing.T) {
 		require.ErrorIs(t, err, assert.AnError)
 		assert.ErrorContains(t, err, "failed to get helm repository configMap")
 	})
+}
+
+func TestHelmRepositoryData_GetOciEndpoint(t *testing.T) {
+	type fields struct {
+		Endpoint string
+	}
+	tests := []struct {
+		name     string
+		Endpoint string
+		want     string
+		wantErr  assert.ErrorAssertionFunc
+	}{
+		{
+			name:     "success getOciEndpoint",
+			Endpoint: "https://staging-registry.cloudogu.com",
+			want:     "oci://staging-registry.cloudogu.com",
+			wantErr:  assert.NoError,
+		},
+		{
+			name:     "success getOciEndpoint with Path",
+			Endpoint: "https://staging-registry.cloudogu.com/foo/bar",
+			want:     "oci://staging-registry.cloudogu.com/foo/bar",
+			wantErr:  assert.NoError,
+		},
+		{
+			name:     "success getOciEndpoint with other protocol",
+			Endpoint: "ftp://staging-registry.cloudogu.com",
+			want:     "oci://staging-registry.cloudogu.com",
+			wantErr:  assert.NoError,
+		},
+		{
+			name:     "error no protocol",
+			Endpoint: "staging-registry.cloudogu.com",
+			want:     "",
+			wantErr:  assert.Error,
+		},
+		{
+			name:     "error empty string",
+			Endpoint: "",
+			want:     "",
+			wantErr:  assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hrd := &HelmRepositoryData{
+				Endpoint: tt.Endpoint,
+			}
+			got, err := hrd.GetOciEndpoint()
+			if !tt.wantErr(t, err, fmt.Sprintf("GetOciEndpoint()")) {
+				return
+			}
+			assert.Equalf(t, tt.want, got, "GetOciEndpoint()")
+		})
+	}
 }
