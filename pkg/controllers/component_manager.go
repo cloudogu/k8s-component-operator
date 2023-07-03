@@ -4,8 +4,7 @@ import (
 	"context"
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
-	"github.com/mittwald/go-helm-client"
+	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
@@ -30,7 +29,9 @@ type UpgradeManager interface {
 
 // HelmClient embeds the helmclient.Client interface for usage in this package.
 type HelmClient interface {
-	helmclient.Client
+	InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error
+	Uninstall(component *k8sv1.Component) error
+	ListDeployedReleases() ([]*release.Release, error)
 }
 
 // ComponentClient embeds the ecosystem.ComponentInterface interface for usage in this package.
@@ -53,9 +54,9 @@ type componentManager struct {
 }
 
 // NewComponentManager creates a new instance of componentManager.
-func NewComponentManager(operatorConfig *config.OperatorConfig, clientset ecosystem.ComponentInterface, helmClient helmclient.Client, recorder record.EventRecorder) *componentManager {
+func NewComponentManager(clientset ecosystem.ComponentInterface, helmClient HelmClient, recorder record.EventRecorder) *componentManager {
 	return &componentManager{
-		installManager: NewComponentInstallManager(operatorConfig, clientset, helmClient),
+		installManager: NewComponentInstallManager(clientset, helmClient),
 		deleteManager:  NewComponentDeleteManager(clientset, helmClient),
 		upgradeManager: NewComponentUpgradeManager(clientset, helmClient),
 		recorder:       recorder,

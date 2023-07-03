@@ -30,13 +30,7 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		return fmt.Errorf("failed to update status-upgrading for component %s: %w", component.Spec.Name, err)
 	}
 
-	err = cum.helmClient.UpdateChartRepos()
-	if err != nil {
-		return fmt.Errorf("failed to update chart repositories: %w", err)
-	}
-
-	_, err = cum.helmClient.UpgradeChart(ctx, component.GetHelmChartSpec(), nil)
-	if err != nil {
+	if err = cum.helmClient.InstallOrUpgrade(ctx, component); err != nil {
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 

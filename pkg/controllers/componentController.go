@@ -6,8 +6,6 @@ import (
 	"github.com/cloudogu/cesapp-lib/core"
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
-	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -49,15 +47,15 @@ type componentReconciler struct {
 	componentClient  ecosystem.ComponentInterface
 	recorder         record.EventRecorder
 	componentManager ComponentManager
-	helmClient       helmclient.Client
+	helmClient       HelmClient
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmClient helmclient.Client, recorder record.EventRecorder, config *config.OperatorConfig) *componentReconciler {
+func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmClient HelmClient, recorder record.EventRecorder) *componentReconciler {
 	return &componentReconciler{
 		componentClient:  componentClient,
 		recorder:         recorder,
-		componentManager: NewComponentManager(config, componentClient, helmClient, recorder),
+		componentManager: NewComponentManager(componentClient, helmClient, recorder),
 		helmClient:       helmClient,
 	}
 }

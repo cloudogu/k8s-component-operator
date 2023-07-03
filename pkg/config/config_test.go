@@ -52,8 +52,6 @@ func TestGetHelmRepositoryData(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, "helm", result.Username)
-		assert.Equal(t, "helm", result.Password)
 		assert.Equal(t, "http://192.168.56.3:30100", result.Endpoint)
 	})
 
@@ -84,52 +82,46 @@ func TestGetHelmRepositoryData(t *testing.T) {
 	require.NoError(t, os.Unsetenv("RUNTIME"))
 	t.Run("success with cluster", func(t *testing.T) {
 		// given
-		secretClientMock := external.NewSecretInterface(t)
-		dataMap := make(map[string][]byte)
-		dataMap["username"] = []byte("username")
-		dataMap["password"] = []byte("password")
-		dataMap["endpoint"] = []byte("endpoint")
-		secret := &v1.Secret{
+		mockConfigMapInterface := external.NewMockConfigMapInterface(t)
+		configMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},
-			Data:       dataMap,
+			Data:       map[string]string{"endpoint": "endpoint"},
 		}
-		secretClientMock.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(secret, nil)
+		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(configMap, nil)
 
 		// when
-		result, err := GetHelmRepositoryData(secretClientMock)
+		result, err := GetHelmRepositoryData(mockConfigMapInterface)
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, "username", result.Username)
-		assert.Equal(t, "password", result.Password)
 		assert.Equal(t, "endpoint", result.Endpoint)
 	})
 
 	t.Run("should return not found error if no secret was found", func(t *testing.T) {
 		// given
-		secretClientMock := external.NewSecretInterface(t)
+		mockConfigMapInterface := external.NewMockConfigMapInterface(t)
 		notFoundError := errors.NewNotFound(schema.GroupResource{}, "")
-		secretClientMock.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(nil, notFoundError)
+		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(nil, notFoundError)
 
 		// when
-		_, err := GetHelmRepositoryData(secretClientMock)
+		_, err := GetHelmRepositoryData(mockConfigMapInterface)
 
 		// then
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "helm repository secret component-operator-helm-repository not found")
+		assert.ErrorContains(t, err, "helm repository configMap component-operator-helm-repository not found")
 	})
 
 	t.Run("should return error on failed get", func(t *testing.T) {
 		// given
-		secretClientMock := external.NewSecretInterface(t)
-		secretClientMock.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(nil, assert.AnError)
+		mockConfigMapInterface := external.NewMockConfigMapInterface(t)
+		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(nil, assert.AnError)
 
 		// when
-		_, err := GetHelmRepositoryData(secretClientMock)
+		_, err := GetHelmRepositoryData(mockConfigMapInterface)
 
 		// then
 		require.Error(t, err)
 		require.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to get helm repository secret")
+		assert.ErrorContains(t, err, "failed to get helm repository configMap")
 	})
 }

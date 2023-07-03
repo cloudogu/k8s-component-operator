@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/chart"
@@ -23,7 +22,7 @@ func TestNewComponentReconciler(t *testing.T) {
 	mockRecorder := NewMockEventRecorder(t)
 
 	// when
-	manager := NewComponentReconciler(mockComponentClient, mockHelmClient, mockRecorder, &config.OperatorConfig{})
+	manager := NewComponentReconciler(mockComponentClient, mockHelmClient, mockRecorder)
 
 	// then
 	require.NotNil(t, manager)

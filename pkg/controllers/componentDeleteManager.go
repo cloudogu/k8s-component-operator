@@ -30,7 +30,7 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 		return fmt.Errorf("failed to update status-deleting for component %s: %w", component.Spec.Name, err)
 	}
 
-	err = cdm.helmClient.UninstallReleaseByName(component.Spec.Name)
+	err = cdm.helmClient.Uninstall(component)
 	if err != nil {
 		return fmt.Errorf("failed to uninstall chart with name %s: %w", component.Spec.Name, err)
 	}
