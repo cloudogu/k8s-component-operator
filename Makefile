@@ -82,10 +82,11 @@ kill-operator-pod:
 	@echo "Restarting k8s-dogu-operator!"
 	@kubectl -n ${NAMESPACE} delete pods -l 'app.kubernetes.io/name=k8s-dogu-operator'
 
-##@ Helm-Repo-Secret
-.PHONY: helm-repo-secret
-helm-repo-secret: ## Creates a secret for the helm repo connection from env vars HELM_REPO_USERNAME, HELM_REPO_USERNAME, HELM_REPO_ENDPOINT.
-	@kubectl create secret generic component-operator-helm-repository --from-literal=username=${HELM_REPO_USERNAME} --from-literal=password=${HELM_REPO_USERNAME} --from-literal=endpoint=${HELM_REPO_ENDPOINT}
+##@ Helm-Repo-Config
+.PHONY: helm-repo-config
+helm-repo-config: ## Creates a configMap and a secret for the helm repo connection from env vars HELM_REPO_USERNAME, HELM_REPO_USERNAME, HELM_REPO_ENDPOINT.
+	@kubectl create configmap component-operator-helm-repository --from-literal=endpoint=${HELM_REPO_ENDPOINT}
+	@kubectl create secret generic component-operator-helm-registry --from-literal=config.json='{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "$(shell printf "%s:%s" "${HELM_REPO_USERNAME}" "${HELM_REPO_PASSWORD}" | base64)"}}}'
 
 ##@ Debug
 

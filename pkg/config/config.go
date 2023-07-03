@@ -10,15 +10,16 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"strings"
 )
 
 const (
-	StageDevelopment           = "development"
-	StageProduction            = "production"
-	StageEnvironmentVariable   = "STAGE"
-	runtimeEnvironmentVariable = "RUNTIME"
-	runtimeLocal               = "local"
-	helmRepositorySecretName   = "component-operator-helm-repository"
+	StageDevelopment            = "development"
+	StageProduction             = "production"
+	StageEnvironmentVariable    = "STAGE"
+	runtimeEnvironmentVariable  = "RUNTIME"
+	runtimeLocal                = "local"
+	helmRepositoryConfigMapName = "component-operator-helm-repository"
 )
 
 var (
@@ -33,8 +34,14 @@ var (
 
 type HelmRepositoryData struct {
 	Endpoint string `json:"endpoint"`
-	Username string `json:"username"`
-	Password string `json:"password"`
+}
+
+func (hrd *HelmRepositoryData) GetOciEndpoint() (string, error) {
+	split := strings.Split(hrd.Endpoint, "://")
+	if len(split) != 2 {
+		return "", fmt.Errorf("error creating oci-endpoint from '%s': wrong format", hrd.Endpoint)
+	}
+	return fmt.Sprintf("oci://%s", split[1]), nil
 }
 
 // OperatorConfig contains all configurable values for the dogu operator.
@@ -78,7 +85,7 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 }
 
 // GetHelmRepositoryData reads the repository data either from file or from a secret in the cluster.
-func GetHelmRepositoryData(secretClient v1.SecretInterface) (*HelmRepositoryData, error) {
+func GetHelmRepositoryData(configMapClient v1.ConfigMapInterface) (*HelmRepositoryData, error) {
 	runtime, err := getEnvVar(runtimeEnvironmentVariable)
 	if err != nil {
 		log.Info("Runtime env var not found.")
@@ -87,22 +94,20 @@ func GetHelmRepositoryData(secretClient v1.SecretInterface) (*HelmRepositoryData
 	if runtime == runtimeLocal {
 		return getHelmRepositoryDataFromFile()
 	} else {
-		return getHelmRepositoryFromSecret(secretClient)
+		return getHelmRepositoryFromConfigMap(configMapClient)
 	}
 }
 
-func getHelmRepositoryFromSecret(secretClient v1.SecretInterface) (*HelmRepositoryData, error) {
-	secret, err := secretClient.Get(context.TODO(), helmRepositorySecretName, v12.GetOptions{})
+func getHelmRepositoryFromConfigMap(configMapClient v1.ConfigMapInterface) (*HelmRepositoryData, error) {
+	configMap, err := configMapClient.Get(context.TODO(), helmRepositoryConfigMapName, v12.GetOptions{})
 	if errors.IsNotFound(err) {
-		return nil, fmt.Errorf("helm repository secret %s not found: %w", helmRepositorySecretName, err)
+		return nil, fmt.Errorf("helm repository configMap %s not found: %w", helmRepositoryConfigMapName, err)
 	} else if err != nil {
-		return nil, fmt.Errorf("failed to get helm repository secret %s: %w", helmRepositorySecretName, err)
+		return nil, fmt.Errorf("failed to get helm repository configMap %s: %w", helmRepositoryConfigMapName, err)
 	}
 
 	return &HelmRepositoryData{
-		Endpoint: string(secret.Data["endpoint"]),
-		Username: string(secret.Data["username"]),
-		Password: string(secret.Data["password"]),
+		Endpoint: configMap.Data["endpoint"],
 	}, nil
 }
 

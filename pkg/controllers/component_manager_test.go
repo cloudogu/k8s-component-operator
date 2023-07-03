@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
@@ -12,7 +11,7 @@ import (
 func TestNewComponentManager(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// when
-		sut := NewComponentManager(&config.OperatorConfig{}, nil, nil, nil)
+		sut := NewComponentManager(nil, nil, nil)
 
 		// then
 		require.NotNil(t, sut)

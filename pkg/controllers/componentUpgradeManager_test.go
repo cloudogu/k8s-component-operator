@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -39,8 +38,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().UpdateChartRepos().Return(nil)
-		mockHelmClient.EXPECT().UpgradeChart(ctx, component.GetHelmChartSpec(), (*helmclient.GenericHelmOptions)(nil)).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(nil)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -77,33 +75,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to update status-upgrading for component testComponent:")
 	})
 
-	t.Run("should fail to upgrade component on error while updating chart-repos", func(t *testing.T) {
-		ctx := context.Background()
-		component := &k8sv1.Component{
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "ecosystem",
-				Name:      "testComponent",
-				Version:   "1.0",
-			},
-			Status: k8sv1.ComponentStatus{Status: "installed"},
-		}
-
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
-
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().UpdateChartRepos().Return(assert.AnError)
-
-		manager := &componentUpgradeManager{
-			componentClient: mockComponentClient,
-			helmClient:      mockHelmClient,
-		}
-		err := manager.Upgrade(ctx, component)
-
-		require.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to update chart repositories:")
-	})
-
 	t.Run("should fail to upgrade component on error while upgrading chart", func(t *testing.T) {
 		ctx := context.Background()
 		component := &k8sv1.Component{
@@ -119,8 +90,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().UpdateChartRepos().Return(nil)
-		mockHelmClient.EXPECT().UpgradeChart(ctx, component.GetHelmChartSpec(), (*helmclient.GenericHelmOptions)(nil)).Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(assert.AnError)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -148,8 +118,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, assert.AnError)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().UpdateChartRepos().Return(nil)
-		mockHelmClient.EXPECT().UpgradeChart(ctx, component.GetHelmChartSpec(), (*helmclient.GenericHelmOptions)(nil)).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(nil)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,

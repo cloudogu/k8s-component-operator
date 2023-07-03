@@ -56,11 +56,11 @@ type Component struct {
 }
 
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.
-func (c *Component) GetHelmChartSpec() *helmclient.ChartSpec {
+func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.ChartSpec {
 	return &helmclient.ChartSpec{
 		ReleaseName: c.Spec.Name,
-		ChartName:   fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name),
-		Namespace:   c.Namespace,
+		ChartName:   fmt.Sprintf("%s/%s/%s", repositoryEndpoint, c.Spec.Namespace, c.Spec.Name),
+		Namespace:   c.ObjectMeta.Namespace,
 		Version:     c.Spec.Version,
 	}
 }
