@@ -51,7 +51,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 		return fmt.Errorf("failed to set status installed: %w", err)
 	}
 
-	logger.Info("Done...")
+	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))
 
 	return nil
 }

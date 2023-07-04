@@ -52,7 +52,7 @@ func NewClient(namespace string, helmRepoSecret *config.HelmRepositoryData, debu
 func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error {
 	endpoint, err := c.helmRepoData.GetOciEndpoint()
 	if err != nil {
-		return fmt.Errorf("error while installOrUpgrade chart %s: %w", component.Spec.Name, err)
+		return fmt.Errorf("error while getting oci endpoint %s: %w", component.Spec.Name, err)
 	}
 
 	_, err = c.helmClient.InstallOrUpgradeChart(ctx, component.GetHelmChartSpec(endpoint), nil)

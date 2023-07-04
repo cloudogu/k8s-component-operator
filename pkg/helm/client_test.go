@@ -78,7 +78,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 		err := client.InstallOrUpgrade(ctx, component)
 
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "error while installOrUpgrade chart testComponent: error creating oci-endpoint from 'staging.cloudogu.com': wrong format")
+		assert.ErrorContains(t, err, "error while getting oci endpoint: error creating oci-endpoint from 'staging.cloudogu.com': wrong format")
 	})
 
 	t.Run("should fail to install or upgrade chart for error in helmClient", func(t *testing.T) {
