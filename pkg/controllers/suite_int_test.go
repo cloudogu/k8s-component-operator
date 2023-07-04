@@ -51,7 +51,7 @@ func TestAPIs(t *testing.T) {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	// We need to ensure that the development stage flag is not passed by our makefiles to prevent the dogu operator
+	// We need to ensure that the development stage flag is not passed by our makefiles to prevent the component operator
 	// from running in the developing mode. The developing mode changes some operator behaviour. Our integration test
 	// aim to test the production functionality of the operator.
 	err := os.Unsetenv(config.StageEnvironmentVariable)

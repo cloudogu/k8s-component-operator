@@ -6,8 +6,8 @@ import (
 	"github.com/cloudogu/cesapp-lib/core"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"strings"
@@ -85,7 +85,7 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 }
 
 // GetHelmRepositoryData reads the repository data either from file or from a secret in the cluster.
-func GetHelmRepositoryData(configMapClient v1.ConfigMapInterface) (*HelmRepositoryData, error) {
+func GetHelmRepositoryData(configMapClient corev1.ConfigMapInterface) (*HelmRepositoryData, error) {
 	runtime, err := getEnvVar(runtimeEnvironmentVariable)
 	if err != nil {
 		log.Info("Runtime env var not found.")
@@ -98,8 +98,8 @@ func GetHelmRepositoryData(configMapClient v1.ConfigMapInterface) (*HelmReposito
 	}
 }
 
-func getHelmRepositoryFromConfigMap(configMapClient v1.ConfigMapInterface) (*HelmRepositoryData, error) {
-	configMap, err := configMapClient.Get(context.TODO(), helmRepositoryConfigMapName, v12.GetOptions{})
+func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (*HelmRepositoryData, error) {
+	configMap, err := configMapClient.Get(context.TODO(), helmRepositoryConfigMapName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil, fmt.Errorf("helm repository configMap %s not found: %w", helmRepositoryConfigMapName, err)
 	} else if err != nil {
