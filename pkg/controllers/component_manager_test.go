@@ -1,205 +1,93 @@
 package controllers
 
-//
-// import (
-// 	"context"
-// 	"github.com/cloudogu/k8s-dogu-operator/internal/mocks/external"
-// 	"testing"
-//
-// 	cesmocks "github.com/cloudogu/cesapp-lib/registry/mocks"
-// 	k8sv1 "github.com/cloudogu/k8s-dogu-operator/api/v1"
-// 	"github.com/cloudogu/k8s-dogu-operator/controllers/config"
-// 	"github.com/cloudogu/k8s-dogu-operator/controllers/upgrade"
-// 	"github.com/cloudogu/k8s-dogu-operator/internal/mocks"
-//
-// 	"github.com/stretchr/testify/assert"
-// 	"github.com/stretchr/testify/mock"
-// 	"github.com/stretchr/testify/require"
-// 	corev1 "k8s.io/api/core/v1"
-// 	"k8s.io/apimachinery/pkg/runtime"
-// 	"k8s.io/clientset-go/rest"
-// 	ctrl "sigs.k8s.io/controller-runtime"
-// 	"sigs.k8s.io/controller-runtime/pkg/clientset/fake"
-// )
-//
-// func TestDoguManager_HandleVolumeExpansion(t *testing.T) {
-// 	// given
-// 	dogu := &k8sv1.Dogu{}
-// 	volumeManagerMock := mocks.NewVolumeManager(t)
-// 	eventRecorderMock := external.NewEventRecorder(t)
-// 	manager := componentManager{volumeManager: volumeManagerMock, recorder: eventRecorderMock}
-//
-// 	eventRecorderMock.On("Event", dogu, "Normal", "VolumeExpansion", "Start volume expansion...")
-// 	volumeManagerMock.On("SetDoguDataVolumeSize", mock.Anything, mock.Anything).Return(nil)
-//
-// 	// when
-// 	err := manager.SetDoguDataVolumeSize(context.TODO(), dogu)
-//
-// 	// then
-// 	require.NoError(t, err)
-// }
-//
-// func TestDoguManager_HandleSupportMode(t *testing.T) {
-// 	// given
-// 	dogu := &k8sv1.Dogu{}
-// 	supportManagerMock := mocks.NewSupportManager(t)
-// 	eventRecorderMock := external.NewEventRecorder(t)
-// 	manager := componentManager{supportManager: supportManagerMock, recorder: eventRecorderMock}
-//
-// 	supportManagerMock.On("HandleSupportMode", mock.Anything, mock.Anything).Return(true, nil)
-//
-// 	// when
-// 	result, err := manager.HandleSupportMode(context.TODO(), dogu)
-//
-// 	// then
-// 	require.NoError(t, err)
-// 	require.True(t, result)
-// }
-//
-// func TestDoguManager_Delete(t *testing.T) {
-// 	// given
-// 	inputDogu := &k8sv1.Dogu{}
-// 	inputContext := context.Background()
-// 	deleteManager := mocks.NewDeleteManager(t)
-// 	deleteManager.On("Delete", inputContext, inputDogu).Return(nil)
-// 	eventRecorder := external.NewEventRecorder(t)
-// 	m := componentManager{deleteManager: deleteManager, recorder: eventRecorder}
-//
-// 	eventRecorder.On("Event", inputDogu, corev1.EventTypeNormal, "Deinstallation", "Starting deinstallation...")
-//
-// 	// when
-// 	err := m.Delete(inputContext, inputDogu)
-//
-// 	// then
-// 	assert.NoError(t, err)
-// }
-//
-// func TestDoguManager_Install(t *testing.T) {
-// 	// given
-// 	inputDogu := &k8sv1.Dogu{}
-// 	inputContext := context.Background()
-// 	installManager := mocks.NewInstallManager(t)
-// 	installManager.On("Install", inputContext, inputDogu).Return(nil)
-// 	eventRecorder := external.NewEventRecorder(t)
-// 	m := componentManager{installManager: installManager, recorder: eventRecorder}
-//
-// 	eventRecorder.On("Event", inputDogu, corev1.EventTypeNormal, InstallEventReason, "Starting installation...")
-//
-// 	// when
-// 	err := m.Install(inputContext, inputDogu)
-//
-// 	// then
-// 	assert.NoError(t, err)
-// }
-//
-// func TestDoguManager_Upgrade(t *testing.T) {
-// 	// given
-// 	inputDogu := &k8sv1.Dogu{}
-// 	inputContext := context.Background()
-// 	upgradeManager := mocks.NewUpgradeManager(t)
-// 	upgradeManager.On("Upgrade", inputContext, inputDogu).Return(nil)
-// 	eventRecorder := external.NewEventRecorder(t)
-// 	m := componentManager{upgradeManager: upgradeManager, recorder: eventRecorder}
-//
-// 	eventRecorder.On("Event", inputDogu, corev1.EventTypeNormal, upgrade.EventReason, "Starting upgrade...")
-//
-// 	// when
-// 	err := m.Upgrade(inputContext, inputDogu)
-//
-// 	// then
-// 	assert.NoError(t, err)
-// }
-//
-// func TestNewDoguManager(t *testing.T) {
-// 	// override default controller method to retrieve a kube config
-// 	oldGetConfigOrDieDelegate := ctrl.GetConfigOrDie
-// 	defer func() { ctrl.GetConfigOrDie = oldGetConfigOrDieDelegate }()
-// 	ctrl.GetConfigOrDie = func() *rest.Config {
-// 		return &rest.Config{}
-// 	}
-//
-// 	t.Run("success", func(t *testing.T) {
-// 		// given
-// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
-// 		operatorConfig := &config.OperatorConfig{}
-// 		operatorConfig.Namespace = "test"
-// 		cesRegistry := cesmocks.NewRegistry(t)
-// 		globalConfig := cesmocks.NewConfigurationContext(t)
-// 		doguRegistry := cesmocks.NewDoguRegistry(t)
-// 		eventRecorder := external.NewEventRecorder(t)
-// 		globalConfig.On("Exists", "key_provider").Return(true, nil)
-// 		cesRegistry.On("GlobalConfig").Return(globalConfig)
-// 		cesRegistry.On("DoguRegistry").Return(doguRegistry)
-//
-// 		// when
-// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
-//
-// 		// then
-// 		require.NoError(t, err)
-// 		require.NotNil(t, doguManager)
-// 	})
-//
-// 	t.Run("successfully set default key provider", func(t *testing.T) {
-// 		// given
-// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
-// 		operatorConfig := &config.OperatorConfig{}
-// 		operatorConfig.Namespace = "test"
-// 		cesRegistry := cesmocks.NewRegistry(t)
-// 		globalConfig := cesmocks.NewConfigurationContext(t)
-// 		doguRegistry := cesmocks.NewDoguRegistry(t)
-// 		eventRecorder := external.NewEventRecorder(t)
-// 		globalConfig.On("Exists", "key_provider").Return(false, nil)
-// 		globalConfig.On("Set", "key_provider", "pkcs1v15").Return(nil)
-// 		cesRegistry.On("GlobalConfig").Return(globalConfig)
-// 		cesRegistry.On("DoguRegistry").Return(doguRegistry)
-//
-// 		// when
-// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
-//
-// 		// then
-// 		require.NoError(t, err)
-// 		require.NotNil(t, doguManager)
-// 	})
-//
-// 	t.Run("failed to query existing key provider", func(t *testing.T) {
-// 		// given
-// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
-// 		operatorConfig := &config.OperatorConfig{}
-// 		eventRecorder := external.NewEventRecorder(t)
-// 		operatorConfig.Namespace = "test"
-// 		cesRegistry := cesmocks.NewRegistry(t)
-// 		globalConfig := cesmocks.NewConfigurationContext(t)
-// 		globalConfig.On("Exists", "key_provider").Return(true, assert.AnError)
-// 		cesRegistry.On("GlobalConfig").Return(globalConfig)
-//
-// 		// when
-// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
-//
-// 		// then
-// 		require.Error(t, err)
-// 		require.Nil(t, doguManager)
-// 		assert.ErrorIs(t, err, assert.AnError)
-// 	})
-//
-// 	t.Run("failed to set default key provider", func(t *testing.T) {
-// 		// given
-// 		clientset := fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build()
-// 		operatorConfig := &config.OperatorConfig{}
-// 		operatorConfig.Namespace = "test"
-// 		cesRegistry := cesmocks.NewRegistry(t)
-// 		globalConfig := cesmocks.NewConfigurationContext(t)
-// 		globalConfig.On("Exists", "key_provider").Return(false, nil)
-// 		globalConfig.On("Set", "key_provider", "pkcs1v15").Return(assert.AnError)
-// 		cesRegistry.On("GlobalConfig").Return(globalConfig)
-// 		eventRecorder := external.NewEventRecorder(t)
-//
-// 		// when
-// 		doguManager, err := NewComponentManager(clientset, operatorConfig, cesRegistry, eventRecorder)
-//
-// 		// then
-// 		require.Error(t, err)
-// 		require.Nil(t, doguManager)
-// 		assert.ErrorIs(t, err, assert.AnError)
-// 		assert.ErrorContains(t, err, "failed to set default key provider")
-// 	})
-// }
+import (
+	"context"
+	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"testing"
+)
+
+func TestNewComponentManager(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// when
+		sut := NewComponentManager(nil, nil, nil)
+
+		// then
+		require.NotNil(t, sut)
+	})
+}
+
+func Test_componentManager_Install(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
+		installManagerMock := NewMockInstallManager(t)
+		installManagerMock.EXPECT().Install(context.TODO(), component).Return(nil)
+		eventRecorderMock := NewMockEventRecorder(t)
+		eventRecorderMock.EXPECT().Event(component, "Normal", "Installation", "Starting installation...")
+
+		sut := &componentManager{
+			installManager: installManagerMock,
+			recorder:       eventRecorderMock,
+		}
+
+		// when
+		err := sut.Install(context.TODO(), component)
+
+		// then
+		require.Nil(t, err)
+	})
+}
+
+func Test_componentManager_Upgrade(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
+		upgradeManagerMock := NewMockUpgradeManager(t)
+		upgradeManagerMock.EXPECT().Upgrade(context.TODO(), component).Return(nil)
+		eventRecorderMock := NewMockEventRecorder(t)
+		eventRecorderMock.EXPECT().Event(component, "Normal", "Upgrade", "Starting upgrade...")
+
+		sut := &componentManager{
+			upgradeManager: upgradeManagerMock,
+			recorder:       eventRecorderMock,
+		}
+		// when
+		err := sut.Upgrade(context.TODO(), component)
+
+		// then
+		require.Nil(t, err)
+	})
+}
+
+func Test_componentManager_Delete(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
+		deleteManagerMock := NewMockDeleteManager(t)
+		deleteManagerMock.EXPECT().Delete(context.TODO(), component).Return(nil)
+		eventRecorderMock := NewMockEventRecorder(t)
+		eventRecorderMock.EXPECT().Event(component, "Normal", "Deinstallation", "Starting deinstallation...")
+
+		sut := &componentManager{
+			deleteManager: deleteManagerMock,
+			recorder:      eventRecorderMock,
+		}
+		// when
+		err := sut.Delete(context.TODO(), component)
+
+		// then
+		require.Nil(t, err)
+	})
+}
+
+func getComponent(namespace string, helmNamespace string, name string, version string) *v1.Component {
+	return &v1.Component{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec: v1.ComponentSpec{
+			Namespace: helmNamespace,
+			Name:      name,
+			Version:   version,
+		}}
+}

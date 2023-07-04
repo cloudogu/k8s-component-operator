@@ -18,13 +18,6 @@ import (
 var _ embed.FS
 
 const (
-	// ComponentName is used to select a component pod by name.
-	ComponentName = "component.name"
-	// ComponentVersion is used to select a component pod by version.
-	ComponentVersion = "component.version"
-)
-
-const (
 	ComponentStatusNotInstalled = ""
 	ComponentStatusInstalling   = "installing"
 	ComponentStatusUpgrading    = "upgrading"
@@ -63,10 +56,10 @@ type Component struct {
 }
 
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.
-func (c *Component) GetHelmChartSpec() *helmclient.ChartSpec {
+func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.ChartSpec {
 	return &helmclient.ChartSpec{
 		ReleaseName: c.Spec.Name,
-		ChartName:   fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name),
+		ChartName:   fmt.Sprintf("%s/%s/%s", repositoryEndpoint, c.Spec.Namespace, c.Spec.Name),
 		Namespace:   c.Namespace,
 		Version:     c.Spec.Version,
 	}

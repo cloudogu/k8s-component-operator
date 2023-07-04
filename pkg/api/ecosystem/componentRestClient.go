@@ -3,7 +3,7 @@ package ecosystem
 import (
 	"context"
 	"fmt"
-	v1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -76,7 +76,7 @@ func (d *componentClient) RemoveFinalizer(ctx context.Context, component *v1.Com
 	controllerutil.RemoveFinalizer(component, finalizer)
 	result, err := d.Update(ctx, component, metav1.UpdateOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to remove finalizer %s to component: %w", finalizer, err)
+		return nil, fmt.Errorf("failed to remove finalizer %s from component: %w", finalizer, err)
 	}
 
 	return result, err

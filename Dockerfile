@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.18 as builder
+FROM golang:1.20.3 AS builder
 
 ENV GOPRIVATE=github.com/cloudogu/cesapp/v5
 
@@ -16,8 +16,6 @@ RUN go mod download
 # Copy the go source
 COPY main.go main.go
 COPY pkg/ pkg/
-COPY api/ api/
-COPY internal/ internal/
 
 # Copy .git files as the build process builds the current commit id into the binary via ldflags.
 # We removed this entry as changes in the repository makes all cached layers invalid leading to rebuilding all layers.

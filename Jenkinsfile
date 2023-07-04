@@ -1,8 +1,7 @@
 #!groovy
 
-@Library(['github.com/cloudogu/dogu-build-lib@v1.6.0', 'github.com/cloudogu/ces-build-lib@1.61.0'])
+@Library(['github.com/cloudogu/ces-build-lib@1.65.0'])
 import com.cloudogu.ces.cesbuildlib.*
-import com.cloudogu.ces.dogubuildlib.*
 
 // Creating necessary git objects
 git = new Git(this, "cesmarvin")
@@ -97,9 +96,8 @@ node('docker') {
             }
 
             stage('Deploy Manager') {
-                // TODO Install dev repo like chartmuseum.
-                k3d.kubectl("create secret generic component-operator-helm-repository --from-literal=username=changeme " +
-                        "--from-literal=password=changeme --from-literal=endpoint=changeme --namespace default")
+                k3d.kubectl("create secret generic component-operator-helm-registry --from-file=config.json=k8s/emptyHelmRegistry.json --namespace default")
+                k3d.kubectl("create cm component-operator-helm-repository --from-literal=endpoint=dummy --namespace default")
                 k3d.kubectl("apply -f ${sourceDeploymentYaml}")
             }
 

@@ -1,7 +1,7 @@
 package ecosystem
 
 import (
-	v1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
