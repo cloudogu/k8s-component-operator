@@ -51,6 +51,7 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
 			*recorderMock = MockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Starting installation...")
+			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Installation successful")
 
 			_, err := componentClient.Create(ctx, installComponent, metav1.CreateOptions{})
 			Expect(err).Should(Succeed())
@@ -81,6 +82,7 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
 			*recorderMock = MockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Starting upgrade...")
+			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Upgrade successful")
 
 			upgradeComponent, err := componentClient.Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
 			Expect(err).Should(Succeed())
@@ -121,6 +123,7 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			helmClientMock.EXPECT().Uninstall(mock.Anything).Return(nil)
 			*recorderMock = MockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Starting deinstallation...")
+			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Deinstallation successful")
 
 			err := componentClient.Delete(ctx, "k8s-dogu-operator", metav1.DeleteOptions{})
 			Expect(err).Should(Succeed())
