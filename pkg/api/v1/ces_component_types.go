@@ -18,11 +18,16 @@ import (
 var _ embed.FS
 
 const (
+	// ComponentStatusNotInstalled represents a status for a component that is not installed
 	ComponentStatusNotInstalled = ""
-	ComponentStatusInstalling   = "installing"
-	ComponentStatusUpgrading    = "upgrading"
-	ComponentStatusDeleting     = "deleting"
-	ComponentStatusInstalled    = "installed"
+	// ComponentStatusInstalling represents a status for a component that is currently being installed
+	ComponentStatusInstalling = "installing"
+	// ComponentStatusUpgrading represents a status for a component that is currently being upgraded
+	ComponentStatusUpgrading = "upgrading"
+	// ComponentStatusDeleting represents a status for a component that is currently being deleted
+	ComponentStatusDeleting = "deleting"
+	// ComponentStatusInstalled represents a status for a component that was successfully installed
+	ComponentStatusInstalled = "installed"
 )
 
 const FinalizerName = "component-finalizer"

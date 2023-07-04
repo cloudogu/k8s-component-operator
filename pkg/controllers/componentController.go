@@ -18,22 +18,20 @@ import (
 type operation string
 
 const (
+	// InstallEventReason The name of the installation event
 	InstallEventReason = "Installation"
-)
-
-const (
+	//DeinstallEventReason The name of the deinstallation event
 	DeinstallEventReason = "Deinstallation"
-)
-
-const (
+	//UpgradeEventReason The name of the upgrade event
 	UpgradeEventReason = "Upgrade"
-)
-
-const (
+	//Install represents the install-operation
 	Install = operation("Install")
+	//Upgrade represents the upgrade-operation
 	Upgrade = operation("Upgrade")
-	Delete  = operation("Delete")
-	Ignore  = operation("Ignore")
+	//Delete represents the delete-operation
+	Delete = operation("Delete")
+	//Ignore represents the ignore-operation
+	Ignore = operation("Ignore")
 )
 
 // ComponentManager abstracts the simple component operations in a k8s CES.
