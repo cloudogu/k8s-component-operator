@@ -17,10 +17,12 @@ const (
 	helmRegistryConfigFile = "/tmp/.helmregistry/config.json"
 )
 
+// HelmClient embeds the helmclient.Client interface for usage in this package.
 type HelmClient interface {
 	helmclient.Client
 }
 
+// Client wraps the HelmClient with config.HelmRepositoryData
 type Client struct {
 	helmClient   HelmClient
 	helmRepoData *config.HelmRepositoryData
@@ -49,6 +51,7 @@ func NewClient(namespace string, helmRepoSecret *config.HelmRepositoryData, debu
 	return &Client{helmClient: helmClient, helmRepoData: helmRepoSecret}, nil
 }
 
+// InstallOrUpgrade takes a component and applies the corresponding helmChart.
 func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error {
 	endpoint, err := c.helmRepoData.GetOciEndpoint()
 	if err != nil {
@@ -62,6 +65,7 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Componen
 	return nil
 }
 
+// Uninstall removes the helmChart of the given component
 func (c *Client) Uninstall(component *k8sv1.Component) error {
 	if err := c.helmClient.UninstallReleaseByName(component.Spec.Name); err != nil {
 		return fmt.Errorf("error while uninstalling helm-release %s: %w", component.Spec.Name, err)
@@ -69,6 +73,7 @@ func (c *Client) Uninstall(component *k8sv1.Component) error {
 	return nil
 }
 
+// ListDeployedReleases returns all deployed helm releases
 func (c *Client) ListDeployedReleases() ([]*release.Release, error) {
 	return c.helmClient.ListDeployedReleases()
 }

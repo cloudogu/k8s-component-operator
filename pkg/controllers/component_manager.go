@@ -27,10 +27,13 @@ type UpgradeManager interface {
 	Upgrade(ctx context.Context, component *k8sv1.Component) error
 }
 
-// HelmClient embeds the helmclient.Client interface for usage in this package.
+// HelmClient is an interface for managing components with helm.
 type HelmClient interface {
+	// InstallOrUpgrade takes a component and applies the corresponding helmChart.
 	InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error
+	// Uninstall removes the helmChart of the given component
 	Uninstall(component *k8sv1.Component) error
+	// ListDeployedReleases returns all deployed helm releases
 	ListDeployedReleases() ([]*release.Release, error)
 }
 

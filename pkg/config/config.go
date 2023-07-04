@@ -14,11 +14,17 @@ import (
 )
 
 const (
-	StageDevelopment            = "development"
-	StageProduction             = "production"
-	StageEnvironmentVariable    = "STAGE"
-	runtimeEnvironmentVariable  = "RUNTIME"
-	runtimeLocal                = "local"
+	// StageDevelopment is the name for the development-stage
+	StageDevelopment = "development"
+	// StageProduction is the name for the production-stage
+	StageProduction = "production"
+	// StageEnvironmentVariable is the name of the environment-variable containing the configured stage
+	StageEnvironmentVariable = "STAGE"
+	// runtimeEnvironmentVariable is the name of the environment-variable containing the configured runtime
+	runtimeEnvironmentVariable = "RUNTIME"
+	// runtimeLocal is the name for the local-runtime on a developer-machine
+	runtimeLocal = "local"
+	// helmRepositoryConfigMapName is the name
 	helmRepositoryConfigMapName = "component-operator-helm-repository"
 )
 
@@ -32,10 +38,12 @@ var (
 	log             = ctrl.Log.WithName("config")
 )
 
+// HelmRepositoryData contains all necessary data for the helm repository.
 type HelmRepositoryData struct {
 	Endpoint string `json:"endpoint"`
 }
 
+// GetOciEndpoint returns the configured endpoint of the HelmRepositoryData with the OCI-protocol
 func (hrd *HelmRepositoryData) GetOciEndpoint() (string, error) {
 	split := strings.Split(hrd.Endpoint, "://")
 	if len(split) != 2 {

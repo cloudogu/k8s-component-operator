@@ -14,20 +14,49 @@ import (
 )
 
 type ComponentInterface interface {
+	// Create takes the representation of a component and creates it.  Returns the server's representation of the component, and an error, if there is any.
 	Create(ctx context.Context, component *v1.Component, opts metav1.CreateOptions) (*v1.Component, error)
+
+	// Update takes the representation of a component and updates it. Returns the server's representation of the component, and an error, if there is any.
 	Update(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (*v1.Component, error)
+
+	// UpdateStatus was generated because the type contains a Status member.
 	UpdateStatus(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (*v1.Component, error)
+
+	// UpdateStatusInstalling sets the status of the component to "installing".
 	UpdateStatusInstalling(ctx context.Context, component *v1.Component) (*v1.Component, error)
+
+	// UpdateStatusInstalled sets the status of the component to "installed".
 	UpdateStatusInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error)
+
+	// UpdateStatusUpgrading sets the status of the component to "upgrading".
 	UpdateStatusUpgrading(ctx context.Context, component *v1.Component) (*v1.Component, error)
+
+	// UpdateStatusDeleting sets the status of the component to "deleting".
 	UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error)
+
+	// Delete takes name of the component and deletes it. Returns an error if one occurs.
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
+
+	// DeleteCollection deletes a collection of objects.
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
+
+	// Get takes name of the component, and returns the corresponding component object, and an error if there is any.
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Component, error)
+
+	// List takes label and field selectors, and returns the list of Components that match those selectors.
 	List(ctx context.Context, opts metav1.ListOptions) (*v1.ComponentList, error)
+
+	// Watch returns a watch.Interface that watches the requested components.
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
+
+	// Patch applies the patch and returns the patched component.
 	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Component, err error)
+
+	// AddFinalizer adds the given finalizer to the component.
 	AddFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error)
+
+	// RemoveFinalizer removes the given finalizer to the component.
 	RemoveFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error)
 }
 
