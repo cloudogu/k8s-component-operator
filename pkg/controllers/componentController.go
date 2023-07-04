@@ -4,19 +4,30 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudogu/cesapp-lib/core"
-	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
-	"github.com/cloudogu/k8s-component-operator/internal"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
-	helmclient "github.com/mittwald/go-helm-client"
+	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 type operation string
+
+const (
+	InstallEventReason = "Installation"
+)
+
+const (
+	DeinstallEventReason = "Deinstallation"
+)
+
+const (
+	UpgradeEventReason = "Upgrade"
+)
 
 const (
 	Install = operation("Install")
@@ -25,20 +36,27 @@ const (
 	Ignore  = operation("Ignore")
 )
 
+// ComponentManager abstracts the simple component operations in a k8s CES.
+type ComponentManager interface {
+	InstallManager
+	DeleteManager
+	UpgradeManager
+}
+
 // componentReconciler watches every Component object in the cluster and handles them accordingly.
 type componentReconciler struct {
-	client           *ecosystem.EcosystemClientset
+	componentClient  ecosystem.ComponentInterface
 	recorder         record.EventRecorder
-	componentManager internal.ComponentManager
-	helmClient       helmclient.Client
+	componentManager ComponentManager
+	helmClient       HelmClient
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client, recorder record.EventRecorder, config *config.OperatorConfig) *componentReconciler {
+func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmClient HelmClient, recorder record.EventRecorder) *componentReconciler {
 	return &componentReconciler{
-		client:           clientset,
+		componentClient:  componentClient,
 		recorder:         recorder,
-		componentManager: NewComponentManager(config, clientset, helmClient),
+		componentManager: NewComponentManager(componentClient, helmClient, recorder),
 		helmClient:       helmClient,
 	}
 }
@@ -48,8 +66,8 @@ func NewComponentReconciler(clientset *ecosystem.EcosystemClientset, helmClient 
 func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile this crd")
+	component, err := r.componentClient.Get(ctx, req.Name, v1.GetOptions{})
 
-	component, err := r.client.EcosystemV1Alpha1().Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
 		logger.Info(fmt.Sprintf("failed to get component %+v: %s", req, err))
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -99,6 +117,8 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 		return Ignore, nil
 	case k8sv1.ComponentStatusDeleting:
 		return Ignore, nil
+	case k8sv1.ComponentStatusUpgrading:
+		return Ignore, nil
 	default:
 		logger.Info(fmt.Sprintf("Found unknown operation for component status: %s", component.Status.Status))
 		return Ignore, nil
@@ -111,30 +131,37 @@ func (r *componentReconciler) checkUpgradeAbility(component *k8sv1.Component) (b
 		return false, fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
 
-	for _, release := range deployedReleases {
+	for _, deployedRelease := range deployedReleases {
 		// This will allow a namespace switch e. g. k8s/dogu-operator -> k8s-testing/dogu-operator.
-		if release.Name == component.Spec.Name && release.Namespace == component.Namespace {
-			chart := release.Chart
-			deployedVersion, err := core.ParseVersion(chart.AppVersion())
-			if err != nil {
-				return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
-			}
-
-			componentVersion, err := core.ParseVersion(component.Spec.Version)
-			if err != nil {
-				return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
-			}
-
-			if deployedVersion.IsOlderThan(componentVersion) {
-				return true, nil
-			}
-
-			if deployedVersion.IsNewerThan(componentVersion) {
-				return false, fmt.Errorf("downgrades are not allowed")
-			}
-
-			break
+		if deployedRelease.Name == component.Spec.Name && deployedRelease.Namespace == component.Namespace {
+			return compareComponentVersion(component, deployedRelease)
 		}
+	}
+
+	return false, nil
+}
+
+func compareComponentVersion(component *k8sv1.Component, release *release.Release) (bool, error) {
+	chart := release.Chart
+	deployedAppVersion, err := core.ParseVersion(chart.AppVersion())
+	if err != nil {
+		return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
+	}
+
+	// TODO If chart and app version won't be equal we have to look at both versions...
+	// deployedChartVersion := getChartVersion(chart)...
+
+	componentVersion, err := core.ParseVersion(component.Spec.Version)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
+	}
+
+	if deployedAppVersion.IsOlderThan(componentVersion) {
+		return true, nil
+	}
+
+	if deployedAppVersion.IsNewerThan(componentVersion) {
+		return false, fmt.Errorf("downgrades are not allowed")
 	}
 
 	return false, nil
@@ -143,6 +170,14 @@ func (r *componentReconciler) checkUpgradeAbility(component *k8sv1.Component) (b
 // SetupWithManager sets up the controller with the Manager.
 func (r *componentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		For(&k8sv1.Component{}).
 		Complete(r)
 }
+
+// func getChartVersion(ch *chart.Chart) string {
+// 	if ch.Metadata == nil {
+// 		return ""
+// 	}
+// 	return ch.Metadata.Version
+// }

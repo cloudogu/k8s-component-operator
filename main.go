@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/cloudogu/k8s-component-operator/pkg/controllers"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
@@ -133,7 +133,7 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 		return fmt.Errorf("failed to create clientset: %w", err)
 	}
 
-	helmRepoData, err := config.GetHelmRepositoryData(clientSet.CoreV1().Secrets(operatorConfig.Namespace))
+	helmRepoData, err := config.GetHelmRepositoryData(clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
 	if err != nil {
 		return err
 	}
@@ -145,12 +145,12 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 	}
 
 	debug := config.Stage == config.StageDevelopment
-	helmClient, err := helm.New(operatorConfig.Namespace, debug, operatorLog.Info)
+	helmClient, err := helm.NewClient(operatorConfig.Namespace, operatorConfig.HelmRepositoryData, debug, operatorLog.Info)
 	if err != nil {
 		return fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	componentReconciler := controllers.NewComponentReconciler(componentClientSet, helmClient, eventRecorder, operatorConfig)
+	componentReconciler := controllers.NewComponentReconciler(componentClientSet.EcosystemV1Alpha1().Components(operatorConfig.Namespace), helmClient, eventRecorder)
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)

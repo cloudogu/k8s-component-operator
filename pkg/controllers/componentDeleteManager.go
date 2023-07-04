@@ -3,27 +3,20 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
-	"github.com/mittwald/go-helm-client"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // componentDeleteManager is a central unit in the process of handling the deletion process of a custom component resource.
 type componentDeleteManager struct {
-	clientset       *ecosystem.EcosystemClientset
-	componentClient ecosystem.ComponentInterface
-	helmClient      helmclient.Client
-	namespace       string
+	componentClient ComponentClient
+	helmClient      HelmClient
 }
 
 // NewComponentDeleteManager creates a new instance of componentDeleteManager.
-func NewComponentDeleteManager(config *config.OperatorConfig, clientset *ecosystem.EcosystemClientset, helmClient helmclient.Client) *componentDeleteManager {
+func NewComponentDeleteManager(componentClient ComponentClient, helmClient HelmClient) *componentDeleteManager {
 	return &componentDeleteManager{
-		clientset:       clientset,
-		namespace:       config.Namespace,
-		componentClient: clientset.EcosystemV1Alpha1().Components(config.Namespace),
+		componentClient: componentClient,
 		helmClient:      helmClient,
 	}
 }
@@ -34,20 +27,20 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 
 	component, err := cdm.componentClient.UpdateStatusDeleting(ctx, component)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update status-deleting for component %s: %w", component.Spec.Name, err)
 	}
 
-	err = cdm.helmClient.UninstallReleaseByName(component.Spec.Name)
+	err = cdm.helmClient.Uninstall(component)
 	if err != nil {
-		return fmt.Errorf("failed to uninstall chart: %w", err)
+		return fmt.Errorf("failed to uninstall chart with name %s: %w", component.Spec.Name, err)
 	}
 
 	_, err = cdm.componentClient.RemoveFinalizer(ctx, component, k8sv1.FinalizerName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to remove finalizer for component %s: %w", component.Spec.Name, err)
 	}
 
-	logger.Info("Done...")
+	logger.Info(fmt.Sprintf("Deleted component %s.", component.Spec.Name))
 
 	return nil
 }

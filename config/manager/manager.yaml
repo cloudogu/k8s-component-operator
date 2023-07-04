@@ -60,5 +60,13 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
+        volumeMounts:
+          - mountPath: "/tmp/.helmregistry"
+            name: component-operator-helm-registry
+            readOnly: true
+      volumes:
+        - name: component-operator-helm-registry
+          secret:
+            secretName: component-operator-helm-registry
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
