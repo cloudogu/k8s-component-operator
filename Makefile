@@ -63,12 +63,12 @@ setup-etcd-port-forward:
 	kubectl -n ${NAMESPACE} port-forward etcd-0 4001:2379 &
 
 .PHONY: template-stage
-template-stage:
+template-stage: $(BINARY_YQ)
 	@echo "Setting STAGE env in deployment to ${STAGE}!"
 	@$(BINARY_YQ) -i e "(select(.kind == \"Deployment\").spec.template.spec.containers[]|select(.image == \"*$(ARTIFACT_ID)*\").env[]|select(.name==\"STAGE\").value)=\"${STAGE}\"" $(K8S_RESOURCE_TEMP_YAML)
 
 .PHONY: template-log-level
-template-log-level:
+template-log-level: $(BINARY_YQ)
 	@echo "Setting LOG_LEVEL env in deployment to ${LOG_LEVEL}!"
 	@$(BINARY_YQ) -i e "(select(.kind == \"Deployment\").spec.template.spec.containers[]|select(.image == \"*$(ARTIFACT_ID)*\").env[]|select(.name==\"LOG_LEVEL\").value)=\"${LOG_LEVEL}\"" $(K8S_RESOURCE_TEMP_YAML)
 
