@@ -67,6 +67,10 @@ func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.Char
 		ChartName:   fmt.Sprintf("%s/%s/%s", repositoryEndpoint, c.Spec.Namespace, c.Spec.Name),
 		Namespace:   c.Namespace,
 		Version:     c.Spec.Version,
+		// Rollback to previous release on failure.
+		Atomic: true,
+		// True would lead the client to delete a CRD on failure which could delete all Dogus.
+		CleanupOnFail: false,
 	}
 }
 
