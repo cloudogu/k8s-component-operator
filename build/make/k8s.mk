@@ -137,7 +137,7 @@ HARBOR_PASSWORD ?= $(shell bash -c 'read -s -p "Harbor password: " pwd; echo $$p
 k8s-helm-release: ${BINARY_HELM} k8s-helm-package-release ## Pushes generated and packaged helm chart to harbor with release urls.
 	@echo "Push generated and packaged helm chart"
 	@${BINARY_HELM} registry login "${HARBOR_REGISTRY}" --username ${HARBOR_USERNAME} --password ${HARBOR_PASSWORD}
-	@${BINARY_HELM} push "target/helm/${ARTIFACT_ID}_${VERSION}.tgz" "oci://${HARBOR_REGISTRY}/${REGISTRY_NAMESPACE}"
+	@${BINARY_HELM} push "target/helm/${ARTIFACT_ID}-${VERSION}.tgz" "oci://${HARBOR_REGISTRY}/${REGISTRY_NAMESPACE}"
 
 ##@ K8s - Docker
 
