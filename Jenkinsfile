@@ -234,9 +234,8 @@ void stageAutomaticRelease() {
                 .mountJenkinsUser()
                 .inside("--volume ${WORKSPACE}:/go/src/${project} -w /go/src/${project}")
                         {
-                            sh "export HARBOR_REGISTRY=staging-registry.cloudogu.com"
                             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
-                                make 'k8s-helm-release'
+                                sh 'HARBOR_REGISTRY=staging-registry.cloudogu.com make k8s-helm-release'
                             }
                         }
         }
