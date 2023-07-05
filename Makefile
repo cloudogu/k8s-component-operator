@@ -1,7 +1,6 @@
 # Set these to the desired values
 ARTIFACT_ID=k8s-component-operator
 VERSION=0.0.1
-HELM_CHART_VERSION=0.0.1
 ## Image URL to use all building/pushing image targets
 IMAGE_DEV=${K3CES_REGISTRY_URL_PREFIX}/${ARTIFACT_ID}:${VERSION}
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
@@ -9,6 +8,7 @@ GOTAG?=1.20.3
 MAKEFILES_VERSION=7.6.0
 LINT_VERSION?=v1.52.1
 STAGE?=production
+REGISTRY_NAMESPACE?=official
 
 ADDITIONAL_CLEAN=dist-clean
 
