@@ -74,7 +74,7 @@ func (m *componentManager) Install(ctx context.Context, component *k8sv1.Compone
 
 // Delete deletes the given component resource.
 func (m *componentManager) Delete(ctx context.Context, component *k8sv1.Component) error {
-	m.recorder.Event(component, corev1.EventTypeNormal, DeinstallEventReason, "Starting deinstallation...")
+	m.recorder.Event(component, corev1.EventTypeNormal, DeinstallationEventReason, "Starting deinstallation...")
 	return m.deleteManager.Delete(ctx, component)
 }
 

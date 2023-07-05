@@ -22,8 +22,8 @@ type operation string
 const (
 	// InstallEventReason The name of the installation event
 	InstallEventReason = "Installation"
-	// DeinstallEventReason The name of the deinstallation event
-	DeinstallEventReason = "Deinstallation"
+	// DeinstallationEventReason The name of the deinstallation event
+	DeinstallationEventReason = "Deinstallation"
 	// UpgradeEventReason The name of the upgrade event
 	UpgradeEventReason = "Upgrade"
 	// Install represents the install-operation
@@ -103,7 +103,7 @@ func (r *componentReconciler) performUpgradeOperation(ctx context.Context, compo
 }
 
 func (r *componentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) error {
-	return r.performOperation(ctx, component, DeinstallEventReason, r.componentManager.Delete)
+	return r.performOperation(ctx, component, DeinstallationEventReason, r.componentManager.Delete)
 }
 
 func (r *componentReconciler) performOperation(ctx context.Context, component *k8sv1.Component, eventReason string, operationFn func(context.Context, *k8sv1.Component) error) error {
@@ -175,9 +175,6 @@ func compareComponentVersion(component *k8sv1.Component, release *release.Releas
 		return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
 	}
 
-	// TODO If chart and app version won't be equal we have to look at both versions...
-	// deployedChartVersion := getChartVersion(chart)...
-
 	componentVersion, err := core.ParseVersion(component.Spec.Version)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
@@ -201,10 +198,3 @@ func (r *componentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&k8sv1.Component{}).
 		Complete(r)
 }
-
-// func getChartVersion(ch *chart.Chart) string {
-// 	if ch.Metadata == nil {
-// 		return ""
-// 	}
-// 	return ch.Metadata.Version
-// }

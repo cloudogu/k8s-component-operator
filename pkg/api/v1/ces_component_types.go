@@ -5,6 +5,7 @@ import (
 	"fmt"
 	helmclient "github.com/mittwald/go-helm-client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -69,6 +70,8 @@ func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.Char
 		Version:     c.Spec.Version,
 		// Rollback to previous release on failure.
 		Atomic: true,
+		// This timeout preven
+		Timeout: time.Second * 30,
 		// True would lead the client to delete a CRD on failure which could delete all Dogus.
 		CleanupOnFail: false,
 	}
