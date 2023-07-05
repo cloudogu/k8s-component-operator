@@ -71,7 +71,7 @@ func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.Char
 		// Rollback to previous release on failure.
 		Atomic: true,
 		// This timeout prevents context exceeded errors from the used k8s client from the helm library.
-		Timeout: time.Second * 30,
+		Timeout: time.Second * 300,
 		// True would lead the client to delete a CRD on failure which could delete all Dogus.
 		CleanupOnFail: false,
 	}
