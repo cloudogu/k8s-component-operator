@@ -18,6 +18,8 @@ goVersion = "1.20"
 repositoryOwner = "cloudogu"
 repositoryName = "k8s-component-operator"
 project = "github.com/${repositoryOwner}/${repositoryName}"
+registry = "registry.cloudogu.com"
+registry_namespace = "k8s"
 
 // Configuration of branches
 productionReleaseBranch = "main"
@@ -230,7 +232,7 @@ void stageAutomaticRelease() {
 
         stage('Push Helm chart to Harbor') {
             new Docker(this)
-                .image("golang:1.20")
+                .image("golang:${goVersion}")
                 .mountJenkinsUser()
                 .inside("--volume ${WORKSPACE}:/go/src/${project} -w /go/src/${project}")
                         {
@@ -239,9 +241,9 @@ void stageAutomaticRelease() {
                             Makefile makefile = new Makefile(this)
                             String controllerVersion = makefile.getVersion()
 
-                            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
-                                sh '.bin/helm registry login "registry.cloudogu.com" --username ${HARBOR_USERNAME} --password ${HARBOR_PASSWORD}'
-                                sh '.bin/helm push "target/helm/k8s-component-operator-' + controllerVersion + '.tgz" "oci://registry.cloudogu.com/k8s/"'
+                            withCredentials([usernamePassword(credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD')]) {
+                                sh '.bin/helm registry login "${registry}" --username ${HARBOR_USERNAME} --password ${HARBOR_PASSWORD}'
+                                sh '.bin/helm push "target/helm/${repositoryName}-${controllerVersion}.tgz" "oci://${registry}/${registry_namespace}/"'
                             }
                         }
         }
