@@ -37,6 +37,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		mockComponentClient := NewMockComponentClient(t)
 		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
 		mockRecorder := NewMockEventRecorder(t)
+		mockRecorder.EXPECT().Event(component, "Normal", "Installation", "Installation successful")
 		manager := NewMockComponentManager(t)
 		manager.EXPECT().Install(context.TODO(), component).Return(nil)
 		helmClient := NewMockHelmClient(t)
@@ -63,6 +64,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		mockComponentClient := NewMockComponentClient(t)
 		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
 		mockRecorder := NewMockEventRecorder(t)
+		mockRecorder.EXPECT().Event(component, "Normal", "Deinstallation", "Deinstallation successful")
 		manager := NewMockComponentManager(t)
 		manager.EXPECT().Delete(context.TODO(), component).Return(nil)
 		helmClient := NewMockHelmClient(t)
@@ -89,6 +91,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		mockComponentClient := NewMockComponentClient(t)
 		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
 		mockRecorder := NewMockEventRecorder(t)
+		mockRecorder.EXPECT().Event(component, "Normal", "Upgrade", "Upgrade successful")
 		manager := NewMockComponentManager(t)
 		manager.EXPECT().Upgrade(context.TODO(), component).Return(nil)
 		helmClient := NewMockHelmClient(t)
@@ -191,6 +194,33 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		// then
 		require.Error(t, err)
 		require.ErrorContains(t, err, "failed to evaluate required operation")
+	})
+
+	t.Run("should fail on error in operation", func(t *testing.T) {
+		// given
+		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component.DeletionTimestamp = &v1.Time{Time: time.Now()}
+		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
+		mockRecorder := NewMockEventRecorder(t)
+		mockRecorder.EXPECT().Event(component, "Warning", "Deinstallation", "Deinstallation failed. Reason: assert.AnError general error for testing")
+		manager := NewMockComponentManager(t)
+		manager.EXPECT().Delete(context.TODO(), component).Return(assert.AnError)
+		helmClient := NewMockHelmClient(t)
+		sut := componentReconciler{
+			componentClient:  mockComponentClient,
+			recorder:         mockRecorder,
+			componentManager: manager,
+			helmClient:       helmClient,
+		}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+
+		// when
+		_, err := sut.Reconcile(context.TODO(), req)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
 	})
 }
 

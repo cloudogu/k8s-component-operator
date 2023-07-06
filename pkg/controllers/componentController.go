@@ -7,12 +7,14 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"helm.sh/helm/v3/pkg/release"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"strings"
 )
 
 type operation string
@@ -20,17 +22,17 @@ type operation string
 const (
 	// InstallEventReason The name of the installation event
 	InstallEventReason = "Installation"
-	//DeinstallEventReason The name of the deinstallation event
-	DeinstallEventReason = "Deinstallation"
-	//UpgradeEventReason The name of the upgrade event
+	// DeinstallationEventReason The name of the deinstallation event
+	DeinstallationEventReason = "Deinstallation"
+	// UpgradeEventReason The name of the upgrade event
 	UpgradeEventReason = "Upgrade"
-	//Install represents the install-operation
+	// Install represents the install-operation
 	Install = operation("Install")
-	//Upgrade represents the upgrade-operation
+	// Upgrade represents the upgrade-operation
 	Upgrade = operation("Upgrade")
-	//Delete represents the delete-operation
+	// Delete represents the delete-operation
 	Delete = operation("Delete")
-	//Ignore represents the ignore-operation
+	// Ignore represents the ignore-operation
 	Ignore = operation("Ignore")
 )
 
@@ -80,16 +82,43 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	switch operation {
 	case Install:
-		return ctrl.Result{}, r.componentManager.Install(ctx, component)
+		return ctrl.Result{}, r.performInstallOperation(ctx, component)
 	case Delete:
-		return ctrl.Result{}, r.componentManager.Delete(ctx, component)
+		return ctrl.Result{}, r.performDeleteOperation(ctx, component)
 	case Upgrade:
-		return ctrl.Result{}, r.componentManager.Upgrade(ctx, component)
+		return ctrl.Result{}, r.performUpgradeOperation(ctx, component)
 	case Ignore:
 		return ctrl.Result{}, nil
 	default:
 		return ctrl.Result{}, nil
 	}
+}
+
+func (r *componentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) error {
+	return r.performOperation(ctx, component, InstallEventReason, r.componentManager.Install)
+}
+
+func (r *componentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component) error {
+	return r.performOperation(ctx, component, UpgradeEventReason, r.componentManager.Upgrade)
+}
+
+func (r *componentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) error {
+	return r.performOperation(ctx, component, DeinstallationEventReason, r.componentManager.Delete)
+}
+
+func (r *componentReconciler) performOperation(ctx context.Context, component *k8sv1.Component, eventReason string, operationFn func(context.Context, *k8sv1.Component) error) error {
+	err := operationFn(ctx, component)
+	eventType := corev1.EventTypeNormal
+	message := fmt.Sprintf("%s successful", eventReason)
+	if err != nil {
+		eventType = corev1.EventTypeWarning
+		printError := strings.ReplaceAll(err.Error(), "\n", "")
+		message = fmt.Sprintf("%s failed. Reason: %s", eventReason, printError)
+	}
+
+	r.recorder.Event(component, eventType, eventReason, message)
+
+	return err
 }
 
 func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
@@ -146,9 +175,6 @@ func compareComponentVersion(component *k8sv1.Component, release *release.Releas
 		return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
 	}
 
-	// TODO If chart and app version won't be equal we have to look at both versions...
-	// deployedChartVersion := getChartVersion(chart)...
-
 	componentVersion, err := core.ParseVersion(component.Spec.Version)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
@@ -172,10 +198,3 @@ func (r *componentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&k8sv1.Component{}).
 		Complete(r)
 }
-
-// func getChartVersion(ch *chart.Chart) string {
-// 	if ch.Metadata == nil {
-// 		return ""
-// 	}
-// 	return ch.Metadata.Version
-// }

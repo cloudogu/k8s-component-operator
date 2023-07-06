@@ -4,4 +4,5 @@ metadata:
   name: k8s-dogu-operator
 spec:
   name: k8s-dogu-operator
-  version: 0.1.0
+  namespace: testing
+  version: 0.2.0

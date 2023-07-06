@@ -5,6 +5,7 @@ import (
 	"fmt"
 	helmclient "github.com/mittwald/go-helm-client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -67,6 +68,12 @@ func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.Char
 		ChartName:   fmt.Sprintf("%s/%s/%s", repositoryEndpoint, c.Spec.Namespace, c.Spec.Name),
 		Namespace:   c.Namespace,
 		Version:     c.Spec.Version,
+		// Rollback to previous release on failure.
+		Atomic: true,
+		// This timeout prevents context exceeded errors from the used k8s client from the helm library.
+		Timeout: time.Second * 300,
+		// True would lead the client to delete a CRD on failure which could delete all Dogus.
+		CleanupOnFail: false,
 	}
 }
 
