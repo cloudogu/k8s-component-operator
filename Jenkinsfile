@@ -234,11 +234,18 @@ void stageAutomaticRelease() {
                 .mountJenkinsUser()
                 .inside("--volume ${WORKSPACE}:/go/src/${project} -w /go/src/${project}")
                         {
+                            make 'k8s-helm-package-release'
+
+                            Makefile makefile = new Makefile(this)
+                            String controllerVersion = makefile.getVersion()
+
                             withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
-                                sh 'HARBOR_REGISTRY=staging-registry.cloudogu.com make k8s-helm-release'
+                                sh '.bin/helm registry login "registry.cloudogu.com" --username ${HARBOR_USERNAME} --password ${HARBOR_PASSWORD}'
+                                sh '.bin/helm push "target/helm/k8s-component-operator-' + controllerVersion + '.tgz" "oci://registry.cloudogu.com/k8s/"'
                             }
                         }
         }
+
 
         stage('Add Github-Release') {
             releaseId = github.createReleaseWithChangelog(releaseVersion, changelog, productionReleaseBranch)
