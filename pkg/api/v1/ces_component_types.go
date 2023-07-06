@@ -5,6 +5,7 @@ import (
 	"fmt"
 	helmclient "github.com/mittwald/go-helm-client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -18,11 +19,16 @@ import (
 var _ embed.FS
 
 const (
+	// ComponentStatusNotInstalled represents a status for a component that is not installed
 	ComponentStatusNotInstalled = ""
-	ComponentStatusInstalling   = "installing"
-	ComponentStatusUpgrading    = "upgrading"
-	ComponentStatusDeleting     = "deleting"
-	ComponentStatusInstalled    = "installed"
+	// ComponentStatusInstalling represents a status for a component that is currently being installed
+	ComponentStatusInstalling = "installing"
+	// ComponentStatusUpgrading represents a status for a component that is currently being upgraded
+	ComponentStatusUpgrading = "upgrading"
+	// ComponentStatusDeleting represents a status for a component that is currently being deleted
+	ComponentStatusDeleting = "deleting"
+	// ComponentStatusInstalled represents a status for a component that was successfully installed
+	ComponentStatusInstalled = "installed"
 )
 
 const FinalizerName = "component-finalizer"
@@ -62,6 +68,12 @@ func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.Char
 		ChartName:   fmt.Sprintf("%s/%s/%s", repositoryEndpoint, c.Spec.Namespace, c.Spec.Name),
 		Namespace:   c.Namespace,
 		Version:     c.Spec.Version,
+		// Rollback to previous release on failure.
+		Atomic: true,
+		// This timeout prevents context exceeded errors from the used k8s client from the helm library.
+		Timeout: time.Second * 300,
+		// True would lead the client to delete a CRD on failure which could delete all Dogus.
+		CleanupOnFail: false,
 	}
 }
 

@@ -27,10 +27,13 @@ type UpgradeManager interface {
 	Upgrade(ctx context.Context, component *k8sv1.Component) error
 }
 
-// HelmClient embeds the helmclient.Client interface for usage in this package.
+// HelmClient is an interface for managing components with helm.
 type HelmClient interface {
+	// InstallOrUpgrade takes a component and applies the corresponding helmChart.
 	InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error
+	// Uninstall removes the helmChart of the given component
 	Uninstall(component *k8sv1.Component) error
+	// ListDeployedReleases returns all deployed helm releases
 	ListDeployedReleases() ([]*release.Release, error)
 }
 
@@ -71,7 +74,7 @@ func (m *componentManager) Install(ctx context.Context, component *k8sv1.Compone
 
 // Delete deletes the given component resource.
 func (m *componentManager) Delete(ctx context.Context, component *k8sv1.Component) error {
-	m.recorder.Event(component, corev1.EventTypeNormal, DeinstallEventReason, "Starting deinstallation...")
+	m.recorder.Event(component, corev1.EventTypeNormal, DeinstallationEventReason, "Starting deinstallation...")
 	return m.deleteManager.Delete(ctx, component)
 }
 

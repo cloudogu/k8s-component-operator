@@ -33,10 +33,12 @@ func (cswc *EcosystemClientset) EcosystemV1Alpha1() *V1Alpha1Client {
 	return cswc.ecosystemV1Alpha1
 }
 
+// V1Alpha1Client wraps the rest.Interface to use as a restClient for the component client.
 type V1Alpha1Client struct {
 	restClient rest.Interface
 }
 
+// NewForConfig creates a new V1Alpha1Client for a given rest.Config.
 func NewForConfig(c *rest.Config) (*V1Alpha1Client, error) {
 	config := *c
 	gv := schema.GroupVersion{Group: v1.GroupVersion.Group, Version: v1.GroupVersion.Version}
@@ -61,6 +63,7 @@ func NewForConfig(c *rest.Config) (*V1Alpha1Client, error) {
 	return &V1Alpha1Client{restClient: client}, nil
 }
 
+// Components takes a namespace and returns a new component client.
 func (c *V1Alpha1Client) Components(namespace string) ComponentInterface {
 	return &componentClient{
 		client: c.restClient,

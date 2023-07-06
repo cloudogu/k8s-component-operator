@@ -22,6 +22,8 @@ const (
 	debugLevel
 )
 
+// CurrentLogLevel is the currently configured logLevel
+// The default logLevel is "ERROR"
 var CurrentLogLevel = logrus.ErrorLevel
 
 type libraryLogger struct {
@@ -37,34 +39,42 @@ func (ll *libraryLogger) logf(level int, format string, args ...interface{}) {
 	ll.logger.Info(level, fmt.Sprintf("[%s] %s", ll.name, fmt.Sprintf(format, args...)))
 }
 
+// Debug will log a message at debug-level.
 func (ll *libraryLogger) Debug(args ...interface{}) {
 	ll.log(debugLevel, args...)
 }
 
+// Info will log a message at info-level.
 func (ll *libraryLogger) Info(args ...interface{}) {
 	ll.log(infoLevel, args...)
 }
 
+// Warning will log a message at warning-level.
 func (ll *libraryLogger) Warning(args ...interface{}) {
 	ll.log(warningLevel, args...)
 }
 
+// Error will log a message at error-level.
 func (ll *libraryLogger) Error(args ...interface{}) {
 	ll.log(errorLevel, args...)
 }
 
+// Debugf will log a message at debug-level using a format-string.
 func (ll *libraryLogger) Debugf(format string, args ...interface{}) {
 	ll.logf(debugLevel, format, args...)
 }
 
+// Infof will log a message at info-level using a format-string.
 func (ll *libraryLogger) Infof(format string, args ...interface{}) {
 	ll.logf(infoLevel, format, args...)
 }
 
+// Warningf will log a message at warning-level using a format-string.
 func (ll *libraryLogger) Warningf(format string, args ...interface{}) {
 	ll.logf(warningLevel, format, args...)
 }
 
+// Errorf will log a message at error-level using a format-string.
 func (ll *libraryLogger) Errorf(format string, args ...interface{}) {
 	ll.logf(errorLevel, format, args...)
 }
@@ -83,6 +93,7 @@ func getLogLevelFromEnv() (logrus.Level, error) {
 	return level, nil
 }
 
+// ConfigureLogger configures the logger using the logLevel from the environment
 func ConfigureLogger() error {
 	level, err := getLogLevelFromEnv()
 	if err != nil {

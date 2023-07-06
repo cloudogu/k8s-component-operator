@@ -128,9 +128,6 @@ func TestGetHelmRepositoryData(t *testing.T) {
 }
 
 func TestHelmRepositoryData_GetOciEndpoint(t *testing.T) {
-	type fields struct {
-		Endpoint string
-	}
 	tests := []struct {
 		name     string
 		Endpoint string
