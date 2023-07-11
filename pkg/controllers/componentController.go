@@ -26,10 +26,14 @@ const (
 	DeinstallationEventReason = "Deinstallation"
 	// UpgradeEventReason The name of the upgrade event
 	UpgradeEventReason = "Upgrade"
+	// DowngradeEventReason The name of the downgrade event
+	DowngradeEventReason = "Downgrade"
 	// Install represents the install-operation
 	Install = operation("Install")
 	// Upgrade represents the upgrade-operation
 	Upgrade = operation("Upgrade")
+	// Downgrade represents the downgrade-operation. Currently not supported.
+	Downgrade = operation("Downgrade")
 	// Delete represents the delete-operation
 	Delete = operation("Delete")
 	// Ignore represents the ignore-operation
@@ -87,6 +91,8 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, r.performDeleteOperation(ctx, component)
 	case Upgrade:
 		return ctrl.Result{}, r.performUpgradeOperation(ctx, component)
+	case Downgrade:
+		return ctrl.Result{}, r.performDowngradeOperation(ctx, component)
 	case Ignore:
 		return ctrl.Result{}, nil
 	default:
@@ -104,6 +110,11 @@ func (r *componentReconciler) performUpgradeOperation(ctx context.Context, compo
 
 func (r *componentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) error {
 	return r.performOperation(ctx, component, DeinstallationEventReason, r.componentManager.Delete)
+}
+
+func (r *componentReconciler) performDowngradeOperation(ctx context.Context, component *k8sv1.Component) error {
+	r.recorder.Event(component, corev1.EventTypeWarning, DowngradeEventReason, "component downgrades are not allowed")
+	return fmt.Errorf("downgrades are not allowed")
 }
 
 func (r *componentReconciler) performOperation(ctx context.Context, component *k8sv1.Component, eventReason string, operationFn func(context.Context, *k8sv1.Component) error) error {
@@ -131,15 +142,12 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	case k8sv1.ComponentStatusNotInstalled:
 		return Install, nil
 	case k8sv1.ComponentStatusInstalled:
-		upgrade, err := r.checkUpgradeAbility(component)
+		operation, err := r.getChangeOperation(component)
 		if err != nil {
 			return "", err
 		}
 
-		if upgrade {
-			return Upgrade, nil
-		}
-		return Ignore, nil
+		return operation, nil
 	case k8sv1.ComponentStatusInstalling:
 		return Ignore, nil
 	case k8sv1.ComponentStatusDeleting:
@@ -152,43 +160,43 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	}
 }
 
-func (r *componentReconciler) checkUpgradeAbility(component *k8sv1.Component) (bool, error) {
+func (r *componentReconciler) getChangeOperation(component *k8sv1.Component) (operation, error) {
 	deployedReleases, err := r.helmClient.ListDeployedReleases()
 	if err != nil {
-		return false, fmt.Errorf("failed to get deployed helm releases: %w", err)
+		return "", fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
 
 	for _, deployedRelease := range deployedReleases {
 		// This will allow a namespace switch e. g. k8s/dogu-operator -> k8s-testing/dogu-operator.
 		if deployedRelease.Name == component.Spec.Name && deployedRelease.Namespace == component.Namespace {
-			return compareComponentVersion(component, deployedRelease)
+			return getChangeOperationForRelease(component, deployedRelease)
 		}
 	}
 
-	return false, nil
+	return Ignore, nil
 }
 
-func compareComponentVersion(component *k8sv1.Component, release *release.Release) (bool, error) {
+func getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := core.ParseVersion(chart.AppVersion())
 	if err != nil {
-		return false, fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
+		return "", fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
 	}
 
 	componentVersion, err := core.ParseVersion(component.Spec.Version)
 	if err != nil {
-		return false, fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
+		return "", fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
 	}
 
 	if deployedAppVersion.IsOlderThan(componentVersion) {
-		return true, nil
+		return Upgrade, nil
 	}
 
 	if deployedAppVersion.IsNewerThan(componentVersion) {
-		return false, fmt.Errorf("downgrades are not allowed")
+		return Downgrade, nil
 	}
 
-	return false, nil
+	return Ignore, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
