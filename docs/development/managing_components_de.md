@@ -27,11 +27,11 @@ Hier wird beschrieben, wie man mit dem Komponenten-Operator k8s-CES-Komponenten 
 apiVersion: k8s.cloudogu.com/v1
 kind: Component
 metadata:
-name: k8s-etcd
+  name: k8s-etcd
 spec:
-name: k8s-etcd
-namespace: testing
-version: 3.5.9-1
+  name: k8s-etcd
+  namespace: testing
+  version: 3.5.9-1
 ```
 
 - `namespace` ist hier der Namespace der Komponente in der Helm-Registry (s.o.)
