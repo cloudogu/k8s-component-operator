@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Operator finishes uninstallation steps even if component has been uninstalled already
+- [#12] Fix the log-format for the logger used in the helm-client
 
 ## [v0.0.1] - 2023-07-07
 ### Changed

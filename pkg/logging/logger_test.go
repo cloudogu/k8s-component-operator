@@ -1,7 +1,9 @@
 package logging
 
 import (
+	"github.com/cloudogu/k8s-apply-lib/apply"
 	"github.com/cloudogu/k8s-component-operator/pkg/mocks/external"
+	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 
@@ -67,6 +69,42 @@ func TestConfigureLogger(t *testing.T) {
 		// then
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "value of log environment variable [LOG_LEVEL] is not a valid log level")
+	})
+
+	t.Run("should set library logger for core", func(t *testing.T) {
+		// given
+		_ = os.Setenv(logLevelEnvVar, "")
+
+		// when
+		err := ConfigureLogger()
+		coreLogger := core.GetLogger()
+
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, coreLogger)
+
+		libLogger, ok := coreLogger.(*libraryLogger)
+		require.True(t, ok)
+
+		assert.Equal(t, "cesapp-lib", libLogger.name)
+	})
+
+	t.Run("should set library logger for apply", func(t *testing.T) {
+		// given
+		_ = os.Setenv(logLevelEnvVar, "")
+
+		// when
+		err := ConfigureLogger()
+		applyLogger := apply.GetLogger()
+
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, applyLogger)
+
+		libLogger, ok := applyLogger.(*libraryLogger)
+		require.True(t, ok)
+
+		assert.Equal(t, "k8s-apply-lib", libLogger.name)
 	})
 }
 
@@ -176,4 +214,20 @@ func Test_libraryLogger_Warningf(t *testing.T) {
 
 	// then
 	mock.AssertExpectationsForObjects(t, loggerSink)
+}
+
+func TestFormattingLoggerWithName(t *testing.T) {
+	// given
+	result := make([]string, 0)
+	logger := FormattingLoggerWithName("my-comp", func(msg string, keysAndValues ...interface{}) {
+		result = append(result, msg)
+	})
+
+	// when
+	logger("test log")
+	logger("test log with format %s-%d", "foo", 4)
+
+	// then
+	assert.Equal(t, "[my-comp] test log", result[0])
+	assert.Equal(t, "[my-comp] test log with format foo-4", result[1])
 }

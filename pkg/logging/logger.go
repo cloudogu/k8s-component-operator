@@ -93,6 +93,12 @@ func getLogLevelFromEnv() (logrus.Level, error) {
 	return level, nil
 }
 
+func FormattingLoggerWithName(name string, loggerFn func(msg string, keysAndValues ...interface{})) func(format string, args ...interface{}) {
+	return func(format string, args ...interface{}) {
+		loggerFn(fmt.Sprintf("[%s] %s", name, fmt.Sprintf(format, args...)))
+	}
+}
+
 // ConfigureLogger configures the logger using the logLevel from the environment
 func ConfigureLogger() error {
 	level, err := getLogLevelFromEnv()

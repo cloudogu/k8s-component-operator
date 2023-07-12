@@ -145,7 +145,7 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 	}
 
 	debug := config.Stage == config.StageDevelopment
-	helmClient, err := helm.NewClient(operatorConfig.Namespace, operatorConfig.HelmRepositoryData, debug, operatorLog.Info)
+	helmClient, err := helm.NewClient(operatorConfig.Namespace, operatorConfig.HelmRepositoryData, debug, logging.FormattingLoggerWithName("helm-client", ctrl.Log.Info))
 	if err != nil {
 		return fmt.Errorf("failed to create helm client: %w", err)
 	}
