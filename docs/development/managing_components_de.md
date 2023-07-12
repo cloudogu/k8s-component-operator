@@ -7,6 +7,7 @@ Hier wird beschrieben, wie man mit dem Komponenten-Operator k8s-CES-Komponenten 
 ### Helm-Repository konfigurieren
 - Die Datei `.env` aus dem Template `.env.template` erstellen
     - Wichtig sind die Variablen HELM_REPO_ENDPOINT (bspw. https://registry.domain.test), HELM_REPO_USERNAME und HELM_REPO_PASSWORD
+    - Außerdem sollte NAMESPACE korrekt gesetzt sein
 - Credentials im Cluster ablegen: `make helm-repo-config`
 
 ### Komponenten-Operator installieren
@@ -37,11 +38,10 @@ spec:
 - `namespace` ist hier der Namespace der Komponente in der Helm-Registry (s.o.)
 - Weitere Beispiele finden sich unter config/samples
 
-
-- Anwenden der CR auf den Cluster: bspw. `kubectl apply -f etcd.yaml --namespace ecosystem`
+- Anwenden der CR auf den Cluster: bspw. `kubectl apply -f etcd.yaml`
 - Der Komponenten-Operator beginnt nun mit der Installation der Komponente
 
 ## Komponente deinstallieren
 
-- Löschen der Komponenten-CR aus dem Cluster: bspw. `kubectl delete -f etcd.yaml --namespace ecosystem`
+- Löschen der Komponenten-CR aus dem Cluster: bspw. `kubectl delete -f etcd.yaml`
 - Der Komponenten-Operator beginnt nun mit der Deinstallation der Komponente
