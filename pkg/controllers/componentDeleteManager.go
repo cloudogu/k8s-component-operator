@@ -30,9 +30,21 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 		return fmt.Errorf("failed to update status-deleting for component %s: %w", component.Spec.Name, err)
 	}
 
-	err = cdm.helmClient.Uninstall(component)
+	deployedReleases, err := cdm.helmClient.ListDeployedReleases()
 	if err != nil {
-		return fmt.Errorf("failed to uninstall chart with name %s: %w", component.Spec.Name, err)
+		return fmt.Errorf("could not list deployed Helm releases")
+	}
+
+	// Check if Helm Chart is still present before uninstalling; maybe someone has already removed it manually
+	for _, release := range deployedReleases {
+		if component.Name == release.Name {
+			// Component Helm Chart is still present and can be uninstalled
+			err = cdm.helmClient.Uninstall(component)
+			if err != nil {
+				return fmt.Errorf("failed to uninstall chart with name %s: %w", component.Spec.Name, err)
+			}
+			break
+		}
 	}
 
 	_, err = cdm.componentClient.RemoveFinalizer(ctx, component, k8sv1.FinalizerName)
