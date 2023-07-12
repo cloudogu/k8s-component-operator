@@ -42,16 +42,39 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	logger.Info("Install helm chart...")
 
-	if err := cim.helmClient.InstallOrUpgrade(ctx, component); err != nil {
-		return fmt.Errorf("failed to install chart: %w", err)
-	}
+	// create a new context that does not get cancelled immediately on SIGTERM
+	helmCtx, cancelHelmCtx := context.WithCancelCause(context.Background())
 
-	_, err = cim.componentClient.UpdateStatusInstalled(ctx, component)
-	if err != nil {
-		return fmt.Errorf("failed to set status installed: %w", err)
+	go func() {
+		if err := cim.doInstall(helmCtx, component); err != nil {
+			cancelHelmCtx(err)
+			return
+		}
+		cancelHelmCtx(nil)
+	}()
+
+	// wait for install to finish
+	select {
+	case <-helmCtx.Done():
+		if ctxErr := context.Cause(helmCtx); ctxErr != context.Canceled {
+			return ctxErr
+		}
+		break
 	}
 
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))
 
+	return nil
+}
+
+func (cim *componentInstallManager) doInstall(ctx context.Context, component *k8sv1.Component) error {
+	if err := cim.helmClient.InstallOrUpgrade(ctx, component); err != nil {
+		return fmt.Errorf("failed to install chart for component %s: %w", component.Spec.Name, err)
+	}
+
+	_, err := cim.componentClient.UpdateStatusInstalled(ctx, component)
+	if err != nil {
+		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
+	}
 	return nil
 }
