@@ -47,8 +47,8 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// wait for upgrade to finish
 	// wait for install to finish
 	<-helmCtx.Done()
-	if ctxErr := context.Cause(helmCtx); ctxErr != context.Canceled {
-		return ctxErr
+	if err := context.Cause(helmCtx); err != context.Canceled {
+		return err
 	}
 
 	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))
