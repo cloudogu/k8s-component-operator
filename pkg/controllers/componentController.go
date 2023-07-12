@@ -92,7 +92,7 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	case Upgrade:
 		return ctrl.Result{}, r.performUpgradeOperation(ctx, component)
 	case Downgrade:
-		return ctrl.Result{}, r.performDowngradeOperation(ctx, component)
+		return ctrl.Result{}, r.performDowngradeOperation(component)
 	case Ignore:
 		return ctrl.Result{}, nil
 	default:
@@ -112,7 +112,7 @@ func (r *componentReconciler) performDeleteOperation(ctx context.Context, compon
 	return r.performOperation(ctx, component, DeinstallationEventReason, r.componentManager.Delete)
 }
 
-func (r *componentReconciler) performDowngradeOperation(ctx context.Context, component *k8sv1.Component) error {
+func (r *componentReconciler) performDowngradeOperation(component *k8sv1.Component) error {
 	r.recorder.Event(component, corev1.EventTypeWarning, DowngradeEventReason, "component downgrades are not allowed")
 	return fmt.Errorf("downgrades are not allowed")
 }

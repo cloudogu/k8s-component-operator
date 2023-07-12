@@ -44,6 +44,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	// create a new context that does not get cancelled immediately on SIGTERM
 	helmCtx, cancelHelmCtx := context.WithCancelCause(context.Background())
+	defer cancelHelmCtx(nil)
 
 	go func() {
 		if err := cim.doInstall(helmCtx, component); err != nil {
@@ -54,12 +55,9 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	}()
 
 	// wait for install to finish
-	select {
-	case <-helmCtx.Done():
-		if ctxErr := context.Cause(helmCtx); ctxErr != context.Canceled {
-			return ctxErr
-		}
-		break
+	<-helmCtx.Done()
+	if ctxErr := context.Cause(helmCtx); ctxErr != context.Canceled {
+		return ctxErr
 	}
 
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))

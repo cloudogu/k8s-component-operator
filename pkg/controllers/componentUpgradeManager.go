@@ -34,6 +34,7 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 
 	// create a new context that does not get cancelled immediately on SIGTERM
 	helmCtx, cancelHelmCtx := context.WithCancelCause(context.Background())
+	defer cancelHelmCtx(nil)
 
 	go func() {
 		if err := cum.doUpgrade(helmCtx, component); err != nil {
@@ -44,12 +45,10 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	}()
 
 	// wait for upgrade to finish
-	select {
-	case <-helmCtx.Done():
-		if ctxErr := context.Cause(helmCtx); ctxErr != context.Canceled {
-			return ctxErr
-		}
-		break
+	// wait for install to finish
+	<-helmCtx.Done()
+	if ctxErr := context.Cause(helmCtx); ctxErr != context.Canceled {
+		return ctxErr
 	}
 
 	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))
