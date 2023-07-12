@@ -5,6 +5,7 @@ import (
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"helm.sh/helm/v3/pkg/release"
 	"testing"
 )
 
@@ -24,10 +25,11 @@ func TestNewComponentDeleteManager(t *testing.T) {
 func Test_componentDeleteManager_Delete(t *testing.T) {
 	t.Run("should delete component", func(t *testing.T) {
 		ctx := context.Background()
+		componentName := "testComponent"
 		component := &k8sv1.Component{
 			Spec: k8sv1.ComponentSpec{
 				Namespace: "ecosystem",
-				Name:      "testComponent",
+				Name:      componentName,
 				Version:   "1.0",
 			},
 			Status: k8sv1.ComponentStatus{Status: "installed"},
@@ -39,6 +41,9 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component).Return(nil)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+			Name: componentName,
+		}}, nil)
 
 		manager := &componentDeleteManager{
 			componentClient: mockComponentClient,
@@ -77,10 +82,11 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 	t.Run("should fail to delete component on error while uninstalling chart", func(t *testing.T) {
 		ctx := context.Background()
+		componentName := "testComponent"
 		component := &k8sv1.Component{
 			Spec: k8sv1.ComponentSpec{
 				Namespace: "ecosystem",
-				Name:      "testComponent",
+				Name:      componentName,
 				Version:   "1.0",
 			},
 			Status: k8sv1.ComponentStatus{Status: "installed"},
@@ -91,6 +97,9 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component).Return(assert.AnError)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+			Name: componentName,
+		}}, nil)
 
 		manager := &componentDeleteManager{
 			componentClient: mockComponentClient,
@@ -104,10 +113,11 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 	t.Run("should fail to delete component on error while removing finalizer", func(t *testing.T) {
 		ctx := context.Background()
+		componentName := "testComponent"
 		component := &k8sv1.Component{
 			Spec: k8sv1.ComponentSpec{
 				Namespace: "ecosystem",
-				Name:      "testComponent",
+				Name:      componentName,
 				Version:   "1.0",
 			},
 			Status: k8sv1.ComponentStatus{Status: "installed"},
@@ -119,6 +129,9 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component).Return(nil)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+			Name: componentName,
+		}}, nil)
 
 		manager := &componentDeleteManager{
 			componentClient: mockComponentClient,
