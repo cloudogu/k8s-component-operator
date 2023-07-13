@@ -15,6 +15,8 @@ import (
 
 const logLevelEnvVar = "LOG_LEVEL"
 
+const logWithNameFormat = "[%s] %s"
+
 const (
 	errorLevel int = iota
 	warningLevel
@@ -32,11 +34,11 @@ type libraryLogger struct {
 }
 
 func (ll *libraryLogger) log(level int, args ...interface{}) {
-	ll.logger.Info(level, fmt.Sprintf("[%s] %s", ll.name, fmt.Sprint(args...)))
+	ll.logger.Info(level, fmt.Sprintf(logWithNameFormat, ll.name, fmt.Sprint(args...)))
 }
 
 func (ll *libraryLogger) logf(level int, format string, args ...interface{}) {
-	ll.logger.Info(level, fmt.Sprintf("[%s] %s", ll.name, fmt.Sprintf(format, args...)))
+	ll.logger.Info(level, fmt.Sprintf(logWithNameFormat, ll.name, fmt.Sprintf(format, args...)))
 }
 
 // Debug will log a message at debug-level.
@@ -95,7 +97,7 @@ func getLogLevelFromEnv() (logrus.Level, error) {
 
 func FormattingLoggerWithName(name string, loggerFn func(msg string, keysAndValues ...interface{})) func(format string, args ...interface{}) {
 	return func(format string, args ...interface{}) {
-		loggerFn(fmt.Sprintf("[%s] %s", name, fmt.Sprintf(format, args...)))
+		loggerFn(fmt.Sprintf(logWithNameFormat, name, fmt.Sprintf(format, args...)))
 	}
 }
 

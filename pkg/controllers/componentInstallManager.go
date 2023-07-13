@@ -23,6 +23,7 @@ func NewComponentInstallManager(componentClient ecosystem.ComponentInterface, he
 }
 
 // Install installs a given Component Resource.
+// nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
 func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 

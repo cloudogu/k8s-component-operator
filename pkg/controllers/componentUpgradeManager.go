@@ -22,6 +22,7 @@ func NewComponentUpgradeManager(componentClient ComponentClient, helmClient Helm
 }
 
 // Upgrade upgrades a given component resource.
+// nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
 func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
