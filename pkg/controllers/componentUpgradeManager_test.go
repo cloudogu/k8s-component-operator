@@ -4,7 +4,6 @@ import (
 	"context"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -36,10 +35,10 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		mockComponentClient := NewMockComponentClient(t)
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
-		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.AnythingOfType("*context.cancelCtx"), component).Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(mock.AnythingOfType("*context.cancelCtx"), component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(nil)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -91,7 +90,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(mock.AnythingOfType("*context.cancelCtx"), component).Return(assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(assert.AnError)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -116,10 +115,10 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		mockComponentClient := NewMockComponentClient(t)
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
-		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.AnythingOfType("*context.cancelCtx"), component).Return(component, assert.AnError)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, assert.AnError)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(mock.AnythingOfType("*context.cancelCtx"), component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(nil)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,

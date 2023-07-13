@@ -33,38 +33,18 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	logger.Info("Upgrade helm chart...")
 
 	// create a new context that does not get cancelled immediately on SIGTERM
-	helmCtx, cancelHelmCtx := context.WithCancelCause(context.Background())
-	defer cancelHelmCtx(nil)
+	helmCtx := context.Background()
 
-	go func() {
-		if err := cum.doUpgrade(helmCtx, component); err != nil {
-			cancelHelmCtx(err)
-			return
-		}
-		cancelHelmCtx(nil)
-	}()
-
-	// wait for upgrade to finish
-	// wait for install to finish
-	<-helmCtx.Done()
-	if err := context.Cause(helmCtx); err != context.Canceled {
-		return err
-	}
-
-	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))
-
-	return nil
-}
-
-func (cum *componentUpgradeManager) doUpgrade(ctx context.Context, component *k8sv1.Component) error {
-	if err := cum.helmClient.InstallOrUpgrade(ctx, component); err != nil {
+	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component); err != nil {
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 
-	component, err := cum.componentClient.UpdateStatusInstalled(ctx, component)
+	component, err = cum.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
 	}
+
+	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))
 
 	return nil
 }
