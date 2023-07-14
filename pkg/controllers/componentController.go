@@ -127,6 +127,7 @@ func (r *componentReconciler) performOperation(ctx context.Context, component *k
 		message = fmt.Sprintf("%s failed. Reason: %s", eventReason, printError)
 	}
 
+	// on self-upgrade of the component-operator this event might not get send, because the operator is already shutting down
 	r.recorder.Event(component, eventType, eventReason, message)
 
 	return err
