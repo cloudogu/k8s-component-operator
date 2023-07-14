@@ -113,6 +113,34 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		assert.Equal(t, reconcile.Result{}, result)
 	})
 
+	t.Run("should fail on downgrade", func(t *testing.T) {
+		// given
+		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component.Status.Status = "installed"
+		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
+		mockRecorder := NewMockEventRecorder(t)
+		mockRecorder.EXPECT().Event(component, "Warning", "Downgrade", "component downgrades are not allowed")
+		manager := NewMockComponentManager(t)
+		helmClient := NewMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.2.0"}}}}
+		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		sut := componentReconciler{
+			componentClient:  mockComponentClient,
+			recorder:         mockRecorder,
+			componentManager: manager,
+			helmClient:       helmClient,
+		}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+
+		// when
+		_, err := sut.Reconcile(context.TODO(), req)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "downgrades are not allowed")
+	})
+
 	t.Run("should ignore equal installed component", func(t *testing.T) {
 		// given
 		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
@@ -224,7 +252,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 	})
 }
 
-func Test_componentReconciler_checkUpgradeAbility(t *testing.T) {
+func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should fail on error getting helm releases", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
@@ -236,7 +264,7 @@ func Test_componentReconciler_checkUpgradeAbility(t *testing.T) {
 		}
 
 		// when
-		_, err := sut.checkUpgradeAbility(component)
+		_, err := sut.getChangeOperation(component)
 
 		// then
 		require.Error(t, err)
@@ -256,14 +284,14 @@ func Test_componentReconciler_checkUpgradeAbility(t *testing.T) {
 		}
 
 		// when
-		_, err := sut.checkUpgradeAbility(component)
+		_, err := sut.getChangeOperation(component)
 
 		// then
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "failed to parse component version")
 	})
 
-	t.Run("should return error on downgrade", func(t *testing.T) {
+	t.Run("should return downgrade-operation on downgrade", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.0")
 		mockHelmClient := NewMockHelmClient(t)
@@ -275,11 +303,68 @@ func Test_componentReconciler_checkUpgradeAbility(t *testing.T) {
 		}
 
 		// when
-		_, err := sut.checkUpgradeAbility(component)
+		op, err := sut.getChangeOperation(component)
 
 		// then
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "downgrades are not allowed")
+		require.NoError(t, err)
+		assert.Equal(t, Downgrade, op)
+	})
+
+	t.Run("should return upgrade-operation on upgrade", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.2")
+		mockHelmClient := NewMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		op, err := sut.getChangeOperation(component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Upgrade, op)
+	})
+
+	t.Run("should return ignore-operation on same version", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.1")
+		mockHelmClient := NewMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		op, err := sut.getChangeOperation(component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Ignore, op)
+	})
+
+	t.Run("should return ignore-operation when no release is found", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.1")
+		mockHelmClient := NewMockHelmClient(t)
+		var helmReleases []*release.Release
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		op, err := sut.getChangeOperation(component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Ignore, op)
 	})
 }
 
@@ -316,6 +401,20 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.0")
 		component.Status.Status = "upgrading"
+		sut := componentReconciler{}
+
+		// when
+		requiredOperation, err := sut.evaluateRequiredOperation(context.TODO(), component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Ignore, requiredOperation)
+	})
+
+	t.Run("should return ignore on unrecognized status", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.0")
+		component.Status.Status = "foobar"
 		sut := componentReconciler{}
 
 		// when

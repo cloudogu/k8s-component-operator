@@ -121,6 +121,9 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			By("Delete component resource")
 			*helmClientMock = MockHelmClient{}
 			helmClientMock.EXPECT().Uninstall(mock.Anything).Return(nil)
+			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+				Name: "k8s-dogu-operator",
+			}}, nil)
 			*recorderMock = MockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Starting deinstallation...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Deinstallation successful")
