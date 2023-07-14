@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Add documentation for component operator usage in dev environment
+- [#12] Add upgrade of components and self-upgrade of component-operator
 
 ### Fixed
 - Operator finishes uninstallation steps even if component has been uninstalled already
+- [#12] Fix the log-format for the logger used in the helm-client
 
 ## [v0.0.1] - 2023-07-07
 ### Changed

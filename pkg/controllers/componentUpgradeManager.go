@@ -22,6 +22,7 @@ func NewComponentUpgradeManager(componentClient ComponentClient, helmClient Helm
 }
 
 // Upgrade upgrades a given component resource.
+// nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
 func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
@@ -30,11 +31,16 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		return fmt.Errorf("failed to update status-upgrading for component %s: %w", component.Spec.Name, err)
 	}
 
-	if err = cum.helmClient.InstallOrUpgrade(ctx, component); err != nil {
+	logger.Info("Upgrade helm chart...")
+
+	// create a new context that does not get cancelled immediately on SIGTERM
+	helmCtx := context.Background()
+
+	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component); err != nil {
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 
-	component, err = cum.componentClient.UpdateStatusInstalled(ctx, component)
+	component, err = cum.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
 	}

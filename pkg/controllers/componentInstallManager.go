@@ -23,6 +23,7 @@ func NewComponentInstallManager(componentClient ecosystem.ComponentInterface, he
 }
 
 // Install installs a given Component Resource.
+// nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
 func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
@@ -42,13 +43,16 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	logger.Info("Install helm chart...")
 
-	if err := cim.helmClient.InstallOrUpgrade(ctx, component); err != nil {
-		return fmt.Errorf("failed to install chart: %w", err)
+	// create a new context that does not get cancelled immediately on SIGTERM
+	helmCtx := context.Background()
+
+	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component); err != nil {
+		return fmt.Errorf("failed to install chart for component %s: %w", component.Spec.Name, err)
 	}
 
-	_, err = cim.componentClient.UpdateStatusInstalled(ctx, component)
+	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
-		return fmt.Errorf("failed to set status installed: %w", err)
+		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
 	}
 
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))

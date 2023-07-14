@@ -10,7 +10,9 @@ spec:
       control-plane: controller-manager
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
   template:
     metadata:
       annotations:
