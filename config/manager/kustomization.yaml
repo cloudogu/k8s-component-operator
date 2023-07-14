@@ -11,4 +11,4 @@ kind: Kustomization
 images:
   - name: controller
     newName: cloudogu/k8s-component-operator
-    newTag: 0.0.1
+    newTag: 0.0.2
