@@ -61,6 +61,10 @@ type Component struct {
 	Status ComponentStatus `json:"status,omitempty"`
 }
 
+func (c *Component) String() string {
+	return fmt.Sprintf("%s/%s:%s", c.Spec.Namespace, c.Spec.Name, c.Spec.Version)
+}
+
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.
 func (c *Component) GetHelmChartSpec(repositoryEndpoint string) *helmclient.ChartSpec {
 	return &helmclient.ChartSpec{
