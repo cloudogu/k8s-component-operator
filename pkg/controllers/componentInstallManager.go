@@ -3,8 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -12,13 +16,15 @@ import (
 type componentInstallManager struct {
 	componentClient ecosystem.ComponentInterface
 	helmClient      HelmClient
+	recorder        record.EventRecorder
 }
 
 // NewComponentInstallManager creates a new instance of componentInstallManager.
-func NewComponentInstallManager(componentClient ecosystem.ComponentInterface, helmClient HelmClient) *componentInstallManager {
+func NewComponentInstallManager(componentClient ecosystem.ComponentInterface, helmClient HelmClient, recorder record.EventRecorder) *componentInstallManager {
 	return &componentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
+		recorder:        recorder,
 	}
 }
 
@@ -27,7 +33,14 @@ func NewComponentInstallManager(componentClient ecosystem.ComponentInterface, he
 func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	component, err := cim.componentClient.UpdateStatusInstalling(ctx, component)
+	err := cim.helmClient.SatisfiesDependencies(ctx, component)
+	if err != nil {
+		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "One or more dependencies are not satisfied: %s", err.Error())
+		// TODO implement requeueable error with timing and state and return an error instance here instead
+		return err
+	}
+
+	component, err = cim.componentClient.UpdateStatusInstalling(ctx, component)
 	if err != nil {
 		return fmt.Errorf("failed to set status installing: %w", err)
 	}
@@ -43,7 +56,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	logger.Info("Install helm chart...")
 
-	// create a new context that does not get cancelled immediately on SIGTERM
+	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.Background()
 
 	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component); err != nil {

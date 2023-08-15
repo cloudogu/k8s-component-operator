@@ -69,7 +69,7 @@ func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmCl
 // move the current state of the cluster closer to the desired state.
 func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("Reconcile this crd")
+	logger.Info("Reconcile this component", "component", req.Name)
 	component, err := r.componentClient.Get(ctx, req.Name, v1.GetOptions{})
 
 	if err != nil {

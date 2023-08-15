@@ -13,7 +13,7 @@ func TestNewComponentUpgradeManager(t *testing.T) {
 		mockComponentClient := NewMockComponentClient(t)
 		mockHelmClient := NewMockHelmClient(t)
 
-		manager := NewComponentUpgradeManager(mockComponentClient, mockHelmClient)
+		manager := NewComponentUpgradeManager(mockComponentClient, mockHelmClient, nil)
 
 		assert.NotNil(t, manager)
 		assert.Equal(t, mockHelmClient, manager.helmClient)

@@ -11,11 +11,11 @@ import (
 )
 
 type dependencyChecker interface {
+	// CheckSatisfied validates that all dependencies are installed in the required version.
 	CheckSatisfied(dependencies []*chart.Dependency, deployedReleases []*release.Release) error
 }
 
-type installedDependencyChecker struct {
-}
+type installedDependencyChecker struct{}
 
 // CheckSatisfied validates that all dependencies are installed in the required version.
 func (d *installedDependencyChecker) CheckSatisfied(dependencies []*chart.Dependency, deployedReleases []*release.Release) error {

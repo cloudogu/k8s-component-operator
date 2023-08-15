@@ -120,6 +120,49 @@ func (_c *MockHelmClient_ListDeployedReleases_Call) RunAndReturn(run func() ([]*
 	return _c
 }
 
+// SatisfiesDependencies provides a mock function with given fields: ctx, component
+func (_m *MockHelmClient) SatisfiesDependencies(ctx context.Context, component *v1.Component) error {
+	ret := _m.Called(ctx, component)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *v1.Component) error); ok {
+		r0 = rf(ctx, component)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockHelmClient_SatisfiesDependencies_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SatisfiesDependencies'
+type MockHelmClient_SatisfiesDependencies_Call struct {
+	*mock.Call
+}
+
+// SatisfiesDependencies is a helper method to define mock.On call
+//   - ctx context.Context
+//   - component *v1.Component
+func (_e *MockHelmClient_Expecter) SatisfiesDependencies(ctx interface{}, component interface{}) *MockHelmClient_SatisfiesDependencies_Call {
+	return &MockHelmClient_SatisfiesDependencies_Call{Call: _e.mock.On("SatisfiesDependencies", ctx, component)}
+}
+
+func (_c *MockHelmClient_SatisfiesDependencies_Call) Run(run func(ctx context.Context, component *v1.Component)) *MockHelmClient_SatisfiesDependencies_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*v1.Component))
+	})
+	return _c
+}
+
+func (_c *MockHelmClient_SatisfiesDependencies_Call) Return(_a0 error) *MockHelmClient_SatisfiesDependencies_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockHelmClient_SatisfiesDependencies_Call) RunAndReturn(run func(context.Context, *v1.Component) error) *MockHelmClient_SatisfiesDependencies_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Uninstall provides a mock function with given fields: component
 func (_m *MockHelmClient) Uninstall(component *v1.Component) error {
 	ret := _m.Called(component)

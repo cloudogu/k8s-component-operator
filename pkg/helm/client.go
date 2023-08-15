@@ -13,6 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -83,6 +84,25 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Componen
 
 	chartSpec := component.GetHelmChartSpec(endpoint)
 
+	_, err = c.helmClient.InstallOrUpgradeChart(ctx, chartSpec, nil)
+	if err != nil {
+		return fmt.Errorf("error while installOrUpgrade component %s: %w", component, err)
+	}
+	return nil
+}
+
+// SatisfiesDependencies checks if all dependencies are satisfied in terms of installation and ver
+func (c *Client) SatisfiesDependencies(ctx context.Context, component *k8sv1.Component) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Checking if components dependencies are satisfied", "component", component.Name)
+
+	endpoint, err := c.getOciEndpoint(component)
+	if err != nil {
+		return err
+	}
+
+	chartSpec := component.GetHelmChartSpec(endpoint)
+
 	componentChart, err := c.getChart(component, chartSpec)
 	if err != nil {
 		return fmt.Errorf("failed to get chart for component %s: %w", component, err)
@@ -99,10 +119,6 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Componen
 		return fmt.Errorf("some dependencies are missing: %w", err)
 	}
 
-	_, err = c.helmClient.InstallOrUpgradeChart(ctx, chartSpec, nil)
-	if err != nil {
-		return fmt.Errorf("error while installOrUpgrade component %s: %w", component, err)
-	}
 	return nil
 }
 
@@ -116,7 +132,7 @@ func (c *Client) getOciEndpoint(component *k8sv1.Component) (string, error) {
 }
 
 func (c *Client) getChart(component *k8sv1.Component, spec *helmclient.ChartSpec) (*chart.Chart, error) {
-	// We need this install because it sets the registryClient in ChartPathOptions which is a private field.
+	// We need this installAction because it sets the registryClient in ChartPathOptions which is a private field.
 	install := action.NewInstall(c.actionConfig)
 	install.Version = component.Spec.Version
 	componentChart, _, err := c.helmClient.GetChart(spec.ChartName, &install.ChartPathOptions)

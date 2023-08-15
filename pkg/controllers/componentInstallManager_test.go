@@ -9,7 +9,7 @@ import (
 
 func TestNewComponentInstallManager(t *testing.T) {
 	// when
-	manager := NewComponentInstallManager(nil, nil)
+	manager := NewComponentInstallManager(nil, nil, nil)
 
 	// then
 	require.NotNil(t, manager)
