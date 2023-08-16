@@ -44,7 +44,7 @@ func (d *componentRequeueHandler) Handle(ctx context.Context, contextMessage str
 		return ctrl.Result{}, fmt.Errorf("failed to update component status: %w", updateError)
 	}
 
-	requeueTime := requeueableErr.GetRequeueTime()
+	requeueTime := requeueableErr.GetRequeueTime(component.Status.RequeueTimeNanos)
 	result := ctrl.Result{Requeue: true, RequeueAfter: requeueTime}
 	d.fireRequeueEvent(component, result)
 

@@ -64,7 +64,6 @@ type componentInterface interface {
 // requeuableError indicates that the current error requires the operator to requeue the dogu.
 type requeuableError interface {
 	error
-	// GetRequeueTime return the time to wait before the next reconciliation. The constant ExponentialRequeueTime indicates
-	// that the requeue time increased exponentially.
-	GetRequeueTime() time.Duration
+	// GetRequeueTime returns the time to wait before the next reconciliation.
+	GetRequeueTime(requeueTimeNanos time.Duration) time.Duration
 }

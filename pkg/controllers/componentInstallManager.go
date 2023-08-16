@@ -35,13 +35,12 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	err := cim.helmClient.SatisfiesDependencies(ctx, component)
 	if err != nil {
 		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "One or more dependencies are not satisfied: %s", err.Error())
-		// TODO implement requeueable error with timing and state and return an error instance here instead
-		return fmt.Errorf("one or more dependencies are not satisfied: %w", err)
+		return &dependencyUnsatisfiedError{err: err}
 	}
 
 	component, err = cim.componentClient.UpdateStatusInstalling(ctx, component)
 	if err != nil {
-		return fmt.Errorf("failed to set status installing: %w", err)
+		return &genericRequeueableError{errMsg: "failed to set status installing", err: err}
 	}
 
 	// Set the finalizer at the beginning of the installation procedure.
@@ -50,7 +49,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	// deletion procedure from the controller.
 	component, err = cim.componentClient.AddFinalizer(ctx, component, k8sv1.FinalizerName)
 	if err != nil {
-		return fmt.Errorf("failed to add finalizer %s: %w", k8sv1.FinalizerName, err)
+		return &genericRequeueableError{"failed to add finalizer " + k8sv1.FinalizerName, err}
 	}
 
 	logger.Info("Install helm chart...")
@@ -59,12 +58,12 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	helmCtx := context.Background()
 
 	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component); err != nil {
-		return fmt.Errorf("failed to install chart for component %s: %w", component.Spec.Name, err)
+		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 	}
 
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
-		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
+		return &genericRequeueableError{"failed to update status-installed for component " + component.Spec.Name, err}
 	}
 
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))

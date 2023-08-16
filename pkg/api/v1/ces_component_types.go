@@ -47,6 +47,8 @@ type ComponentSpec struct {
 type ComponentStatus struct {
 	// Status represents the state of the component in the ecosystem.
 	Status string `json:"status"`
+	// RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
+	RequeueTimeNanos time.Duration `json:"requeueTimeNanos,omitempty"`
 }
 
 // +kubebuilder:object:root=true

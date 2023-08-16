@@ -2,13 +2,17 @@ package controllers
 
 import (
 	"context"
-	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 )
 
 var testCtx = context.Background()
@@ -86,7 +90,7 @@ func Test_componentRequeueHandler_Handle(t *testing.T) {
 		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock, recorder: recorderMock}
 
 		requeueErrMock := newMockRequeuableError(t)
-		requeueErrMock.EXPECT().GetRequeueTime().Return(time.Second)
+		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything).Return(time.Second)
 		requeueErrMock.EXPECT().Error().Return("my error")
 
 		onRequeueExecuted := false
