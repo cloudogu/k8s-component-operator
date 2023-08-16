@@ -39,12 +39,14 @@ func (d *componentRequeueHandler) Handle(ctx context.Context, contextMessage str
 		onRequeue()
 	}
 
+	requeueTime := requeueableErr.GetRequeueTime(component.Status.RequeueTimeNanos)
+	component.Status.RequeueTimeNanos = requeueTime
+
 	_, updateError := d.clientSet.ComponentV1Alpha1().Components(d.namespace).UpdateStatus(ctx, component, metav1.UpdateOptions{})
 	if updateError != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update component status: %w", updateError)
 	}
 
-	requeueTime := requeueableErr.GetRequeueTime(component.Status.RequeueTimeNanos)
 	result := ctrl.Result{Requeue: true, RequeueAfter: requeueTime}
 	d.fireRequeueEvent(component, result)
 
