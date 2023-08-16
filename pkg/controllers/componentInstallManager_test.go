@@ -19,7 +19,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 	namespace := "ecosystem"
 	component := getComponent(namespace, "k8s", "dogu-op", "0.1.0")
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("should install component", func(t *testing.T) {
 		// given
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
@@ -64,6 +64,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		var expectedRequeueableErr *dependencyUnsatisfiedError
+		assert.ErrorAs(t, err, &expectedRequeueableErr)
 		assert.ErrorContains(t, err, "one or more dependencies are not satisfied")
 	})
 

@@ -22,16 +22,17 @@ func TestNewComponentUpgradeManager(t *testing.T) {
 }
 
 func Test_componentUpgradeManager_Upgrade(t *testing.T) {
+	component := &k8sv1.Component{
+		Spec: k8sv1.ComponentSpec{
+			Namespace: "ecosystem",
+			Name:      "testComponent",
+			Version:   "1.0",
+		},
+		Status: k8sv1.ComponentStatus{Status: "installed"},
+	}
+
 	t.Run("should upgrade component", func(t *testing.T) {
 		ctx := context.Background()
-		component := &k8sv1.Component{
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "ecosystem",
-				Name:      "testComponent",
-				Version:   "1.0",
-			},
-			Status: k8sv1.ComponentStatus{Status: "installed"},
-		}
 
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
@@ -48,6 +49,33 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		err := manager.Upgrade(ctx, component)
 
 		require.NoError(t, err)
+	})
+
+	t.Run("dependency check failed", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(assert.AnError)
+
+		mockRecorder := newMockEventRecorder(t)
+		mockRecorder.EXPECT().Eventf(component, "Warning", "Upgrade", "One or more dependencies are not satisfied: %s", assert.AnError.Error()).Return()
+
+		sut := componentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			recorder:        mockRecorder,
+		}
+
+		// when
+		err := sut.Upgrade(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		var expectedRequeueableErr *dependencyUnsatisfiedError
+		assert.ErrorAs(t, err, &expectedRequeueableErr)
+		assert.ErrorContains(t, err, "one or more dependencies are not satisfied")
 	})
 
 	t.Run("should fail to upgrade component on error while setting upgrading status", func(t *testing.T) {

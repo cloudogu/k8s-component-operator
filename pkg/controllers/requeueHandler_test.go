@@ -56,6 +56,7 @@ func Test_componentRequeueHandler_Handle(t *testing.T) {
 		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock}
 
 		requeueErrMock := newMockRequeuableError(t)
+		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything).Return(30 * time.Second)
 
 		onRequeueExecuted := false
 		onRequeue := func() {

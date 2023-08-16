@@ -35,8 +35,7 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	err := cum.helmClient.SatisfiesDependencies(ctx, component)
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "One or more dependencies are not satisfied: %s", err.Error())
-		// TODO implement requeueable error with timing and state and return an error instance here instead
-		return err
+		return &dependencyUnsatisfiedError{err: err}
 	}
 
 	component, err = cum.componentClient.UpdateStatusUpgrading(ctx, component)
