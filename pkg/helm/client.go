@@ -86,7 +86,7 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Componen
 
 	_, err = c.helmClient.InstallOrUpgradeChart(ctx, chartSpec, nil)
 	if err != nil {
-		return fmt.Errorf("error while installOrUpgrade component %s: %w", component, err)
+		return fmt.Errorf("error while installing/upgrading component %s: %w", component, err)
 	}
 	return nil
 }

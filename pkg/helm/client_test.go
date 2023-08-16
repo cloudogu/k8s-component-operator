@@ -107,7 +107,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "error while installOrUpgrade component testing/testComponent:0.1.1")
+		assert.ErrorContains(t, err, "error while installing/upgrading component testing/testComponent:0.1.1")
 	})
 }
 
