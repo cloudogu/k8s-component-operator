@@ -35,7 +35,7 @@ spec:
   version: 3.5.9-1
 ```
 
-- `namespace` ist hier der Namespace der Komponente in der Helm-Registry (s.o.)
+- `namespace` ist hier der Namespace der Komponente in der Helm-Registry (s. o.)
 - Weitere Beispiele finden sich unter config/samples
 
 - Anwenden der CR auf den Cluster: bspw. `kubectl apply -f etcd.yaml`
@@ -43,5 +43,9 @@ spec:
 
 ## Komponente deinstallieren
 
-- Löschen der Komponenten-CR aus dem Cluster: bspw. `kubectl delete -f etcd.yaml`
+- Löschen der Komponenten-CR aus dem Cluster: bspw. `kubectl delete component k8s-etcd`
 - Der Komponenten-Operator beginnt nun mit der Deinstallation der Komponente
+
+## Abhängigkeiten in Komponenten darstellen
+
+????
