@@ -2,16 +2,19 @@ package helm
 
 import (
 	"context"
+	"testing"
+
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"helm.sh/helm/v3/pkg/release"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"testing"
 )
 
 func TestNew(t *testing.T) {
@@ -104,7 +107,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "error while installOrUpgrade chart testComponent")
+		assert.ErrorContains(t, err, "error while installOrUpgrade component testing/testComponent:0.1.1")
 	})
 }
 

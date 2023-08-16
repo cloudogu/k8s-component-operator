@@ -11,8 +11,8 @@ import (
 
 func TestNewComponentDeleteManager(t *testing.T) {
 	t.Run("should create new componentDeleteManager", func(t *testing.T) {
-		mockComponentClient := NewMockComponentClient(t)
-		mockHelmClient := NewMockHelmClient(t)
+		mockComponentClient := newMockComponentInterface(t)
+		mockHelmClient := newMockHelmClient(t)
 
 		manager := NewComponentDeleteManager(mockComponentClient, mockHelmClient)
 
@@ -35,11 +35,11 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
 		mockComponentClient.EXPECT().RemoveFinalizer(ctx, component, k8sv1.FinalizerName).Return(component, nil)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component).Return(nil)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 			Name: componentName,
@@ -65,10 +65,10 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, assert.AnError)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 
 		manager := &componentDeleteManager{
 			componentClient: mockComponentClient,
@@ -92,10 +92,10 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component).Return(assert.AnError)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 			Name: componentName,
@@ -123,11 +123,11 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
 		mockComponentClient.EXPECT().RemoveFinalizer(ctx, component, k8sv1.FinalizerName).Return(component, assert.AnError)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component).Return(nil)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 			Name: componentName,

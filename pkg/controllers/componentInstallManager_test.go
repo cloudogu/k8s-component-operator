@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestNewComponentInstallManager(t *testing.T) {
@@ -21,13 +21,14 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		// given
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(context.TODO(), component).Return(component, nil)
-		mockComponentClient.EXPECT().UpdateStatusInstalled(context.TODO(), component).Return(component, nil)
-		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component).Return(nil)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component).Return(nil)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -35,18 +36,44 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		}
 
 		// when
-		err := sut.Install(context.TODO(), component)
+		err := sut.Install(testCtx, component)
 
 		// then
 		require.NoError(t, err)
 	})
 
+	t.Run("dependency check failed", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(assert.AnError)
+
+		mockRecorder := newMockEventRecorder(t)
+		mockRecorder.EXPECT().Eventf(component, "Warning", "Installation", "One or more dependencies are not satisfied: %s", assert.AnError.Error()).Return()
+
+		sut := componentInstallManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			recorder:        mockRecorder,
+		}
+
+		// when
+		err := sut.Install(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "one or more dependencies are not satisfied")
+	})
+
 	t.Run("failed to update installing status", func(t *testing.T) {
 		// given
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(context.TODO(), component).Return(nil, assert.AnError)
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(nil, assert.AnError)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(nil)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -54,7 +81,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		}
 
 		// when
-		err := sut.Install(context.TODO(), component)
+		err := sut.Install(testCtx, component)
 
 		// then
 		require.Error(t, err)
@@ -64,11 +91,12 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 	t.Run("failed to add finalizer", func(t *testing.T) {
 		// given
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(context.TODO(), component).Return(component, nil)
-		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(nil, assert.AnError)
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(nil, assert.AnError)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(nil)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -76,7 +104,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		}
 
 		// when
-		err := sut.Install(context.TODO(), component)
+		err := sut.Install(testCtx, component)
 
 		// then
 		require.Error(t, err)
@@ -86,12 +114,13 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 	t.Run("failed to install the chart", func(t *testing.T) {
 		// given
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(context.TODO(), component).Return(component, nil)
-		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component).Return(assert.AnError)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component).Return(assert.AnError)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -99,7 +128,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		}
 
 		// when
-		err := sut.Install(context.TODO(), component)
+		err := sut.Install(testCtx, component)
 
 		// then
 		require.Error(t, err)
@@ -109,13 +138,14 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 	t.Run("failed set status installed", func(t *testing.T) {
 		// given
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(context.TODO(), component).Return(component, nil)
-		mockComponentClient.EXPECT().UpdateStatusInstalled(context.TODO(), component).Return(component, assert.AnError)
-		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(testCtx, component).Return(component, assert.AnError)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component).Return(nil)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component).Return(nil)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -123,7 +153,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		}
 
 		// when
-		err := sut.Install(context.TODO(), component)
+		err := sut.Install(testCtx, component)
 
 		// then
 		require.Error(t, err)

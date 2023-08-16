@@ -2,35 +2,36 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"helm.sh/helm/v3/pkg/release"
-
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 )
 
-// InstallManager includes functionality to install components in the cluster.
-type InstallManager interface {
+// installManager includes functionality to install components in the cluster.
+type installManager interface {
 	// Install installs a component resource.
 	Install(ctx context.Context, component *k8sv1.Component) error
 }
 
-// DeleteManager includes functionality to delete components in the cluster.
-type DeleteManager interface {
+// deleteManager includes functionality to delete components in the cluster.
+type deleteManager interface {
 	// Delete deletes a component resource.
 	Delete(ctx context.Context, component *k8sv1.Component) error
 }
 
-// UpgradeManager includes functionality to upgrade components in the cluster.
-type UpgradeManager interface {
+// upgradeManager includes functionality to upgrade components in the cluster.
+type upgradeManager interface {
 	// Upgrade upgrades a component resource.
 	Upgrade(ctx context.Context, component *k8sv1.Component) error
 }
 
-// HelmClient is an interface for managing components with helm.
-type HelmClient interface {
+// helmClient is an interface for managing components with helm.
+type helmClient interface {
 	// InstallOrUpgrade takes a component and applies the corresponding helmChart.
 	InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error
 	// Uninstall removes the helmChart of the given component
@@ -43,12 +44,27 @@ type HelmClient interface {
 	SatisfiesDependencies(ctx context.Context, component *k8sv1.Component) error
 }
 
-// ComponentClient embeds the ecosystem.ComponentInterface interface for usage in this package.
-type ComponentClient interface {
+// eventRecorder embeds the record.EventRecorder interface for usage in this package.
+type eventRecorder interface {
+	record.EventRecorder
+}
+
+type requeueHandler interface {
+	Handle(ctx context.Context, contextMessage string, componentResource *k8sv1.Component, originalErr error, onRequeue func()) (ctrl.Result, error)
+}
+
+type componentEcosystemInterface interface {
+	ecosystem.ComponentEcosystemInterface
+}
+
+type componentInterface interface {
 	ecosystem.ComponentInterface
 }
 
-// EventRecorder embeds the record.EventRecorder interface for usage in this package.
-type EventRecorder interface {
-	record.EventRecorder
+// requeuableError indicates that the current error requires the operator to requeue the dogu.
+type requeuableError interface {
+	error
+	// GetRequeueTime return the time to wait before the next reconciliation. The constant ExponentialRequeueTime indicates
+	// that the requeue time increased exponentially.
+	GetRequeueTime() time.Duration
 }

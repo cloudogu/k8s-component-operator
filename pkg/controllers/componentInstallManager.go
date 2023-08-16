@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -14,13 +13,13 @@ import (
 
 // componentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
 type componentInstallManager struct {
-	componentClient ecosystem.ComponentInterface
-	helmClient      HelmClient
+	componentClient componentInterface
+	helmClient      helmClient
 	recorder        record.EventRecorder
 }
 
 // NewComponentInstallManager creates a new instance of componentInstallManager.
-func NewComponentInstallManager(componentClient ecosystem.ComponentInterface, helmClient HelmClient, recorder record.EventRecorder) *componentInstallManager {
+func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, recorder record.EventRecorder) *componentInstallManager {
 	return &componentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
@@ -37,7 +36,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	if err != nil {
 		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "One or more dependencies are not satisfied: %s", err.Error())
 		// TODO implement requeueable error with timing and state and return an error instance here instead
-		return err
+		return fmt.Errorf("one or more dependencies are not satisfied: %w", err)
 	}
 
 	component, err = cim.componentClient.UpdateStatusInstalling(ctx, component)

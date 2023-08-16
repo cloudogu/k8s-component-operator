@@ -9,12 +9,12 @@ import (
 
 // componentDeleteManager is a central unit in the process of handling the deletion process of a custom component resource.
 type componentDeleteManager struct {
-	componentClient ComponentClient
-	helmClient      HelmClient
+	componentClient componentInterface
+	helmClient      helmClient
 }
 
 // NewComponentDeleteManager creates a new instance of componentDeleteManager.
-func NewComponentDeleteManager(componentClient ComponentClient, helmClient HelmClient) *componentDeleteManager {
+func NewComponentDeleteManager(componentClient componentInterface, helmClient helmClient) *componentDeleteManager {
 	return &componentDeleteManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,

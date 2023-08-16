@@ -70,7 +70,7 @@ func TestNewComponentClientset(t *testing.T) {
 	})
 }
 
-func TestEcosystemV1Alpha1(t *testing.T) {
+func TestComponentV1Alpha1(t *testing.T) {
 	t.Run("should return V1Alpha1Client", func(t *testing.T) {
 		// given
 		config := &rest.Config{}
@@ -79,7 +79,7 @@ func TestEcosystemV1Alpha1(t *testing.T) {
 		require.NoError(t, err)
 
 		// when
-		componentClient := client.EcosystemV1Alpha1()
+		componentClient := client.ComponentV1Alpha1()
 
 		// then
 		require.NotNil(t, componentClient)

@@ -3,9 +3,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/cloudogu/cesapp-lib/core"
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"strings"
 )
 
 type operation string
@@ -28,6 +29,8 @@ const (
 	UpgradeEventReason = "Upgrade"
 	// DowngradeEventReason The name of the downgrade event
 	DowngradeEventReason = "Downgrade"
+	// RequeueEventReason The name of the requeue event
+	RequeueEventReason = "Requeue"
 	// Install represents the install-operation
 	Install = operation("Install")
 	// Upgrade represents the upgrade-operation
@@ -42,26 +45,31 @@ const (
 
 // ComponentManager abstracts the simple component operations in a k8s CES.
 type ComponentManager interface {
-	InstallManager
-	DeleteManager
-	UpgradeManager
+	installManager
+	deleteManager
+	upgradeManager
 }
 
 // componentReconciler watches every Component object in the cluster and handles them accordingly.
 type componentReconciler struct {
-	componentClient  ecosystem.ComponentInterface
+	clientSet        componentEcosystemInterface
 	recorder         record.EventRecorder
 	componentManager ComponentManager
-	helmClient       HelmClient
+	helmClient       helmClient
+	requeueHandler   requeueHandler
+	namespace        string
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmClient HelmClient, recorder record.EventRecorder) *componentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string) *componentReconciler {
+	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
 	return &componentReconciler{
-		componentClient:  componentClient,
+		clientSet:        clientSet,
 		recorder:         recorder,
-		componentManager: NewComponentManager(componentClient, helmClient, recorder),
+		componentManager: NewComponentManager(clientSet.ComponentV1Alpha1().Components(namespace), helmClient, recorder),
 		helmClient:       helmClient,
+		requeueHandler:   componentRequeueHandler,
+		namespace:        namespace,
 	}
 }
 
@@ -70,7 +78,7 @@ func NewComponentReconciler(componentClient ecosystem.ComponentInterface, helmCl
 func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile this component", "component", req.Name)
-	component, err := r.componentClient.Get(ctx, req.Name, v1.GetOptions{})
+	component, err := r.clientSet.ComponentV1Alpha1().Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 
 	if err != nil {
 		logger.Info(fmt.Sprintf("failed to get component %+v: %s", req, err))
@@ -80,19 +88,19 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	operation, err := r.evaluateRequiredOperation(ctx, component)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to evaluate required operation: %w", err)
+		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
 	}
 	logger.Info(fmt.Sprintf("Required operation is %s", operation))
 
 	switch operation {
 	case Install:
-		return ctrl.Result{}, r.performInstallOperation(ctx, component)
+		return r.performInstallOperation(ctx, component)
 	case Delete:
-		return ctrl.Result{}, r.performDeleteOperation(ctx, component)
+		return r.performDeleteOperation(ctx, component)
 	case Upgrade:
-		return ctrl.Result{}, r.performUpgradeOperation(ctx, component)
+		return r.performUpgradeOperation(ctx, component)
 	case Downgrade:
-		return ctrl.Result{}, r.performDowngradeOperation(component)
+		return r.performDowngradeOperation(component)
 	case Ignore:
 		return ctrl.Result{}, nil
 	default:
@@ -100,37 +108,78 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 }
 
-func (r *componentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) error {
-	return r.performOperation(ctx, component, InstallEventReason, r.componentManager.Install)
+func (r *componentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
+	return r.performOperation(ctx, component, InstallEventReason, k8sv1.ComponentStatusNotInstalled, r.componentManager.Install)
 }
 
-func (r *componentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component) error {
-	return r.performOperation(ctx, component, UpgradeEventReason, r.componentManager.Upgrade)
+func (r *componentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
+	return r.performOperation(ctx, component, UpgradeEventReason, k8sv1.ComponentStatusInstalled, r.componentManager.Upgrade)
 }
 
-func (r *componentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) error {
-	return r.performOperation(ctx, component, DeinstallationEventReason, r.componentManager.Delete)
+func (r *componentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
+	return r.performOperation(ctx, component, DeinstallationEventReason, k8sv1.ComponentStatusInstalled, r.componentManager.Delete)
 }
 
-func (r *componentReconciler) performDowngradeOperation(component *k8sv1.Component) error {
+func (r *componentReconciler) performDowngradeOperation(component *k8sv1.Component) (ctrl.Result, error) {
 	r.recorder.Event(component, corev1.EventTypeWarning, DowngradeEventReason, "component downgrades are not allowed")
-	return fmt.Errorf("downgrades are not allowed")
+	return ctrl.Result{}, fmt.Errorf("downgrades are not allowed")
 }
 
-func (r *componentReconciler) performOperation(ctx context.Context, component *k8sv1.Component, eventReason string, operationFn func(context.Context, *k8sv1.Component) error) error {
-	err := operationFn(ctx, component)
+// performOperation executes the given operationFn and requeues if necessary.
+// When requeuing, the sourceComponentStatus is set as the components' status.
+func (r *componentReconciler) performOperation(
+	ctx context.Context,
+	component *k8sv1.Component,
+	eventReason string,
+	requeueStatus string,
+	operationFn func(context.Context, *k8sv1.Component) error,
+) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	operationError := operationFn(ctx, component)
+	contextMessageOnError := fmt.Sprintf("%s failed with component %s", eventReason, component.Name)
 	eventType := corev1.EventTypeNormal
 	message := fmt.Sprintf("%s successful", eventReason)
-	if err != nil {
+	if operationError != nil {
 		eventType = corev1.EventTypeWarning
-		printError := strings.ReplaceAll(err.Error(), "\n", "")
+		printError := strings.ReplaceAll(operationError.Error(), "\n", "")
 		message = fmt.Sprintf("%s failed. Reason: %s", eventReason, printError)
+		logger.Error(operationError, message)
 	}
 
 	// on self-upgrade of the component-operator this event might not get send, because the operator is already shutting down
 	r.recorder.Event(component, eventType, eventReason, message)
 
-	return err
+	result, handleErr := r.requeueHandler.Handle(ctx, contextMessageOnError, component, operationError,
+		func() {
+			component.Status.Status = requeueStatus
+		})
+	if handleErr != nil {
+		r.recorder.Eventf(component, corev1.EventTypeWarning, RequeueEventReason,
+			"Failed to requeue the %s.", strings.ToLower(eventReason))
+		return requeueWithError(fmt.Errorf("failed to handle requeue: %w", handleErr))
+	}
+
+	return requeueOrFinishOperation(result)
+}
+
+// requeueWithError is a syntax sugar function to express that every non-nil error will result in a requeue
+// operation.
+//
+// Use requeueOrFinishOperation() if the reconciler should requeue the operation because of the result instead of an
+// error.
+// Use finishOperation() if the reconciler should not requeue the operation.
+func requeueWithError(err error) (ctrl.Result, error) {
+	return ctrl.Result{}, err
+}
+
+// requeueOrFinishOperation is a syntax sugar function to express that the there is no error to handle but the result
+// controls whether the current operation should be finished or requeued.
+//
+// Use requeueWithError() if the reconciler should requeue the operation because of a non-nil error.
+// Use finishOperation() if the reconciler should not requeue the operation.
+func requeueOrFinishOperation(result ctrl.Result) (ctrl.Result, error) {
+	return result, nil
 }
 
 func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {

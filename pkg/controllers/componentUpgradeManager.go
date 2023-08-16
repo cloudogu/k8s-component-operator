@@ -13,13 +13,13 @@ import (
 
 // componentUpgradeManager is a central unit in the process of handling the upgrade process of a custom component resource.
 type componentUpgradeManager struct {
-	componentClient ComponentClient
-	helmClient      HelmClient
+	componentClient componentInterface
+	helmClient      helmClient
 	recorder        record.EventRecorder
 }
 
 // NewComponentUpgradeManager creates a new instance of componentUpgradeManager.
-func NewComponentUpgradeManager(componentClient ComponentClient, helmClient HelmClient, recorder record.EventRecorder) *componentUpgradeManager {
+func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, recorder record.EventRecorder) *componentUpgradeManager {
 	return &componentUpgradeManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
