@@ -5,7 +5,9 @@ package controllers
 import (
 	context "context"
 
+	helmclient "github.com/mittwald/go-helm-client"
 	mock "github.com/stretchr/testify/mock"
+
 	release "helm.sh/helm/v3/pkg/release"
 
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -24,13 +26,13 @@ func (_m *MockHelmClient) EXPECT() *MockHelmClient_Expecter {
 	return &MockHelmClient_Expecter{mock: &_m.Mock}
 }
 
-// InstallOrUpgrade provides a mock function with given fields: ctx, component
-func (_m *MockHelmClient) InstallOrUpgrade(ctx context.Context, component *v1.Component) error {
-	ret := _m.Called(ctx, component)
+// InstallOrUpgrade provides a mock function with given fields: ctx, chart
+func (_m *MockHelmClient) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error {
+	ret := _m.Called(ctx, chart)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *v1.Component) error); ok {
-		r0 = rf(ctx, component)
+	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec) error); ok {
+		r0 = rf(ctx, chart)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -45,14 +47,14 @@ type MockHelmClient_InstallOrUpgrade_Call struct {
 
 // InstallOrUpgrade is a helper method to define mock.On call
 //   - ctx context.Context
-//   - component *v1.Component
-func (_e *MockHelmClient_Expecter) InstallOrUpgrade(ctx interface{}, component interface{}) *MockHelmClient_InstallOrUpgrade_Call {
-	return &MockHelmClient_InstallOrUpgrade_Call{Call: _e.mock.On("InstallOrUpgrade", ctx, component)}
+//   - chart *helmclient.ChartSpec
+func (_e *MockHelmClient_Expecter) InstallOrUpgrade(ctx interface{}, chart interface{}) *MockHelmClient_InstallOrUpgrade_Call {
+	return &MockHelmClient_InstallOrUpgrade_Call{Call: _e.mock.On("InstallOrUpgrade", ctx, chart)}
 }
 
-func (_c *MockHelmClient_InstallOrUpgrade_Call) Run(run func(ctx context.Context, component *v1.Component)) *MockHelmClient_InstallOrUpgrade_Call {
+func (_c *MockHelmClient_InstallOrUpgrade_Call) Run(run func(ctx context.Context, chart *helmclient.ChartSpec)) *MockHelmClient_InstallOrUpgrade_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*v1.Component))
+		run(args[0].(context.Context), args[1].(*helmclient.ChartSpec))
 	})
 	return _c
 }
@@ -62,7 +64,7 @@ func (_c *MockHelmClient_InstallOrUpgrade_Call) Return(_a0 error) *MockHelmClien
 	return _c
 }
 
-func (_c *MockHelmClient_InstallOrUpgrade_Call) RunAndReturn(run func(context.Context, *v1.Component) error) *MockHelmClient_InstallOrUpgrade_Call {
+func (_c *MockHelmClient_InstallOrUpgrade_Call) RunAndReturn(run func(context.Context, *helmclient.ChartSpec) error) *MockHelmClient_InstallOrUpgrade_Call {
 	_c.Call.Return(run)
 	return _c
 }

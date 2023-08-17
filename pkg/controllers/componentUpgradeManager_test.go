@@ -38,7 +38,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(nil)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -90,7 +90,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(assert.AnError)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -118,7 +118,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, assert.AnError)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(nil)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,

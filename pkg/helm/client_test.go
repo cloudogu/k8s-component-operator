@@ -4,6 +4,7 @@ import (
 	"context"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -34,39 +35,53 @@ func TestNew(t *testing.T) {
 
 func TestClient_InstallOrUpgrade(t *testing.T) {
 	t.Run("should install or upgrade chart", func(t *testing.T) {
-		component := &k8sv1.Component{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "testing",
-				Name:      "testComponent",
-				Version:   "0.1.1",
-			},
-			Status: k8sv1.ComponentStatus{},
+		chart := &helmclient.ChartSpec{
+			ReleaseName: "testComponent",
+			ChartName:   "testing/testComponent",
+			Namespace:   "testNS",
+			Version:     "0.1.1",
 		}
+
 		ctx := context.TODO()
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "https://staging.cloudogu.com"}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(ctx, component.GetHelmChartSpec("oci://staging.cloudogu.com"), mock.Anything).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(ctx, chart, mock.Anything).Return(nil, nil)
 
 		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		err := client.InstallOrUpgrade(ctx, component)
+		err := client.InstallOrUpgrade(ctx, chart)
+
+		require.NoError(t, err)
+	})
+
+	t.Run("should install or upgrade chart with oci-endpoint in chart-name", func(t *testing.T) {
+		chart := &helmclient.ChartSpec{
+			ReleaseName: "testComponent",
+			ChartName:   "oci://some.where/testing/testComponent",
+			Namespace:   "testNS",
+			Version:     "0.1.1",
+		}
+
+		ctx := context.TODO()
+
+		helmRepoData := &config.HelmRepositoryData{Endpoint: "https://staging.cloudogu.com"}
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(ctx, chart, mock.Anything).Return(nil, nil)
+
+		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
+
+		err := client.InstallOrUpgrade(ctx, chart)
 
 		require.NoError(t, err)
 	})
 
 	t.Run("should fail to install or upgrade chart for error in helmRepoData", func(t *testing.T) {
-		component := &k8sv1.Component{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "testing",
-				Name:      "testComponent",
-				Version:   "0.1.1",
-			},
-			Status: k8sv1.ComponentStatus{},
+		chart := &helmclient.ChartSpec{
+			ReleaseName: "testComponent",
+			ChartName:   "testing/testComponent",
+			Namespace:   "testNS",
+			Version:     "0.1.1",
 		}
 		ctx := context.TODO()
 
@@ -75,36 +90,32 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		err := client.InstallOrUpgrade(ctx, component)
+		err := client.InstallOrUpgrade(ctx, chart)
 
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "error while getting oci endpoint for testComponent: error creating oci-endpoint from 'staging.cloudogu.com': wrong format")
+		assert.ErrorContains(t, err, "error while patching chart 'testing/testComponent': error while getting oci endpoint: error creating oci-endpoint from 'staging.cloudogu.com': wrong format")
 	})
 
 	t.Run("should fail to install or upgrade chart for error in helmClient", func(t *testing.T) {
-		component := &k8sv1.Component{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "testing",
-				Name:      "testComponent",
-				Version:   "0.1.1",
-			},
-			Status: k8sv1.ComponentStatus{},
+		chart := &helmclient.ChartSpec{
+			ReleaseName: "testComponent",
+			ChartName:   "testing/testComponent",
+			Namespace:   "testNS",
+			Version:     "0.1.1",
 		}
 		ctx := context.TODO()
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "https://staging.cloudogu.com"}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(ctx, component.GetHelmChartSpec("oci://staging.cloudogu.com"), mock.Anything).Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(ctx, chart, mock.Anything).Return(nil, assert.AnError)
 
 		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		err := client.InstallOrUpgrade(ctx, component)
+		err := client.InstallOrUpgrade(ctx, chart)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "error while installOrUpgrade chart testComponent")
+		assert.ErrorContains(t, err, "error while installOrUpgrade chart oci://staging.cloudogu.com/testing/testComponent:")
 	})
 }
 

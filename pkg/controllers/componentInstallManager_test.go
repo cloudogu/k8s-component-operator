@@ -27,7 +27,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component.GetHelmChartSpec()).Return(nil)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -91,7 +91,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component).Return(assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component.GetHelmChartSpec()).Return(assert.AnError)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -115,7 +115,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(context.TODO(), component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(context.TODO(), component.GetHelmChartSpec()).Return(nil)
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
