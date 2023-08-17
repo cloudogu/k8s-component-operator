@@ -21,31 +21,24 @@ Hier wird beschrieben, wie man mit dem Komponenten-Operator k8s-CES-Komponenten 
 - Helm-Chart in Registry pushen: bspw. `helm push target/make/k8s/helm/k8s-etcd-3.5.9-1.tgz oci://registry.domain.test/testing/`
     - `testing` ist hier der Namespace der Komponente in der Helm-Registry und kann angepasst werden, falls nötig
 
-## Komponente installieren
-- Custom Ressource (CR) für Komponente schreiben. Beispiel:
+## Komponenten verwalten
 
-```yaml
-apiVersion: k8s.cloudogu.com/v1
-kind: Component
-metadata:
-  name: k8s-etcd
-spec:
-  name: k8s-etcd
-  namespace: testing
-  version: 3.5.9-1
-```
-
-- `namespace` ist hier der Namespace der Komponente in der Helm-Registry (s. o.)
-- Weitere Beispiele finden sich unter config/samples
-
-- Anwenden der CR auf den Cluster: bspw. `kubectl apply -f etcd.yaml`
-- Der Komponenten-Operator beginnt nun mit der Installation der Komponente
-
-## Komponente deinstallieren
-
-- Löschen der Komponenten-CR aus dem Cluster: bspw. `kubectl delete component k8s-etcd`
-- Der Komponenten-Operator beginnt nun mit der Deinstallation der Komponente
+Siehe hierzu die Anmerkungen im [Operations-Dokument](../operations/managing_components_de.md)
 
 ## Abhängigkeiten in Komponenten darstellen
 
-????
+```yaml
+apiVersion: v2
+name: k8s-dogu-operator
+...
+dependencies:
+- name: k8s/k8s-etcd
+  version: 3.*.*
+  condition: false
+```
+
+Versionsmöglichkeiten und evtl. best practices oder Empfehlungen hier beschreiben
+
+## Den Komponenten-Operator mit anderen Komponenten lokal testen
+
+irgendwelche Magie mit der cluster-lokalen Registry...

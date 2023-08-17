@@ -1,39 +1,36 @@
-# Verwendung von `k8s-component-operator`
+# Using `k8s-component-operator`
 
-Der Komponenten-Operator `k8s-component-operator` ist eine Komponente für die Kubernetes-Version des Cloudogu EcoSystems. Dieser Operator ermöglicht es, Komponenten auf einfache Weise zu installieren, zu aktualisieren oder zu löschen. Diese Komponenten stellen ihrerseits erforderliche Dienste für das EcoSystem bereit.
+The component operator `k8s-component-operator` is a component for the Kubernetes version of the Cloudogu EcoSystem. This operator enables you to install, update, or delete components in an easy fashion. These components in turn provide necessary services specific to the EcoSystem.
 
-## Installation des Komponenten-Operators
+## Installation of the component operator
 
-### Helm-Repository konfigurieren
+### Configure a Helm repository
 
 ```bash
 $ helm repo add oci://registry.cloudogu.com/k8s ????
 ```
 
-### Zugangsdaten konfigurieren
+### Configure credentials
 
 Gegebenenfalls für das Helm-Repository Zugangsdaten anlegen.
-
-siehe make helm-repo-config
 
 ```bash
 $ kubectl add secret ????
 ```
 
-### Komponenten-Operator installieren
-
-setup hinweis
-
-bei fehlern
+### Install the component operator
 
 Entweder mittels Helm-Client installieren oder aktualisieren
 
-- An der Helm-Registry anmelden: bspw. `helm registry login registry.domain.test`
-    - oder helm registry login -u myuser localhost:5000****
-- Helm-Chart in Registry pushen: bspw. `helm push target/make/k8s/helm/k8s-etcd-3.5.9-1.tgz oci://registry.domain.test/testing/`
+```bash
+$ helm install chart.tgz???
+```
+
+oder mittels `helm template` und einem darauf folgenden `kubectl`-Aufruf
+
 
 ```bash
-$ helm install k8s-component-operator oci://registry.domain.test/testing/k8s-component-operator --version 0.2.0
+$ helm template chart.tgz???
 ```
 
 ## Komponente installieren oder aktualisieren
@@ -86,4 +83,4 @@ K8s-CES-Komponenten können von anderen k8s-CES-Komponenten abhängen. Um sicher
 
 Sollte eine oder mehrere Komponenten fehlen oder nicht in der richtigen Version vorhanden sein, so müssen diese manuell [nachinstalliert](#Komponente-installieren-oder-aktualisieren) bzw. aktualisiert werden.
 
-Die Versionen zu Abhängigkeiten werden während der Komponentenentwicklung im Helm-Chart hinterlegt. Abhängige Versionen können so gestaltet werden, dass sie nicht auf eine einzige Version fixiert werden, sondern unterschiedliche Versionsbereiche abdecken. Dies ermöglicht den Betrieb von Komponenten, selbst wenn Komponentenversionen mit kleineren Änderungen oder Fehlerbehebungen ausgebracht wurden.    
+Die Versionen zu Abhängigkeiten werden während der Komponentenentwicklung im Helm-Chart hinterlegt. Abhängige Versionen können so gestaltet werden, dass sie nicht auf eine einzige Version fixiert werden, sondern unterschiedliche Versionsbereiche abdecken. Dies ermöglicht den Betrieb von Komponenten, selbst wenn Kompoentenversionen mit kleineren Änderungen oder Fehlerbehebungen ausgebracht wurden.    
