@@ -34,8 +34,8 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 
 	err := cim.helmClient.SatisfiesDependencies(ctx, component)
 	if err != nil {
-		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "One or more dependencies are not satisfied: %s", err.Error())
-		return &dependencyUnsatisfiedError{err: err}
+		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "Dependency check failed: %s", err.Error())
+		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
 	}
 
 	component, err = cim.componentClient.UpdateStatusInstalling(ctx, component)

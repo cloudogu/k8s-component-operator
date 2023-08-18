@@ -11,6 +11,7 @@ import (
 	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/release"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,7 +37,7 @@ type Client struct {
 }
 
 // NewClient create a new instance of the helm client.
-func NewClient(namespace string, helmRepoSecret *config.HelmRepositoryData, debug bool, debugLog action.DebugLog) (*Client, error) {
+func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog) (*Client, error) {
 	opt := &helmclient.RestConfClientOptions{
 		Options: &helmclient.Options{
 			Namespace:        namespace,
@@ -50,16 +51,20 @@ func NewClient(namespace string, helmRepoSecret *config.HelmRepositoryData, debu
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
 
+	opt.RestConfig.Insecure = true
 	helmClient, err := helmclient.NewClientFromRestConf(opt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
+	// TODO Check if this is still needed after applying the http-plain patch
+	helmClient.(*helmclient.HelmClient).Settings.KubeInsecureSkipTLSVerify = helmRepoData.InsecureSkipTLSVerify
 
 	clientGetter := helmclient.NewRESTClientGetter(namespace, nil, opt.RestConfig)
 	actionConfig := new(action.Configuration)
 	err = actionConfig.Init(
 		clientGetter,
 		namespace,
+		// TODO PhilippPixel/ move to place of central configuration
 		os.Getenv("HELM_DRIVER"),
 		debugLog,
 	)
@@ -67,9 +72,18 @@ func NewClient(namespace string, helmRepoSecret *config.HelmRepositoryData, debu
 		return nil, err
 	}
 
+	helmRegistryClient, err := registry.NewClient(
+		registry.ClientOptDebug(debug),
+		registry.ClientOptCredentialsFile(helmRegistryConfigFile),
+	)
+	if err != nil {
+		return nil, err
+	}
+	actionConfig.RegistryClient = helmRegistryClient
+
 	return &Client{
 		helmClient:        helmClient,
-		helmRepoData:      helmRepoSecret,
+		helmRepoData:      helmRepoData,
 		actionConfig:      actionConfig,
 		dependencyChecker: &installedDependencyChecker{},
 	}, nil
@@ -103,7 +117,7 @@ func (c *Client) SatisfiesDependencies(ctx context.Context, component *k8sv1.Com
 
 	chartSpec := component.GetHelmChartSpec(endpoint)
 
-	componentChart, err := c.getChart(component, chartSpec)
+	componentChart, err := c.getChart(ctx, component, chartSpec)
 	if err != nil {
 		return fmt.Errorf("failed to get chart for component %s: %w", component, err)
 	}
@@ -116,7 +130,7 @@ func (c *Client) SatisfiesDependencies(ctx context.Context, component *k8sv1.Com
 
 	err = c.dependencyChecker.CheckSatisfied(dependencies, deployedReleases)
 	if err != nil {
-		return fmt.Errorf("some dependencies are missing: %w", err)
+		return &dependencyUnsatisfiedError{err: err}
 	}
 
 	return nil
@@ -131,10 +145,23 @@ func (c *Client) getOciEndpoint(component *k8sv1.Component) (string, error) {
 	return endpoint, nil
 }
 
-func (c *Client) getChart(component *k8sv1.Component, spec *helmclient.ChartSpec) (*chart.Chart, error) {
+func (c *Client) getChart(ctx context.Context, component *k8sv1.Component, spec *helmclient.ChartSpec) (*chart.Chart, error) {
+	logger := log.FromContext(ctx)
+
+	// TODO extract into helper method
 	// We need this installAction because it sets the registryClient in ChartPathOptions which is a private field.
 	install := action.NewInstall(c.actionConfig)
 	install.Version = component.Spec.Version
+	install.InsecureSkipTLSverify = c.helmRepoData.InsecureSkipTLSVerify
+	install.ChartPathOptions.InsecureSkipTLSverify = c.helmRepoData.InsecureSkipTLSVerify
+
+	logger.Info("Trying to get chart with options",
+		"chart", spec.ChartName,
+		"version", component.Spec.Version,
+		"tls insecure", c.helmRepoData.InsecureSkipTLSVerify)
+
+	logger.Info("----- andere Logausgaben hier? -------------------")
+
 	componentChart, _, err := c.helmClient.GetChart(spec.ChartName, &install.ChartPathOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting chart for %s:%s: %w", component.Spec.Name, component.Spec.Version, err)
@@ -154,4 +181,18 @@ func (c *Client) Uninstall(component *k8sv1.Component) error {
 // ListDeployedReleases returns all deployed helm releases
 func (c *Client) ListDeployedReleases() ([]*release.Release, error) {
 	return c.helmClient.ListDeployedReleases()
+}
+
+type dependencyUnsatisfiedError struct {
+	err error
+}
+
+// Error returns the string representation of the wrapped error.
+func (due *dependencyUnsatisfiedError) Error() string {
+	return fmt.Sprintf("one or more dependencies are not satisfied: %s", due.err.Error())
+}
+
+// Unwrap returns the root error.
+func (due *dependencyUnsatisfiedError) Unwrap() error {
+	return due.err
 }

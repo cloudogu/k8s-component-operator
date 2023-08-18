@@ -161,7 +161,7 @@ image-import: check-all-vars check-k8s-artifact-id docker-dev-tag ## Imports the
 	@echo "Done."
 
 .PHONY: chart-import
-chart-import: check-all-vars check-k8s-artifact-id k8s-helm-generate-chart image-import ## Imports the currently available image into the cluster-local registry.
+chart-import: check-all-vars check-k8s-artifact-id k8s-helm-generate-chart k8s-helm-package-release image-import ## Imports the currently available image into the cluster-local registry.
 	@echo "Import ${K8S_HELM_RELEASE_TGZ} into K8s cluster ${K3CES_REGISTRY_URL_PREFIX}..."
 	@helm push --kube-insecure-skip-tls-verify ${K8S_HELM_RELEASE_TGZ} oci://${K3CES_REGISTRY_URL_PREFIX}/k8s
 

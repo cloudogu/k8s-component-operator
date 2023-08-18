@@ -3,14 +3,17 @@ package config
 import (
 	"context"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
 	"github.com/cloudogu/cesapp-lib/core"
+
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"strings"
 )
 
 const (
@@ -40,7 +43,11 @@ var (
 
 // HelmRepositoryData contains all necessary data for the helm repository.
 type HelmRepositoryData struct {
+	// Endpoint contains the Helm registry endpoint URL.
 	Endpoint string `json:"endpoint"`
+	// InsecureSkipTLSVerify indicates if the server's certificate will not be checked for validity.
+	// This makes the HTTPS connections insecure.
+	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify"`
 }
 
 // GetOciEndpoint returns the configured endpoint of the HelmRepositoryData with the OCI-protocol
@@ -114,8 +121,16 @@ func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (
 		return nil, fmt.Errorf("failed to get helm repository configMap %s: %w", helmRepositoryConfigMapName, err)
 	}
 
+	// TODO Test the parsing
+	const configMapInsecureSkipTLSVerify = "insecureSkipTLSVerify"
+	insecureSkipTLSVerify, err := strconv.ParseBool(configMap.Data[configMapInsecureSkipTLSVerify])
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse field %s", configMapInsecureSkipTLSVerify)
+	}
+
 	return &HelmRepositoryData{
-		Endpoint: configMap.Data["endpoint"],
+		Endpoint:              configMap.Data["endpoint"],
+		InsecureSkipTLSVerify: insecureSkipTLSVerify,
 	}, nil
 }
 
