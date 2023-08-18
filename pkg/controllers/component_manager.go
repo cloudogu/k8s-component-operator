@@ -32,8 +32,8 @@ type UpgradeManager interface {
 type HelmClient interface {
 	// InstallOrUpgrade takes a helmChart and applies it.
 	InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error
-	// Uninstall removes the helmChart of the given component
-	Uninstall(component *k8sv1.Component) error
+	// Uninstall removes the helmRelease for the given name
+	Uninstall(releaseName string) error
 	// ListDeployedReleases returns all deployed helm releases
 	ListDeployedReleases() ([]*release.Release, error)
 }

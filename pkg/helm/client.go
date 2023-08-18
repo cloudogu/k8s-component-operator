@@ -3,7 +3,6 @@ package helm
 import (
 	"context"
 	"fmt"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/release"
@@ -70,10 +69,10 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSp
 	return nil
 }
 
-// Uninstall removes the helmChart of the given component
-func (c *Client) Uninstall(component *k8sv1.Component) error {
-	if err := c.helmClient.UninstallReleaseByName(component.Spec.Name); err != nil {
-		return fmt.Errorf("error while uninstalling helm-release %s: %w", component.Spec.Name, err)
+// Uninstall removes the helmRelease for the given name
+func (c *Client) Uninstall(releaseName string) error {
+	if err := c.helmClient.UninstallReleaseByName(releaseName); err != nil {
+		return fmt.Errorf("error while uninstalling helm-release %s: %w", releaseName, err)
 	}
 	return nil
 }
@@ -85,7 +84,7 @@ func (c *Client) ListDeployedReleases() ([]*release.Release, error) {
 
 func (c *Client) patchOciEndpoint(chart *helmclient.ChartSpec) error {
 	if strings.Index(chart.ChartName, "oci://") == 0 {
-		// oci protocol already present -> noting to do
+		// oci protocol already present -> nothing to do
 		return nil
 	}
 

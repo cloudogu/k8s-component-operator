@@ -2,14 +2,12 @@ package helm
 
 import (
 	"context"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	helmclient "github.com/mittwald/go-helm-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/release"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
@@ -121,45 +119,26 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 func TestClient_Uninstall(t *testing.T) {
 	t.Run("should uninstall chart", func(t *testing.T) {
-		component := &k8sv1.Component{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "testing",
-				Name:      "testComponent",
-				Version:   "0.1.1",
-			},
-			Status: k8sv1.ComponentStatus{},
-		}
-
+		releaseName := "testComponent"
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().UninstallReleaseByName(component.Spec.Name).Return(nil)
+		mockHelmClient.EXPECT().UninstallReleaseByName(releaseName).Return(nil)
 
 		client := &Client{helmClient: mockHelmClient, helmRepoData: nil}
 
-		err := client.Uninstall(component)
+		err := client.Uninstall(releaseName)
 
 		require.NoError(t, err)
 	})
 
 	t.Run("should fail to uninstall for error in helmClient", func(t *testing.T) {
-		component := &k8sv1.Component{
-			TypeMeta:   metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "testing",
-				Name:      "testComponent",
-				Version:   "0.1.1",
-			},
-			Status: k8sv1.ComponentStatus{},
-		}
+		releaseName := "testComponent"
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().UninstallReleaseByName(component.Spec.Name).Return(assert.AnError)
+		mockHelmClient.EXPECT().UninstallReleaseByName(releaseName).Return(assert.AnError)
 
 		client := &Client{helmClient: mockHelmClient, helmRepoData: nil}
 
-		err := client.Uninstall(component)
+		err := client.Uninstall(releaseName)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
