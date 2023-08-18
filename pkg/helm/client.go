@@ -56,8 +56,6 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
-	// TODO Check if this is still needed after applying the http-plain patch
-	helmClient.(*helmclient.HelmClient).Settings.KubeInsecureSkipTLSVerify = helmRepoData.InsecureSkipTLSVerify
 
 	clientGetter := helmclient.NewRESTClientGetter(namespace, nil, opt.RestConfig)
 	actionConfig := new(action.Configuration)
@@ -98,6 +96,7 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Componen
 
 	chartSpec := component.GetHelmChartSpec(endpoint)
 
+	// TODO add plainHttp to GenericHelmOptions of mittwald
 	_, err = c.helmClient.InstallOrUpgradeChart(ctx, chartSpec, nil)
 	if err != nil {
 		return fmt.Errorf("error while installing/upgrading component %s: %w", component, err)
@@ -152,13 +151,12 @@ func (c *Client) getChart(ctx context.Context, component *k8sv1.Component, spec 
 	// We need this installAction because it sets the registryClient in ChartPathOptions which is a private field.
 	install := action.NewInstall(c.actionConfig)
 	install.Version = component.Spec.Version
-	install.InsecureSkipTLSverify = c.helmRepoData.InsecureSkipTLSVerify
-	install.ChartPathOptions.InsecureSkipTLSverify = c.helmRepoData.InsecureSkipTLSVerify
+	install.PlainHTTP = c.helmRepoData.PlainHttp
 
 	logger.Info("Trying to get chart with options",
 		"chart", spec.ChartName,
 		"version", component.Spec.Version,
-		"tls insecure", c.helmRepoData.InsecureSkipTLSVerify)
+		"plain http", c.helmRepoData.PlainHttp)
 
 	logger.Info("----- andere Logausgaben hier? -------------------")
 

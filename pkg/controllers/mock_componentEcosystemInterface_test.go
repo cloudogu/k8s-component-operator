@@ -26,6 +26,8 @@ import (
 
 	certificatesv1 "k8s.io/client-go/kubernetes/typed/certificates/v1"
 
+	certificatesv1alpha1 "k8s.io/client-go/kubernetes/typed/certificates/v1alpha1"
+
 	certificatesv1beta1 "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
@@ -78,8 +80,6 @@ import (
 
 	rbacv1beta1 "k8s.io/client-go/kubernetes/typed/rbac/v1beta1"
 
-	resourcev1alpha1 "k8s.io/client-go/kubernetes/typed/resource/v1alpha1"
-
 	schedulingv1 "k8s.io/client-go/kubernetes/typed/scheduling/v1"
 
 	schedulingv1alpha1 "k8s.io/client-go/kubernetes/typed/scheduling/v1alpha1"
@@ -95,6 +95,8 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1"
 
 	v1alpha1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1alpha1"
+
+	v1alpha2 "k8s.io/client-go/kubernetes/typed/resource/v1alpha2"
 
 	v1beta1 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
@@ -892,6 +894,49 @@ func (_c *mockComponentEcosystemInterface_CertificatesV1_Call) Return(_a0 certif
 }
 
 func (_c *mockComponentEcosystemInterface_CertificatesV1_Call) RunAndReturn(run func() certificatesv1.CertificatesV1Interface) *mockComponentEcosystemInterface_CertificatesV1_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CertificatesV1alpha1 provides a mock function with given fields:
+func (_m *mockComponentEcosystemInterface) CertificatesV1alpha1() certificatesv1alpha1.CertificatesV1alpha1Interface {
+	ret := _m.Called()
+
+	var r0 certificatesv1alpha1.CertificatesV1alpha1Interface
+	if rf, ok := ret.Get(0).(func() certificatesv1alpha1.CertificatesV1alpha1Interface); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(certificatesv1alpha1.CertificatesV1alpha1Interface)
+		}
+	}
+
+	return r0
+}
+
+// mockComponentEcosystemInterface_CertificatesV1alpha1_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CertificatesV1alpha1'
+type mockComponentEcosystemInterface_CertificatesV1alpha1_Call struct {
+	*mock.Call
+}
+
+// CertificatesV1alpha1 is a helper method to define mock.On call
+func (_e *mockComponentEcosystemInterface_Expecter) CertificatesV1alpha1() *mockComponentEcosystemInterface_CertificatesV1alpha1_Call {
+	return &mockComponentEcosystemInterface_CertificatesV1alpha1_Call{Call: _e.mock.On("CertificatesV1alpha1")}
+}
+
+func (_c *mockComponentEcosystemInterface_CertificatesV1alpha1_Call) Run(run func()) *mockComponentEcosystemInterface_CertificatesV1alpha1_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *mockComponentEcosystemInterface_CertificatesV1alpha1_Call) Return(_a0 certificatesv1alpha1.CertificatesV1alpha1Interface) *mockComponentEcosystemInterface_CertificatesV1alpha1_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *mockComponentEcosystemInterface_CertificatesV1alpha1_Call) RunAndReturn(run func() certificatesv1alpha1.CertificatesV1alpha1Interface) *mockComponentEcosystemInterface_CertificatesV1alpha1_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2057,45 +2102,45 @@ func (_c *mockComponentEcosystemInterface_RbacV1beta1_Call) RunAndReturn(run fun
 	return _c
 }
 
-// ResourceV1alpha1 provides a mock function with given fields:
-func (_m *mockComponentEcosystemInterface) ResourceV1alpha1() resourcev1alpha1.ResourceV1alpha1Interface {
+// ResourceV1alpha2 provides a mock function with given fields:
+func (_m *mockComponentEcosystemInterface) ResourceV1alpha2() v1alpha2.ResourceV1alpha2Interface {
 	ret := _m.Called()
 
-	var r0 resourcev1alpha1.ResourceV1alpha1Interface
-	if rf, ok := ret.Get(0).(func() resourcev1alpha1.ResourceV1alpha1Interface); ok {
+	var r0 v1alpha2.ResourceV1alpha2Interface
+	if rf, ok := ret.Get(0).(func() v1alpha2.ResourceV1alpha2Interface); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(resourcev1alpha1.ResourceV1alpha1Interface)
+			r0 = ret.Get(0).(v1alpha2.ResourceV1alpha2Interface)
 		}
 	}
 
 	return r0
 }
 
-// mockComponentEcosystemInterface_ResourceV1alpha1_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResourceV1alpha1'
-type mockComponentEcosystemInterface_ResourceV1alpha1_Call struct {
+// mockComponentEcosystemInterface_ResourceV1alpha2_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ResourceV1alpha2'
+type mockComponentEcosystemInterface_ResourceV1alpha2_Call struct {
 	*mock.Call
 }
 
-// ResourceV1alpha1 is a helper method to define mock.On call
-func (_e *mockComponentEcosystemInterface_Expecter) ResourceV1alpha1() *mockComponentEcosystemInterface_ResourceV1alpha1_Call {
-	return &mockComponentEcosystemInterface_ResourceV1alpha1_Call{Call: _e.mock.On("ResourceV1alpha1")}
+// ResourceV1alpha2 is a helper method to define mock.On call
+func (_e *mockComponentEcosystemInterface_Expecter) ResourceV1alpha2() *mockComponentEcosystemInterface_ResourceV1alpha2_Call {
+	return &mockComponentEcosystemInterface_ResourceV1alpha2_Call{Call: _e.mock.On("ResourceV1alpha2")}
 }
 
-func (_c *mockComponentEcosystemInterface_ResourceV1alpha1_Call) Run(run func()) *mockComponentEcosystemInterface_ResourceV1alpha1_Call {
+func (_c *mockComponentEcosystemInterface_ResourceV1alpha2_Call) Run(run func()) *mockComponentEcosystemInterface_ResourceV1alpha2_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *mockComponentEcosystemInterface_ResourceV1alpha1_Call) Return(_a0 resourcev1alpha1.ResourceV1alpha1Interface) *mockComponentEcosystemInterface_ResourceV1alpha1_Call {
+func (_c *mockComponentEcosystemInterface_ResourceV1alpha2_Call) Return(_a0 v1alpha2.ResourceV1alpha2Interface) *mockComponentEcosystemInterface_ResourceV1alpha2_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *mockComponentEcosystemInterface_ResourceV1alpha1_Call) RunAndReturn(run func() resourcev1alpha1.ResourceV1alpha1Interface) *mockComponentEcosystemInterface_ResourceV1alpha1_Call {
+func (_c *mockComponentEcosystemInterface_ResourceV1alpha2_Call) RunAndReturn(run func() v1alpha2.ResourceV1alpha2Interface) *mockComponentEcosystemInterface_ResourceV1alpha2_Call {
 	_c.Call.Return(run)
 	return _c
 }

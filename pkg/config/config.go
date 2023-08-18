@@ -45,9 +45,8 @@ var (
 type HelmRepositoryData struct {
 	// Endpoint contains the Helm registry endpoint URL.
 	Endpoint string `json:"endpoint"`
-	// InsecureSkipTLSVerify indicates if the server's certificate will not be checked for validity.
-	// This makes the HTTPS connections insecure.
-	InsecureSkipTLSVerify bool `json:"insecureSkipTLSVerify"`
+	// PlainHttp indicates that the repository endpoint should be accessed using plain http
+	PlainHttp bool `json:"plain_http"`
 }
 
 // GetOciEndpoint returns the configured endpoint of the HelmRepositoryData with the OCI-protocol
@@ -122,15 +121,15 @@ func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (
 	}
 
 	// TODO Test the parsing
-	const configMapInsecureSkipTLSVerify = "insecureSkipTLSVerify"
-	insecureSkipTLSVerify, err := strconv.ParseBool(configMap.Data[configMapInsecureSkipTLSVerify])
+	const configMapPlainHttp = "plain_http"
+	plainHttp, err := strconv.ParseBool(configMap.Data[configMapPlainHttp])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse field %s", configMapInsecureSkipTLSVerify)
+		return nil, fmt.Errorf("failed to parse field %s", configMapPlainHttp)
 	}
 
 	return &HelmRepositoryData{
-		Endpoint:              configMap.Data["endpoint"],
-		InsecureSkipTLSVerify: insecureSkipTLSVerify,
+		Endpoint:  configMap.Data["endpoint"],
+		PlainHttp: plainHttp,
 	}, nil
 }
 
