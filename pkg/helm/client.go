@@ -57,6 +57,9 @@ func NewClient(namespace string, helmRepoSecret OciRepositoryConfig, debug bool,
 
 // InstallOrUpgrade takes a helmChart and applies it.
 func (c *Client) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error {
+	// This helm-client currently only works with OCI-Helm-Repositories.
+	// Therefore the chartName has to include the FQDN of the repository (e.g. "oci://my.repo/...")
+	// If in the future non-oci-repositories need to be used, this should be done here...
 	err := c.patchOciEndpoint(chart)
 	if err != nil {
 		return fmt.Errorf("error while patching chart '%s': %w", chart.ChartName, err)
