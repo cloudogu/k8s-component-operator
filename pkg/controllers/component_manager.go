@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -29,10 +30,10 @@ type UpgradeManager interface {
 
 // HelmClient is an interface for managing components with helm.
 type HelmClient interface {
-	// InstallOrUpgrade takes a component and applies the corresponding helmChart.
-	InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error
-	// Uninstall removes the helmChart of the given component
-	Uninstall(component *k8sv1.Component) error
+	// InstallOrUpgrade takes a helmChart and applies it.
+	InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error
+	// Uninstall removes the helmRelease for the given name
+	Uninstall(releaseName string) error
 	// ListDeployedReleases returns all deployed helm releases
 	ListDeployedReleases() ([]*release.Release, error)
 }
