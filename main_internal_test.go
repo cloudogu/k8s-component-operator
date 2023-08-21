@@ -144,7 +144,6 @@ func Test_startDoguOperator(t *testing.T) {
 		"AddHealthzCheck",
 		"AddReadyzCheck",
 		"Start",
-		"SetFields",
 	}
 
 	for _, mockDefinitionName := range mockDefinitionsThatCanFail {

@@ -158,8 +158,6 @@ func (c *Client) getChart(ctx context.Context, component *k8sv1.Component, spec 
 		"version", component.Spec.Version,
 		"plain http", c.helmRepoData.PlainHttp)
 
-	logger.Info("----- andere Logausgaben hier? -------------------")
-
 	componentChart, _, err := c.helmClient.GetChart(spec.ChartName, &install.ChartPathOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting chart for %s:%s: %w", component.Spec.Name, component.Spec.Version, err)
