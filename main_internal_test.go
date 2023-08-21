@@ -6,6 +6,7 @@ import (
 	"fmt"
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"testing"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/mocks/external"
@@ -18,7 +19,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -94,9 +94,10 @@ func Test_startDoguOperator(t *testing.T) {
 		"AddHealthzCheck":      {Arguments: []interface{}{mock.Anything, mock.Anything}, ReturnValue: nil},
 		"AddReadyzCheck":       {Arguments: []interface{}{mock.Anything, mock.Anything}, ReturnValue: nil},
 		"Start":                {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
-		"GetControllerOptions": {ReturnValue: v1alpha1.ControllerConfigurationSpec{}},
+		"GetControllerOptions": {ReturnValue: config.Controller{}},
 		"SetFields":            {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
 		"GetEventRecorderFor":  {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
+		"GetCache":             {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
 	}
 
 	t.Run("Error on missing namespace environment variable", func(t *testing.T) {
