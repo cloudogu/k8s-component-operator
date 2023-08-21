@@ -95,7 +95,6 @@ func Test_startDoguOperator(t *testing.T) {
 		"AddReadyzCheck":       {Arguments: []interface{}{mock.Anything, mock.Anything}, ReturnValue: nil},
 		"Start":                {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
 		"GetControllerOptions": {ReturnValue: config.Controller{}},
-		"SetFields":            {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
 		"GetEventRecorderFor":  {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
 		"GetCache":             {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
 	}
