@@ -4,7 +4,7 @@ kind: ClusterRole
 metadata:
   name: cluster-role
   labels:
-    app: k8s-component-operator
+    app: ces
     app.kubernetes.io/name: k8s-component-operator
 rules:
   - apiGroups:
