@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.0.3] - 2023-08-21
+### Changed
+- [#17] Make helmClient more generic to be usable by other components (e.g. "k8s-ces-setup")
+
 ## [v0.0.2] - 2023-07-14
 ### Added
 - Add documentation for component operator usage in dev environment

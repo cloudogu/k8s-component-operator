@@ -46,7 +46,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	// create a new context that does not get cancelled immediately on SIGTERM
 	helmCtx := context.Background()
 
-	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component); err != nil {
+	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
 		return fmt.Errorf("failed to install chart for component %s: %w", component.Spec.Name, err)
 	}
 
