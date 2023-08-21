@@ -86,7 +86,7 @@ func TestGetHelmRepositoryData(t *testing.T) {
 		mockConfigMapInterface := external.NewMockConfigMapInterface(t)
 		configMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},
-			Data:       map[string]string{"endpoint": "endpoint"},
+			Data:       map[string]string{"endpoint": "endpoint", "plain_http": "false"},
 		}
 		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(configMap, nil)
 

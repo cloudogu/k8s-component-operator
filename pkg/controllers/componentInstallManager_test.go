@@ -50,7 +50,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component).Return(assert.AnError)
 
 		mockRecorder := newMockEventRecorder(t)
-		mockRecorder.EXPECT().Eventf(component, "Warning", "Installation", "One or more dependencies are not satisfied: %s", assert.AnError.Error()).Return()
+		mockRecorder.EXPECT().Eventf(component, "Warning", "Installation", "Dependency check failed: %s", assert.AnError.Error()).Return()
 
 		sut := componentInstallManager{
 			componentClient: mockComponentClient,
@@ -64,9 +64,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		var expectedRequeueableErr *dependencyUnsatisfiedError
-		assert.ErrorAs(t, err, &expectedRequeueableErr)
-		assert.ErrorContains(t, err, "one or more dependencies are not satisfied")
+		assert.ErrorContains(t, err, "failed to check dependencies")
 	})
 
 	t.Run("failed to update installing status", func(t *testing.T) {

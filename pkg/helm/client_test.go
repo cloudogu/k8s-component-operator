@@ -2,10 +2,10 @@ package helm
 
 import (
 	"context"
-	"testing"
-
+	"errors"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -189,4 +189,27 @@ func TestClient_ListDeployedReleases(t *testing.T) {
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, assert.AnError)
 	})
+}
+
+func Test_dependencyUnsatisfiedError_Unwrap(t *testing.T) {
+	testErr1 := assert.AnError
+	testErr2 := errors.New("test")
+	inputErr := errors.Join(testErr1, testErr2)
+
+	sut := &dependencyUnsatisfiedError{inputErr}
+
+	// when
+	actualErr := sut.Unwrap()
+
+	// then
+	require.Error(t, sut)
+	require.Error(t, actualErr)
+	assert.ErrorIs(t, actualErr, testErr1)
+	assert.ErrorIs(t, actualErr, testErr2)
+}
+
+func Test_dependencyUnsatisfiedError_Error(t *testing.T) {
+	sut := &dependencyUnsatisfiedError{assert.AnError}
+	expected := "one or more dependencies are not satisfied: assert.AnError general error for testing"
+	assert.Equal(t, expected, sut.Error())
 }

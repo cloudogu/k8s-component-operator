@@ -107,16 +107,17 @@ func GetHelmRepositoryData(configMapClient corev1.ConfigMapInterface) (*HelmRepo
 
 	if runtime == runtimeLocal {
 		return getHelmRepositoryDataFromFile()
-	} else {
-		return getHelmRepositoryFromConfigMap(configMapClient)
 	}
+
+	return getHelmRepositoryFromConfigMap(configMapClient)
 }
 
 func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (*HelmRepositoryData, error) {
 	configMap, err := configMapClient.Get(context.TODO(), helmRepositoryConfigMapName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil, fmt.Errorf("helm repository configMap %s not found: %w", helmRepositoryConfigMapName, err)
-	} else if err != nil {
+	}
+	if err != nil {
 		return nil, fmt.Errorf("failed to get helm repository configMap %s: %w", helmRepositoryConfigMapName, err)
 	}
 
@@ -124,7 +125,7 @@ func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (
 	const configMapPlainHttp = "plain_http"
 	plainHttp, err := strconv.ParseBool(configMap.Data[configMapPlainHttp])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse field %s", configMapPlainHttp)
+		return nil, fmt.Errorf("failed to parse field %s from configMap %s", configMapPlainHttp, helmRepositoryConfigMapName)
 	}
 
 	return &HelmRepositoryData{
