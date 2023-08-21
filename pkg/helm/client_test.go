@@ -83,7 +83,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 		}
 		ctx := context.TODO()
 
-		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com"}
+		helmRepoData := &config.HelmRepositoryData{Endpoint: ""}
 		mockHelmClient := NewMockHelmClient(t)
 
 		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
@@ -91,7 +91,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 		err := client.InstallOrUpgrade(ctx, chart)
 
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "error while patching chart 'testing/testComponent': error while getting oci endpoint: error creating oci-endpoint from 'staging.cloudogu.com': wrong format")
+		assert.ErrorContains(t, err, "error while patching chart 'testing/testComponent': error while getting oci endpoint: error creating oci-endpoint from '': wrong format")
 	})
 
 	t.Run("should fail to install or upgrade chart for error in helmClient", func(t *testing.T) {
