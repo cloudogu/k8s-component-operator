@@ -96,8 +96,7 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, component *k8sv1.Componen
 
 	chartSpec := component.GetHelmChartSpec(endpoint)
 
-	// TODO add plainHttp to GenericHelmOptions of mittwald
-	_, err = c.helmClient.InstallOrUpgradeChart(ctx, chartSpec, nil)
+	_, err = c.helmClient.InstallOrUpgradeChart(ctx, chartSpec, &helmclient.GenericHelmOptions{PlainHttp: c.helmRepoData.PlainHttp})
 	if err != nil {
 		return fmt.Errorf("error while installing/upgrading component %s: %w", component, err)
 	}

@@ -21,7 +21,12 @@ require (
 	sigs.k8s.io/controller-runtime v0.15.1
 )
 
-replace google.golang.org/grpc => google.golang.org/grpc v1.57.0
+replace (
+	// replace mittwald client with our own until mittwald supports plain HTTP helm registries
+	// this should be released in helm v3.13 which is scheduled in September 23
+	github.com/mittwald/go-helm-client v0.12.3 => github.com/cloudogu/go-helm-client v0.0.0-20230821082439-086faec15c22
+	google.golang.org/grpc => google.golang.org/grpc v1.57.0
+)
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect

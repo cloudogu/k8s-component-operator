@@ -656,6 +656,8 @@ github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5P
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
 github.com/cloudogu/cesapp-lib v0.12.0 h1:+yRVk65DljGtJj/gNpgBRhvIJHfGy7kr4/iEw1LJugg=
 github.com/cloudogu/cesapp-lib v0.12.0/go.mod h1:PTQqI3xs1ReJMXYE6BGTF33yAfmS4J7P8UiE4AwDMDY=
+github.com/cloudogu/go-helm-client v0.0.0-20230821082439-086faec15c22 h1:hGFLpuVIEy6TcSfMTePAN7wOxSQ0zkFSI0IU0nR/xd4=
+github.com/cloudogu/go-helm-client v0.0.0-20230821082439-086faec15c22/go.mod h1:b1jCbr7z27zWDtVPp3IjXDMwe7GrHxg/L8jOC5jW9Ls=
 github.com/cloudogu/k8s-apply-lib v0.4.2 h1:D5hTYvIZya+tAyGCUGaZ1T83otvpQwzrZXz5JPHQQ5M=
 github.com/cloudogu/k8s-apply-lib v0.4.2/go.mod h1:jR/+7q47O5gb++4gVsmEElT8/EJoi+Msw2dVzArTPW0=
 github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4/go.mod h1:6pvJx4me5XPnfI9Z40ddWsdw2W/uZgQLFXToKeRcDiI=
@@ -994,8 +996,6 @@ github.com/mitchellh/go-wordwrap v1.0.1/go.mod h1:R62XHJLzvMFRBbcrT7m7WgmE1eOyTS
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
 github.com/mitchellh/reflectwalk v1.0.2/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
-github.com/mittwald/go-helm-client v0.12.3 h1:WlXhuMTT5HUdiYeiYMxlvi3XBxTKoGCNHcSsirLi8ug=
-github.com/mittwald/go-helm-client v0.12.3/go.mod h1:lC1Sn912rgRkGQZBUntJO7TOlqa1kK3Idwr3yo1Tco0=
 github.com/moby/locker v1.0.1 h1:fOXqR41zeveg4fFODix+1Ch4mj/gT0NE1XJbp/epuBg=
 github.com/moby/locker v1.0.1/go.mod h1:S7SDdo5zpBK84bzzVlKr2V0hz+7x9hWbYC/kq7oQppc=
 github.com/moby/spdystream v0.2.0 h1:cjW1zVyyoiM0T7b6UoySUFqzXMoqRckQtXwGPiBhOM8=
