@@ -63,7 +63,7 @@ func NewClient(namespace string, helmRepoData ociRepositoryConfig, debug bool, d
 
 	actionConfig, err := createActionConfig(namespace, helmRepoData.IsPlainHttp(), debug, debugLog, opt.RestConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create helm client: %w", err)
+		return nil, fmt.Errorf("failed to create action config: %w", err)
 	}
 
 	return &Client{
