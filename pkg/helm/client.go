@@ -5,6 +5,7 @@ import (
 	"fmt"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"k8s.io/client-go/rest"
 
 	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/action"
@@ -55,32 +56,10 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	clientGetter := helmclient.NewRESTClientGetter(namespace, nil, opt.RestConfig)
-	actionConfig := new(action.Configuration)
-	err = actionConfig.Init(
-		clientGetter,
-		namespace,
-		"secret",
-		debugLog,
-	)
+	actionConfig, err := createActionConfig(namespace, helmRepoData.PlainHttp, debug, debugLog, opt.RestConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
-
-	clientOpts := []registry.ClientOption{
-		registry.ClientOptDebug(debug),
-		registry.ClientOptCredentialsFile(helmRegistryConfigFile),
-	}
-
-	if helmRepoData.PlainHttp {
-		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
-	}
-
-	helmRegistryClient, err := registry.NewClient(clientOpts...)
-	if err != nil {
-		return nil, err
-	}
-	actionConfig.RegistryClient = helmRegistryClient
 
 	return &Client{
 		helmClient:        helmClient,
@@ -88,6 +67,37 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 		actionConfig:      actionConfig,
 		dependencyChecker: &installedDependencyChecker{},
 	}, nil
+}
+
+func createActionConfig(namespace string, plainHttp bool, debug bool, debugLog action.DebugLog, restConfig *rest.Config) (*action.Configuration, error) {
+	actionConfig := new(action.Configuration)
+	clientGetter := helmclient.NewRESTClientGetter(namespace, nil, restConfig)
+	err := actionConfig.Init(
+		clientGetter,
+		namespace,
+		"secret",
+		debugLog,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init actionConfig: %w", err)
+	}
+
+	clientOpts := []registry.ClientOption{
+		registry.ClientOptDebug(debug),
+		registry.ClientOptCredentialsFile(helmRegistryConfigFile),
+	}
+
+	if plainHttp {
+		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
+	}
+
+	helmRegistryClient, err := registry.NewClient(clientOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create helm registry client: %w", err)
+	}
+
+	actionConfig.RegistryClient = helmRegistryClient
+	return actionConfig, nil
 }
 
 // InstallOrUpgrade takes a component and applies the corresponding helmChart.
