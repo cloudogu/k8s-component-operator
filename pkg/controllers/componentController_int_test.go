@@ -47,9 +47,9 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 
 		It("Should install component in cluster", func() {
 			By("Creating component resource")
-			*helmClientMock = MockHelmClient{}
+			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
-			*recorderMock = MockEventRecorder{}
+			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Starting installation...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Installation successful")
 
@@ -77,10 +77,10 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 
 		It("Should upgrade component in cluster", func() {
 			By("Updating component resource")
-			*helmClientMock = MockHelmClient{}
+			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{Name: installComponent.Spec.Name, Namespace: installComponent.Namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}, nil)
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
-			*recorderMock = MockEventRecorder{}
+			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Starting upgrade...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Upgrade successful")
 
@@ -119,12 +119,12 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 
 		It("Should delete component in cluster", func() {
 			By("Delete component resource")
-			*helmClientMock = MockHelmClient{}
+			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().Uninstall(mock.Anything).Return(nil)
 			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 				Name: "k8s-dogu-operator",
 			}}, nil)
-			*recorderMock = MockEventRecorder{}
+			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Starting deinstallation...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Deinstallation successful")
 
