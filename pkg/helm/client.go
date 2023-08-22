@@ -3,8 +3,6 @@ package helm
 import (
 	"context"
 	"fmt"
-	"os"
-
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 
@@ -62,8 +60,7 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 	err = actionConfig.Init(
 		clientGetter,
 		namespace,
-		// TODO PhilippPixel/ move to place of central configuration
-		os.Getenv("HELM_DRIVER"),
+		"secret",
 		debugLog,
 	)
 	if err != nil {
