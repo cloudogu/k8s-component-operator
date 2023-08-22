@@ -47,11 +47,11 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 			Debug:            debug,
 			DebugLog:         debugLog,
 			Linting:          true,
+			PlainHttp:        helmRepoData.PlainHttp,
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
 
-	opt.RestConfig.Insecure = true
 	helmClient, err := helmclient.NewClientFromRestConf(opt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
@@ -70,10 +70,16 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 		return nil, err
 	}
 
-	helmRegistryClient, err := registry.NewClient(
+	clientOpts := []registry.ClientOption{
 		registry.ClientOptDebug(debug),
 		registry.ClientOptCredentialsFile(helmRegistryConfigFile),
-	)
+	}
+
+	if helmRepoData.PlainHttp {
+		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
+	}
+
+	helmRegistryClient, err := registry.NewClient(clientOpts...)
 	if err != nil {
 		return nil, err
 	}

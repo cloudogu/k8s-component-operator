@@ -24,7 +24,7 @@ require (
 replace (
 	// replace mittwald client with our own until mittwald supports plain HTTP helm registries
 	// this should be released in helm v3.13 which is scheduled in September 23
-	github.com/mittwald/go-helm-client v0.12.3 => github.com/cloudogu/go-helm-client v0.0.0-20230821082439-086faec15c22
+	github.com/mittwald/go-helm-client v0.12.3 => github.com/cloudogu/go-helm-client v0.0.0-20230822080918-4b3b24282d0d
 	google.golang.org/grpc => google.golang.org/grpc v1.57.0
 )
 
