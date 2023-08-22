@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,16 +33,16 @@ type upgradeManager interface {
 
 // helmClient is an interface for managing components with helm.
 type helmClient interface {
-	// InstallOrUpgrade takes a component and applies the corresponding helmChart.
-	InstallOrUpgrade(ctx context.Context, component *k8sv1.Component) error
-	// Uninstall removes the helmChart of the given component
-	Uninstall(component *k8sv1.Component) error
+	// InstallOrUpgrade takes a helmChart and applies it.
+	InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error
+	// Uninstall removes the helmRelease for the given name
+	Uninstall(releaseName string) error
 	// ListDeployedReleases returns all deployed helm releases
 	ListDeployedReleases() ([]*release.Release, error)
 	// SatisfiesDependencies validates that all dependencies are installed in the required version. A nil error
 	// indicates that all dependencies (if any) meet the requirements, so that the client may conduct an installation or
 	// upgrade.
-	SatisfiesDependencies(ctx context.Context, component *k8sv1.Component) error
+	SatisfiesDependencies(ctx context.Context, chart *helmclient.ChartSpec) error
 }
 
 // eventRecorder embeds the record.EventRecorder interface for usage in this package.

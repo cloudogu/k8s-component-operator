@@ -5,16 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
-
 	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/release"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -29,21 +26,22 @@ type HelmClient interface {
 	helmclient.Client
 }
 
-// OciRepositoryConfig can get an OCI-Endpoint for a helm-repository.
-type OciRepositoryConfig interface {
+// ociRepositoryConfig can get an OCI-Endpoint for a helm-repository.
+type ociRepositoryConfig interface {
 	GetOciEndpoint() (string, error)
+	IsPlainHttp() bool
 }
 
 // Client wraps the HelmClient with config.HelmRepositoryData
 type Client struct {
 	helmClient        HelmClient
-	helmRepoData      OciRepositoryConfig
+	helmRepoData      ociRepositoryConfig
 	actionConfig      *action.Configuration
 	dependencyChecker dependencyChecker
 }
 
 // NewClient create a new instance of the helm client.
-func NewClient(namespace string, helmRepoData OciRepositoryConfig, debug bool, debugLog action.DebugLog) (*Client, error) {
+func NewClient(namespace string, helmRepoData ociRepositoryConfig, debug bool, debugLog action.DebugLog) (*Client, error) {
 	opt := &helmclient.RestConfClientOptions{
 		Options: &helmclient.Options{
 			Namespace:        namespace,
@@ -53,7 +51,7 @@ func NewClient(namespace string, helmRepoData OciRepositoryConfig, debug bool, d
 			Debug:            debug,
 			DebugLog:         debugLog,
 			Linting:          true,
-			PlainHttp:        helmRepoData.PlainHttp,
+			PlainHttp:        helmRepoData.IsPlainHttp(),
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
@@ -63,7 +61,7 @@ func NewClient(namespace string, helmRepoData OciRepositoryConfig, debug bool, d
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	actionConfig, err := createActionConfig(namespace, helmRepoData.PlainHttp, debug, debugLog, opt.RestConfig)
+	actionConfig, err := createActionConfig(namespace, helmRepoData.IsPlainHttp(), debug, debugLog, opt.RestConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
@@ -110,7 +108,7 @@ func createActionConfig(namespace string, plainHttp bool, debug bool, debugLog a
 // InstallOrUpgrade takes a helmChart and applies it.
 func (c *Client) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error {
 	// This helm-client currently only works with OCI-Helm-Repositories.
-	// Therefore the chartName has to include the FQDN of the repository (e.g. "oci://my.repo/...")
+	// Therefore, the chartName has to include the FQDN of the repository (e.g. "oci://my.repo/...")
 	// If in the future non-oci-repositories need to be used, this should be done here...
 	err := c.patchOciEndpoint(chart)
 	if err != nil {
@@ -126,20 +124,18 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSp
 }
 
 // SatisfiesDependencies checks if all dependencies are satisfied in terms of installation and version.
-func (c *Client) SatisfiesDependencies(ctx context.Context, component *k8sv1.Component) error {
+func (c *Client) SatisfiesDependencies(ctx context.Context, chart *helmclient.ChartSpec) error {
 	logger := log.FromContext(ctx)
-	logger.Info("Checking if components dependencies are satisfied", "component", component.Name)
+	logger.Info("Checking if components dependencies are satisfied", "component", chart.ChartName)
 
-	endpoint, err := c.getOciEndpoint(component)
+	err := c.patchOciEndpoint(chart)
 	if err != nil {
-		return err
+		return fmt.Errorf("error while patching chart '%s': %w", chart.ChartName, err)
 	}
 
-	chartSpec := component.GetHelmChartSpec(endpoint)
-
-	componentChart, err := c.getChart(ctx, component, chartSpec)
+	componentChart, err := c.getChart(ctx, chart)
 	if err != nil {
-		return fmt.Errorf("failed to get chart for component %s: %w", component, err)
+		return fmt.Errorf("failed to get chart %s: %w", chart.ChartName, err)
 	}
 
 	dependencies := componentChart.Metadata.Dependencies
@@ -156,26 +152,30 @@ func (c *Client) SatisfiesDependencies(ctx context.Context, component *k8sv1.Com
 	return nil
 }
 
-func (c *Client) getChart(ctx context.Context, component *k8sv1.Component, spec *helmclient.ChartSpec) (*chart.Chart, error) {
+func (c *Client) getChart(ctx context.Context, chartSpec *helmclient.ChartSpec) (*chart.Chart, error) {
 	logger := log.FromContext(ctx)
 
-	// TODO extract into helper method
-	// We need this installAction because it sets the registryClient in ChartPathOptions which is a private field.
-	install := action.NewInstall(c.actionConfig)
-	install.Version = component.Spec.Version
-	install.PlainHTTP = c.helmRepoData.PlainHttp
-
 	logger.Info("Trying to get chart with options",
-		"chart", spec.ChartName,
-		"version", component.Spec.Version,
-		"plain http", c.helmRepoData.PlainHttp)
+		"chart", chartSpec.ChartName,
+		"version", chartSpec.Version,
+		"plain http", c.helmRepoData.IsPlainHttp())
 
-	componentChart, _, err := c.helmClient.GetChart(spec.ChartName, &install.ChartPathOptions)
+	pathOptions := createChartPathOptions(c.actionConfig, chartSpec, c.helmRepoData.IsPlainHttp())
+	componentChart, _, err := c.helmClient.GetChart(chartSpec.ChartName, pathOptions)
 	if err != nil {
-		return nil, fmt.Errorf("error while getting chart for %s:%s: %w", component.Spec.Name, component.Spec.Version, err)
+		return nil, fmt.Errorf("error while getting chart for %s:%s: %w", chartSpec.ChartName, chartSpec.Version, err)
 	}
 
 	return componentChart, nil
+}
+
+func createChartPathOptions(config *action.Configuration, chartSpec *helmclient.ChartSpec, plainHttp bool) *action.ChartPathOptions {
+	// We need this installAction because it sets the registryClient in ChartPathOptions which is a private field.
+	install := action.NewInstall(config)
+	install.Version = chartSpec.Version
+	install.PlainHTTP = plainHttp
+
+	return &install.ChartPathOptions
 }
 
 // Uninstall removes the helmRelease for the given name

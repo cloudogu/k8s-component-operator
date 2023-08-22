@@ -32,7 +32,7 @@ func NewComponentUpgradeManager(componentClient componentInterface, helmClient h
 func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	err := cum.helmClient.SatisfiesDependencies(ctx, component)
+	err := cum.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpec())
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}

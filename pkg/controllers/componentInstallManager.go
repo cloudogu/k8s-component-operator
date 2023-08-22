@@ -32,7 +32,7 @@ func NewComponentInstallManager(componentClient componentInterface, helmClient h
 func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	err := cim.helmClient.SatisfiesDependencies(ctx, component)
+	err := cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpec())
 	if err != nil {
 		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}

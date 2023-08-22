@@ -62,6 +62,10 @@ func (hrd *HelmRepositoryData) GetOciEndpoint() (string, error) {
 	return "", fmt.Errorf("error creating oci-endpoint from '%s': wrong format", hrd.Endpoint)
 }
 
+func (hrd *HelmRepositoryData) IsPlainHttp() bool {
+	return hrd.PlainHttp
+}
+
 // OperatorConfig contains all configurable values for the dogu operator.
 type OperatorConfig struct {
 	// Namespace specifies the namespace that the operator is deployed to.
