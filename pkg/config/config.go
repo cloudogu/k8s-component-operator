@@ -44,9 +44,9 @@ var (
 // HelmRepositoryData contains all necessary data for the helm repository.
 type HelmRepositoryData struct {
 	// Endpoint contains the Helm registry endpoint URL.
-	Endpoint string `json:"endpoint"`
+	Endpoint string `json:"endpoint" yaml:"endpoint"`
 	// PlainHttp indicates that the repository endpoint should be accessed using plain http
-	PlainHttp bool `json:"plain_http"`
+	PlainHttp bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
 }
 
 // GetOciEndpoint returns the configured endpoint of the HelmRepositoryData with the OCI-protocol
@@ -121,11 +121,13 @@ func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (
 		return nil, fmt.Errorf("failed to get helm repository configMap %s: %w", helmRepositoryConfigMapName, err)
 	}
 
-	// TODO Test the parsing
-	const configMapPlainHttp = "plain_http"
-	plainHttp, err := strconv.ParseBool(configMap.Data[configMapPlainHttp])
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse field %s from configMap %s", configMapPlainHttp, helmRepositoryConfigMapName)
+	plainHttp := false
+	const configMapPlainHttp = "plainHttp"
+	if plainHttpStr, exists := configMap.Data[configMapPlainHttp]; exists {
+		plainHttp, err = strconv.ParseBool(plainHttpStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse field %s from configMap %s", configMapPlainHttp, helmRepositoryConfigMapName)
+		}
 	}
 
 	return &HelmRepositoryData{

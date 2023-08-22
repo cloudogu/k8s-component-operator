@@ -46,14 +46,18 @@ func TestGetHelmRepositoryData(t *testing.T) {
 	t.Setenv("RUNTIME", "local")
 	t.Run("success from file", func(t *testing.T) {
 		// given
-		devHelmRepoDataPath = "../../k8s/helm-repository.yaml"
+		devHelmRepoDataPath = "testdata/helm-repository.yaml"
+		expected := &HelmRepositoryData{
+			Endpoint:  "http://192.168.56.3:30100",
+			PlainHttp: true,
+		}
 
 		// when
 		result, err := GetHelmRepositoryData(nil)
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, "http://192.168.56.3:30100", result.Endpoint)
+		assert.Equal(t, expected, result)
 	})
 
 	t.Run("should throw error because the file does not exists", func(t *testing.T) {
@@ -70,7 +74,7 @@ func TestGetHelmRepositoryData(t *testing.T) {
 
 	t.Run("should throw error because wrong yaml format", func(t *testing.T) {
 		// given
-		devHelmRepoDataPath = "testdata/helm-repository.yaml"
+		devHelmRepoDataPath = "testdata/invalid-helm-repository.yaml"
 
 		// when
 		_, err := GetHelmRepositoryData(nil)
@@ -86,16 +90,58 @@ func TestGetHelmRepositoryData(t *testing.T) {
 		mockConfigMapInterface := external.NewMockConfigMapInterface(t)
 		configMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},
-			Data:       map[string]string{"endpoint": "endpoint", "plain_http": "false"},
+			Data:       map[string]string{"endpoint": "endpoint", "plainHttp": "false"},
 		}
 		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(configMap, nil)
+		expected := &HelmRepositoryData{
+			Endpoint:  "endpoint",
+			PlainHttp: false,
+		}
 
 		// when
 		result, err := GetHelmRepositoryData(mockConfigMapInterface)
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, "endpoint", result.Endpoint)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("success with plainHttp not existing", func(t *testing.T) {
+		// given
+		mockConfigMapInterface := external.NewMockConfigMapInterface(t)
+		configMap := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},
+			Data:       map[string]string{"endpoint": "endpoint"},
+		}
+		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(configMap, nil)
+		expected := &HelmRepositoryData{
+			Endpoint:  "endpoint",
+			PlainHttp: false,
+		}
+
+		// when
+		result, err := GetHelmRepositoryData(mockConfigMapInterface)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("should fail to parse plainHttp", func(t *testing.T) {
+		// given
+		mockConfigMapInterface := external.NewMockConfigMapInterface(t)
+		configMap := &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},
+			Data:       map[string]string{"endpoint": "endpoint", "plainHttp": "not-a-bool"},
+		}
+		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(configMap, nil)
+
+		// when
+		_, err := GetHelmRepositoryData(mockConfigMapInterface)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "failed to parse field plainHttp from configMap component-operator-helm-repository")
 	})
 
 	t.Run("should return not found error if no secret was found", func(t *testing.T) {
