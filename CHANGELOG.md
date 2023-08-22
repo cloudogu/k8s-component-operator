@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#15] Check if component dependencies are installed and if their version is appropriate
   - you can find more information about components in the [operations docs]()
 
+## [v0.0.3] - 2023-08-21
+### Changed
+- [#17] Make helmClient more generic to be usable by other components (e.g. "k8s-ces-setup")
+
 ## [v0.0.2] - 2023-07-14
 ### Added
 - [#12] Add upgrade of components and self-upgrade of component-operator

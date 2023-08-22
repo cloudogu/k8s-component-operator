@@ -52,10 +52,14 @@ type HelmRepositoryData struct {
 // GetOciEndpoint returns the configured endpoint of the HelmRepositoryData with the OCI-protocol
 func (hrd *HelmRepositoryData) GetOciEndpoint() (string, error) {
 	split := strings.Split(hrd.Endpoint, "://")
-	if len(split) != 2 {
-		return "", fmt.Errorf("error creating oci-endpoint from '%s': wrong format", hrd.Endpoint)
+	if len(split) == 1 && split[0] != "" {
+		return fmt.Sprintf("oci://%s", split[0]), nil
 	}
-	return fmt.Sprintf("oci://%s", split[1]), nil
+	if len(split) == 2 && split[1] != "" {
+		return fmt.Sprintf("oci://%s", split[1]), nil
+	}
+
+	return "", fmt.Errorf("error creating oci-endpoint from '%s': wrong format", hrd.Endpoint)
 }
 
 // OperatorConfig contains all configurable values for the dogu operator.

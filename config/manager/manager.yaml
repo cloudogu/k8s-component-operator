@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: controller-manager
   labels:
+    app: ces
+    app.kubernetes.io/name: k8s-component-operator
     control-plane: controller-manager
 spec:
   selector:

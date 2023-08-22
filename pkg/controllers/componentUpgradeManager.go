@@ -48,7 +48,7 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.Background()
 
-	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component); err != nil {
+	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 

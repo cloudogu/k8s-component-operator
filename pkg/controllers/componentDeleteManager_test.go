@@ -40,7 +40,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 		mockComponentClient.EXPECT().RemoveFinalizer(ctx, component, k8sv1.FinalizerName).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().Uninstall(component).Return(nil)
+		mockHelmClient.EXPECT().Uninstall(component.Spec.Name).Return(nil)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 			Name: componentName,
 		}}, nil)
@@ -96,7 +96,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().Uninstall(component).Return(assert.AnError)
+		mockHelmClient.EXPECT().Uninstall(component.Spec.Name).Return(assert.AnError)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 			Name: componentName,
 		}}, nil)
@@ -128,7 +128,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 		mockComponentClient.EXPECT().RemoveFinalizer(ctx, component, k8sv1.FinalizerName).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().Uninstall(component).Return(nil)
+		mockHelmClient.EXPECT().Uninstall(component.Spec.Name).Return(nil)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 			Name: componentName,
 		}}, nil)

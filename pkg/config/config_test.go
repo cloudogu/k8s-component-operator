@@ -199,10 +199,10 @@ func TestHelmRepositoryData_GetOciEndpoint(t *testing.T) {
 			wantErr:  assert.NoError,
 		},
 		{
-			name:     "error no protocol",
+			name:     "success no protocol",
 			Endpoint: "staging-registry.cloudogu.com",
-			want:     "",
-			wantErr:  assert.Error,
+			want:     "oci://staging-registry.cloudogu.com",
+			wantErr:  assert.NoError,
 		},
 		{
 			name:     "error empty string",
