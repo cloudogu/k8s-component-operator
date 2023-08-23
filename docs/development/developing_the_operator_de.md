@@ -5,9 +5,11 @@ Hier wird beschrieben, wie man mit dem Komponenten-Operator k8s-CES-Komponenten 
 ## Vorbereitungen
 
 ### Helm-Repository konfigurieren
+
 - Die Datei `.env` aus dem Template `.env.template` erstellen
-    - Wichtig sind die Variablen HELM_REPO_ENDPOINT (bspw. https://registry.domain.test), HELM_REPO_USERNAME und HELM_REPO_PASSWORD
-    - Außerdem sollte NAMESPACE korrekt gesetzt sein
+   - Wichtig sind die Variablen HELM_REPO_ENDPOINT (bspw. https://registry.domain.test), HELM_REPO_USERNAME und
+     HELM_REPO_PASSWORD
+   - Außerdem sollte NAMESPACE korrekt gesetzt sein
 - Credentials im Cluster ablegen: `make helm-repo-config`
 
 ### Den Komponenten-Operator lokal debuggen
@@ -26,15 +28,25 @@ Hier wird beschrieben, wie man mit dem Komponenten-Operator k8s-CES-Komponenten 
    - STAGE=production;NAMESPACE=ecosystem;KUBECONFIG=/pfad/zur/kubeconfig/.kube/k3ces.local
 
 ### Komponenten-Operator installieren
+
 - Operator bauen und im Cluster installieren: `make k8s-helm-apply`
 
 ### Komponente für Test vorbereiten
+
 - Repository der Komponente öffnen, bspw. k8s-etcd
 - Helm-Chart erstellen: `make k8s-helm-package-release`
-    - Generiert ein Paket nach dem Schema KOMPONENTENNAME-VERSION.tgz
+   - Generiert ein Paket nach dem Schema KOMPONENTENNAME-VERSION.tgz
 - An der Helm-Registry anmelden: bspw. `helm registry login registry.domain.test`
-- Helm-Chart in Registry pushen: bspw. `helm push target/make/k8s/helm/k8s-etcd-3.5.9-1.tgz oci://registry.domain.test/testing/`
-    - `testing` ist hier der Namespace der Komponente in der Helm-Registry und kann angepasst werden, falls nötig
+- Helm-Chart in Registry pushen:
+  bspw. `helm push target/make/k8s/helm/k8s-etcd-3.5.9-1.tgz oci://registry.domain.test/testing/`
+   - `testing` ist hier der Namespace der Komponente in der Helm-Registry und kann angepasst werden, falls nötig
+
+###
+
+Wie entwickeln, wenn alle Komponenten aus dem Internet kommen sollen, aber eine zu testende Komponente aus der
+cluster-lokalen Registry kommen soll?
+
+- ja, nun bitte dokumentieren xD
 
 ## Komponenten verwalten
 
@@ -47,10 +59,14 @@ apiVersion: v2
 name: k8s-dogu-operator
 ...
 dependencies:
-- name: k8s/k8s-etcd
-  version: 3.*.*
-  condition: false
+  - name: k8s/k8s-etcd
+    version: 3.*.*
+    condition: false
 ```
+
+Abhängige Versionen können so gestaltet werden, dass sie nicht auf eine einzige Version fixiert werden, sondern
+unterschiedliche Versionsbereiche abdecken. Dies ermöglicht den Betrieb von Komponenten, selbst wenn
+Komponentenversionen mit kleineren Änderungen oder Fehlerbehebungen ausgebracht wurden.
 
 Versionsmöglichkeiten und evtl. best practices oder Empfehlungen hier beschreiben
 
