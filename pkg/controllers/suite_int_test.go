@@ -33,10 +33,10 @@ var cancel context.CancelFunc
 
 // Used in other integration tests
 var (
-	componentClient ecosystem.ComponentInterface
-	helmClientMock  *mockHelmClient
-	recorderMock    *mockEventRecorder
-	namespace       = "default"
+	componentClientSet ecosystem.ComponentEcosystemInterface
+	helmClientMock     *mockHelmClient
+	recorderMock       *mockEventRecorder
+	namespace          = "default"
 )
 
 const TimeoutInterval = time.Second * 10
@@ -100,7 +100,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	componentClientSet, err := ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
+	componentClientSet, err = ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace)
