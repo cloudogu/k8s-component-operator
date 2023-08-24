@@ -10,10 +10,10 @@ import (
 
 func TestNewComponentUpgradeManager(t *testing.T) {
 	t.Run("should create new componentUpgradeManager", func(t *testing.T) {
-		mockComponentClient := NewMockComponentClient(t)
-		mockHelmClient := NewMockHelmClient(t)
+		mockComponentClient := newMockComponentInterface(t)
+		mockHelmClient := newMockHelmClient(t)
 
-		manager := NewComponentUpgradeManager(mockComponentClient, mockHelmClient)
+		manager := NewComponentUpgradeManager(mockComponentClient, mockHelmClient, nil)
 
 		assert.NotNil(t, manager)
 		assert.Equal(t, mockHelmClient, manager.helmClient)
@@ -22,22 +22,24 @@ func TestNewComponentUpgradeManager(t *testing.T) {
 }
 
 func Test_componentUpgradeManager_Upgrade(t *testing.T) {
+	component := &k8sv1.Component{
+		Spec: k8sv1.ComponentSpec{
+			Namespace: "ecosystem",
+			Name:      "testComponent",
+			Version:   "1.0",
+		},
+		Status: k8sv1.ComponentStatus{Status: "installed"},
+	}
+
 	t.Run("should upgrade component", func(t *testing.T) {
 		ctx := context.Background()
-		component := &k8sv1.Component{
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "ecosystem",
-				Name:      "testComponent",
-				Version:   "1.0",
-			},
-			Status: k8sv1.ComponentStatus{Status: "installed"},
-		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, nil)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(nil)
 
 		manager := &componentUpgradeManager{
@@ -47,6 +49,31 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		err := manager.Upgrade(ctx, component)
 
 		require.NoError(t, err)
+	})
+
+	t.Run("dependency check failed", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(assert.AnError)
+
+		mockRecorder := newMockEventRecorder(t)
+		mockRecorder.EXPECT().Eventf(component, "Warning", "Upgrade", "Dependency check failed: %s", assert.AnError.Error()).Return()
+
+		sut := componentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			recorder:        mockRecorder,
+		}
+
+		// when
+		err := sut.Upgrade(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to check dependencies")
 	})
 
 	t.Run("should fail to upgrade component on error while setting upgrading status", func(t *testing.T) {
@@ -60,10 +87,11 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, assert.AnError)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 
 		manager := &componentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -86,10 +114,11 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(assert.AnError)
 
 		manager := &componentUpgradeManager{
@@ -113,11 +142,12 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
 
-		mockComponentClient := NewMockComponentClient(t)
+		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, assert.AnError)
 
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(nil)
 
 		manager := &componentUpgradeManager{

@@ -3,21 +3,27 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // componentUpgradeManager is a central unit in the process of handling the upgrade process of a custom component resource.
 type componentUpgradeManager struct {
-	componentClient ComponentClient
-	helmClient      HelmClient
+	componentClient componentInterface
+	helmClient      helmClient
+	recorder        record.EventRecorder
 }
 
 // NewComponentUpgradeManager creates a new instance of componentUpgradeManager.
-func NewComponentUpgradeManager(componentClient ComponentClient, helmClient HelmClient) *componentUpgradeManager {
+func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, recorder record.EventRecorder) *componentUpgradeManager {
 	return &componentUpgradeManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
+		recorder:        recorder,
 	}
 }
 
@@ -26,14 +32,20 @@ func NewComponentUpgradeManager(componentClient ComponentClient, helmClient Helm
 func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	component, err := cum.componentClient.UpdateStatusUpgrading(ctx, component)
+	err := cum.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpec())
+	if err != nil {
+		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
+		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
+	}
+
+	component, err = cum.componentClient.UpdateStatusUpgrading(ctx, component)
 	if err != nil {
 		return fmt.Errorf("failed to update status-upgrading for component %s: %w", component.Spec.Name, err)
 	}
 
 	logger.Info("Upgrade helm chart...")
 
-	// create a new context that does not get cancelled immediately on SIGTERM
+	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.Background()
 
 	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {

@@ -33,10 +33,10 @@ var cancel context.CancelFunc
 
 // Used in other integration tests
 var (
-	componentClient ecosystem.ComponentInterface
-	helmClientMock  *MockHelmClient
-	recorderMock    *MockEventRecorder
-	namespace       = "default"
+	componentClientSet ecosystem.ComponentEcosystemInterface
+	helmClientMock     *mockHelmClient
+	recorderMock       *mockEventRecorder
+	namespace          = "default"
 )
 
 const TimeoutInterval = time.Second * 10
@@ -94,17 +94,16 @@ var _ = ginkgo.BeforeSuite(func() {
 	})
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	t := &testing.T{}
-	helmClientMock = NewMockHelmClient(t)
-	recorderMock = NewMockEventRecorder(t)
+	helmClientMock = newMockHelmClient(t)
+	recorderMock = newMockEventRecorder(t)
 
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	componentClientSet, err := ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
+	componentClientSet, err = ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	componentClient = componentClientSet.EcosystemV1Alpha1().Components(namespace)
-	reconciler := NewComponentReconciler(componentClient, helmClientMock, recorderMock)
+	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace)
 
 	err = reconciler.SetupWithManager(k8sManager)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())

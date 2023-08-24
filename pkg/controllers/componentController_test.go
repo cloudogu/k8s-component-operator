@@ -2,8 +2,15 @@ package controllers
 
 import (
 	"context"
+	"testing"
+	"time"
+
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -11,46 +18,62 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
-	"time"
 )
+
+const testNamespace = "testtestNamespace"
 
 func TestNewComponentReconciler(t *testing.T) {
 	// given
-	mockComponentClient := NewMockComponentClient(t)
-	mockHelmClient := NewMockHelmClient(t)
-	mockRecorder := NewMockEventRecorder(t)
+	componentInterfaceMock := newMockComponentInterface(t)
+	componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+	componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+	clientSetMock := newMockComponentEcosystemInterface(t)
+	clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+	mockHelmClient := newMockHelmClient(t)
+	mockRecorder := newMockEventRecorder(t)
 
 	// when
-	manager := NewComponentReconciler(mockComponentClient, mockHelmClient, mockRecorder)
+	manager := NewComponentReconciler(clientSetMock, mockHelmClient, mockRecorder, testNamespace)
 
 	// then
 	require.NotNil(t, manager)
 }
 
 func Test_componentReconciler_Reconcile(t *testing.T) {
-	namespace := "ecosystem"
 	helmNamespace := "k8s"
 	t.Run("success install", func(t *testing.T) {
 		// given
-		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
-		mockRecorder := NewMockEventRecorder(t)
+		component := getComponent(testNamespace, helmNamespace, "dogu-op", "0.1.0")
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Event(component, "Normal", "Installation", "Installation successful")
+
 		manager := NewMockComponentManager(t)
-		manager.EXPECT().Install(context.TODO(), component).Return(nil)
-		helmClient := NewMockHelmClient(t)
+		manager.EXPECT().Install(testCtx, component).Return(nil)
+		helmClient := newMockHelmClient(t)
+
+		mockRequeueHandler := newMockRequeueHandler(t)
+		mockRequeueHandler.EXPECT().Handle(testCtx, "Installation failed with component dogu-op", component, nil, mock.Anything).Return(reconcile.Result{}, nil)
+
 		sut := componentReconciler{
-			componentClient:  mockComponentClient,
+			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
 			helmClient:       helmClient,
+			requeueHandler:   mockRequeueHandler,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		result, err := sut.Reconcile(context.TODO(), req)
+		result, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.NoError(t, err)
@@ -59,25 +82,37 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("success delete", func(t *testing.T) {
 		// given
-		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component := getComponent(testNamespace, helmNamespace, "dogu-op", "0.1.0")
 		component.DeletionTimestamp = &v1.Time{Time: time.Now()}
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
-		mockRecorder := NewMockEventRecorder(t)
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Event(component, "Normal", "Deinstallation", "Deinstallation successful")
+
 		manager := NewMockComponentManager(t)
-		manager.EXPECT().Delete(context.TODO(), component).Return(nil)
-		helmClient := NewMockHelmClient(t)
+		manager.EXPECT().Delete(testCtx, component).Return(nil)
+		helmClient := newMockHelmClient(t)
+
+		mockRequeueHandler := newMockRequeueHandler(t)
+		mockRequeueHandler.EXPECT().Handle(testCtx, "Deinstallation failed with component dogu-op", component, nil, mock.Anything).Return(reconcile.Result{}, nil)
+
 		sut := componentReconciler{
-			componentClient:  mockComponentClient,
+			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
 			helmClient:       helmClient,
+			requeueHandler:   mockRequeueHandler,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		result, err := sut.Reconcile(context.TODO(), req)
+		result, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.NoError(t, err)
@@ -86,27 +121,40 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("success upgrade", func(t *testing.T) {
 		// given
-		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component := getComponent(testNamespace, helmNamespace, "dogu-op", "0.1.0")
 		component.Status.Status = "installed"
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
-		mockRecorder := NewMockEventRecorder(t)
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Event(component, "Normal", "Upgrade", "Upgrade successful")
+
 		manager := NewMockComponentManager(t)
-		manager.EXPECT().Upgrade(context.TODO(), component).Return(nil)
-		helmClient := NewMockHelmClient(t)
-		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
+		manager.EXPECT().Upgrade(testCtx, component).Return(nil)
+
+		helmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+
+		mockRequeueHandler := newMockRequeueHandler(t)
+		mockRequeueHandler.EXPECT().Handle(testCtx, "Upgrade failed with component dogu-op", component, nil, mock.Anything).Return(reconcile.Result{}, nil)
+
 		sut := componentReconciler{
-			componentClient:  mockComponentClient,
+			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
 			helmClient:       helmClient,
+			requeueHandler:   mockRequeueHandler,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		result, err := sut.Reconcile(context.TODO(), req)
+		result, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.NoError(t, err)
@@ -115,26 +163,34 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("should fail on downgrade", func(t *testing.T) {
 		// given
-		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component := getComponent(testNamespace, helmNamespace, "dogu-op", "0.1.0")
 		component.Status.Status = "installed"
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
-		mockRecorder := NewMockEventRecorder(t)
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Event(component, "Warning", "Downgrade", "component downgrades are not allowed")
+
 		manager := NewMockComponentManager(t)
-		helmClient := NewMockHelmClient(t)
-		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.2.0"}}}}
+		helmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.2.0"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+
 		sut := componentReconciler{
-			componentClient:  mockComponentClient,
+			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
 			helmClient:       helmClient,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		_, err := sut.Reconcile(context.TODO(), req)
+		_, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.Error(t, err)
@@ -143,25 +199,32 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("should ignore equal installed component", func(t *testing.T) {
 		// given
-		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component := getComponent(testNamespace, helmNamespace, "dogu-op", "0.1.0")
 		component.Status.Status = "installed"
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
-		mockRecorder := NewMockEventRecorder(t)
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		mockRecorder := newMockEventRecorder(t)
 		manager := NewMockComponentManager(t)
-		helmClient := NewMockHelmClient(t)
-		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}
+		helmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+
 		sut := componentReconciler{
-			componentClient:  mockComponentClient,
+			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
 			helmClient:       helmClient,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		result, err := sut.Reconcile(context.TODO(), req)
+		result, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.NoError(t, err)
@@ -170,15 +233,20 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("should fail on component get error", func(t *testing.T) {
 		// given
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(nil, assert.AnError)
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(nil, assert.AnError)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
 		sut := componentReconciler{
-			componentClient: mockComponentClient,
+			clientSet: clientSetMock,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		_, err := sut.Reconcile(context.TODO(), req)
+		_, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.Error(t, err)
@@ -187,15 +255,21 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("should return nil if the component is not found", func(t *testing.T) {
 		// given
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(nil, errors.NewNotFound(schema.GroupResource{}, ""))
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(nil, errors.NewNotFound(schema.GroupResource{}, ""))
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
 		sut := componentReconciler{
-			componentClient: mockComponentClient,
+			clientSet: clientSetMock,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		_, err := sut.Reconcile(context.TODO(), req)
+		_, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.NoError(t, err)
@@ -203,21 +277,28 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("should fail on getting operation with invalid versions", func(t *testing.T) {
 		// given
-		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component := getComponent(testNamespace, helmNamespace, "dogu-op", "0.1.0")
 		component.Status.Status = "installed"
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
-		helmClient := NewMockHelmClient(t)
-		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "invalidsemver"}}}}
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		helmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "invalidsemver"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+
 		sut := componentReconciler{
-			componentClient: mockComponentClient,
-			helmClient:      helmClient,
+			clientSet:  clientSetMock,
+			helmClient: helmClient,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		_, err := sut.Reconcile(context.TODO(), req)
+		_, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.Error(t, err)
@@ -226,25 +307,41 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 	t.Run("should fail on error in operation", func(t *testing.T) {
 		// given
-		component := getComponent(namespace, helmNamespace, "dogu-op", "0.1.0")
+		component := getComponent(testNamespace, helmNamespace, "dogu-op", "0.1.0")
 		component.DeletionTimestamp = &v1.Time{Time: time.Now()}
-		mockComponentClient := NewMockComponentClient(t)
-		mockComponentClient.EXPECT().Get(context.TODO(), "dogu-op", v1.GetOptions{}).Return(component, nil)
-		mockRecorder := NewMockEventRecorder(t)
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Event(component, "Warning", "Deinstallation", "Deinstallation failed. Reason: assert.AnError general error for testing")
+		mockRecorder.EXPECT().Eventf(component, "Warning", "Requeue", "Failed to requeue the %s.", "deinstallation").Return()
+
 		manager := NewMockComponentManager(t)
-		manager.EXPECT().Delete(context.TODO(), component).Return(assert.AnError)
-		helmClient := NewMockHelmClient(t)
+		manager.EXPECT().Delete(testCtx, component).Return(assert.AnError)
+		helmClient := newMockHelmClient(t)
+
+		mockRequeueHandler := newMockRequeueHandler(t)
+		mockRequeueHandler.EXPECT().Handle(testCtx, "Deinstallation failed with component dogu-op", component, assert.AnError, mock.Anything).
+			RunAndReturn(func(_ context.Context, _ string, _ *k8sv1.Component, err error, _ func()) (reconcile.Result, error) {
+				return reconcile.Result{}, err
+			})
+
 		sut := componentReconciler{
-			componentClient:  mockComponentClient,
+			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
 			helmClient:       helmClient,
+			requeueHandler:   mockRequeueHandler,
 		}
-		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: namespace, Name: "dogu-op"}}
+		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
 		// when
-		_, err := sut.Reconcile(context.TODO(), req)
+		_, err := sut.Reconcile(testCtx, req)
 
 		// then
 		require.Error(t, err)
@@ -256,7 +353,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should fail on error getting helm releases", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
 
 		sut := componentReconciler{
@@ -275,7 +372,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should fail on error parsing component version", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "notvalidsemver")
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
@@ -294,7 +391,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return downgrade-operation on downgrade", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.0")
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
@@ -313,7 +410,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return upgrade-operation on upgrade", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.2")
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
@@ -332,7 +429,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return ignore-operation on same version", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.1")
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
@@ -351,7 +448,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return ignore-operation when no release is found", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.0.1")
-		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient := newMockHelmClient(t)
 		var helmReleases []*release.Release
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
@@ -376,7 +473,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		sut := componentReconciler{}
 
 		// when
-		requiredOperation, err := sut.evaluateRequiredOperation(context.TODO(), component)
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
@@ -390,7 +487,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		sut := componentReconciler{}
 
 		// when
-		requiredOperation, err := sut.evaluateRequiredOperation(context.TODO(), component)
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
@@ -404,7 +501,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		sut := componentReconciler{}
 
 		// when
-		requiredOperation, err := sut.evaluateRequiredOperation(context.TODO(), component)
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
@@ -418,7 +515,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		sut := componentReconciler{}
 
 		// when
-		requiredOperation, err := sut.evaluateRequiredOperation(context.TODO(), component)
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
