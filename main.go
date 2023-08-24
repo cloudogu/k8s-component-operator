@@ -12,6 +12,8 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/logging"
 	"k8s.io/client-go/kubernetes"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -106,8 +108,8 @@ func getK8sManagerOptions(operatorConfig *config.OperatorConfig) manager.Options
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		Namespace:              operatorConfig.Namespace,
+		Cache:                  cache.Options{Namespaces: []string{operatorConfig.Namespace}},
+		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "951e217a.cloudogu.com",
