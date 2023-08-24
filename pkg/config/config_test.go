@@ -120,7 +120,7 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 
 		// then
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "config map 'component-operator-helm-repository' failed validation: endpoint is not formatted as <schema>://<url>")
+		assert.ErrorContains(t, err, "config map 'component-operator-helm-repository' failed validation: endpoint 'invalid' is not formatted as <schema>://<url>")
 	})
 	t.Run("should fail because endpoint has empty URL", func(t *testing.T) {
 		// given

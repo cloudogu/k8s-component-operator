@@ -59,7 +59,7 @@ func (hrd *HelmRepositoryData) validate() error {
 	parts := strings.Split(hrd.Endpoint, "://")
 
 	if len(parts) != 2 {
-		return fmt.Errorf("endpoint is not formatted as <schema>://<url>")
+		return fmt.Errorf("endpoint '%s' is not formatted as <schema>://<url>", hrd.Endpoint)
 	}
 
 	schema := parts[0]
