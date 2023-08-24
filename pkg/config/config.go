@@ -7,8 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cloudogu/cesapp-lib/core"
-
+	"github.com/Masterminds/semver/v3"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,7 +70,7 @@ type OperatorConfig struct {
 	// Namespace specifies the namespace that the operator is deployed to.
 	Namespace string `json:"namespace"`
 	// Version contains the current version of the operator
-	Version *core.Version `json:"version"`
+	Version *semver.Version `json:"version"`
 	// HelmRepositoryData contains all necessary data for the helm repository.
 	HelmRepositoryData *HelmRepositoryData `json:"helm_repository"`
 }
@@ -88,7 +87,7 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 		log.Info("Starting in development mode! This is not recommended for production!")
 	}
 
-	parsedVersion, err := core.ParseVersion(version)
+	parsedVersion, err := semver.NewVersion(version)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse version: %w", err)
 	}
@@ -102,7 +101,7 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 
 	return &OperatorConfig{
 		Namespace: namespace,
-		Version:   &parsedVersion,
+		Version:   parsedVersion,
 	}, nil
 }
 

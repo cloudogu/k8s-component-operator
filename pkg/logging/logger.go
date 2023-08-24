@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/bombsimon/logrusr/v2"
-	"github.com/cloudogu/cesapp-lib/core"
 	"github.com/cloudogu/k8s-apply-lib/apply"
 	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
@@ -120,12 +119,6 @@ func ConfigureLogger() error {
 
 	// set logr logger as controller logger
 	ctrl.SetLogger(logrusLogrLogger)
-
-	// set custom logger implementation to cesapp-lib logger
-	cesappLibLogger := libraryLogger{name: "cesapp-lib", logger: logrusLogrLogger.GetSink()}
-	core.GetLogger = func() core.Logger {
-		return &cesappLibLogger
-	}
 
 	// set custom logger implementation to k8s-apply-lib logger
 	k8sApplyLibLogger := libraryLogger{name: "k8s-apply-lib", logger: logrusLogrLogger.GetSink()}

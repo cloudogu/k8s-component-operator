@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/bombsimon/logrusr/v2 v2.0.1
-	github.com/cloudogu/cesapp-lib v0.12.0
 	github.com/cloudogu/k8s-apply-lib v0.4.2
 	github.com/go-logr/logr v1.2.4
 	github.com/mittwald/go-helm-client v0.12.3

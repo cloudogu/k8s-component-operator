@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudogu/cesapp-lib/core"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+
+	semver "github.com/Masterminds/semver/v3"
 
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
@@ -228,21 +229,21 @@ func (r *componentReconciler) getChangeOperation(component *k8sv1.Component) (op
 
 func getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
-	deployedAppVersion, err := core.ParseVersion(chart.AppVersion())
+	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
 		return "", fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
 	}
 
-	componentVersion, err := core.ParseVersion(component.Spec.Version)
+	componentVersion, err := semver.NewVersion(component.Spec.Version)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
 	}
 
-	if deployedAppVersion.IsOlderThan(componentVersion) {
+	if deployedAppVersion.LessThan(componentVersion) {
 		return Upgrade, nil
 	}
 
-	if deployedAppVersion.IsNewerThan(componentVersion) {
+	if deployedAppVersion.GreaterThan(componentVersion) {
 		return Downgrade, nil
 	}
 

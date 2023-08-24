@@ -38,7 +38,7 @@ func TestNewOperatorConfig(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, operatorConfig)
 		assert.Equal(t, expectedNamespace, operatorConfig.Namespace)
-		assert.Equal(t, "0.1.0", operatorConfig.Version.Raw)
+		assert.Equal(t, "0.1.0", operatorConfig.Version.Original())
 	})
 }
 
