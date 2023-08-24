@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
@@ -11,6 +12,8 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/logging"
 	"k8s.io/client-go/kubernetes"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -105,8 +108,8 @@ func getK8sManagerOptions(operatorConfig *config.OperatorConfig) manager.Options
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		Namespace:              operatorConfig.Namespace,
+		Cache:                  cache.Options{Namespaces: []string{operatorConfig.Namespace}},
+		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "951e217a.cloudogu.com",
@@ -133,7 +136,8 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 		return fmt.Errorf("failed to create clientset: %w", err)
 	}
 
-	helmRepoData, err := config.GetHelmRepositoryData(clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
+	ctx := context.Background()
+	helmRepoData, err := config.GetHelmRepositoryData(ctx, clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
 	if err != nil {
 		return err
 	}
@@ -150,7 +154,7 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 		return fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	componentReconciler := controllers.NewComponentReconciler(componentClientSet.EcosystemV1Alpha1().Components(operatorConfig.Namespace), helmClient, eventRecorder)
+	componentReconciler := controllers.NewComponentReconciler(componentClientSet, helmClient, eventRecorder, operatorConfig.Namespace)
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)

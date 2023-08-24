@@ -47,10 +47,13 @@ type ComponentSpec struct {
 type ComponentStatus struct {
 	// Status represents the state of the component in the ecosystem.
 	Status string `json:"status"`
+	// RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
+	RequeueTimeNanos time.Duration `json:"requeueTimeNanos,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:labels=app=ces;app.kubernetes.io/name=k8s-component-operator
 
 // Component is the Schema for the ces component API
 type Component struct {
@@ -59,6 +62,11 @@ type Component struct {
 
 	Spec   ComponentSpec   `json:"spec,omitempty"`
 	Status ComponentStatus `json:"status,omitempty"`
+}
+
+// String returns a string representation of this component.
+func (c *Component) String() string {
+	return fmt.Sprintf("%s/%s:%s", c.Spec.Namespace, c.Spec.Name, c.Spec.Version)
 }
 
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.

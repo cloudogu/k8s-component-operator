@@ -1,30 +1,19 @@
 package logging
 
 import (
-	"github.com/cloudogu/k8s-apply-lib/apply"
-	"github.com/cloudogu/k8s-component-operator/pkg/mocks/external"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"github.com/stretchr/testify/require"
 
-	"github.com/cloudogu/cesapp-lib/core"
+	"github.com/cloudogu/k8s-apply-lib/apply"
+	"github.com/cloudogu/k8s-component-operator/pkg/mocks/external"
 )
 
 func TestConfigureLogger(t *testing.T) {
-	originalControllerLogger := ctrl.Log
-	originalLibraryLogger := core.GetLogger()
-	defer func() {
-		ctrl.Log = originalControllerLogger
-		core.GetLogger = func() core.Logger {
-			return originalLibraryLogger
-		}
-	}()
-
 	t.Run("create logger with no log level set in env -> should use default", func(t *testing.T) {
 		// given
 		_ = os.Unsetenv(logLevelEnvVar)
@@ -47,18 +36,6 @@ func TestConfigureLogger(t *testing.T) {
 		assert.Equal(t, logrus.ErrorLevel, CurrentLogLevel)
 	})
 
-	t.Run("create logger with log level INFO", func(t *testing.T) {
-		// given
-		_ = os.Setenv(logLevelEnvVar, "INFO")
-
-		// when
-		err := ConfigureLogger()
-
-		// then
-		core.GetLogger().Info("test")
-		assert.NoError(t, err)
-	})
-
 	t.Run("create logger with invalid log level TEST_LEVEL", func(t *testing.T) {
 		// given
 		_ = os.Setenv(logLevelEnvVar, "TEST_LEVEL")
@@ -69,24 +46,6 @@ func TestConfigureLogger(t *testing.T) {
 		// then
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "value of log environment variable [LOG_LEVEL] is not a valid log level")
-	})
-
-	t.Run("should set library logger for core", func(t *testing.T) {
-		// given
-		_ = os.Setenv(logLevelEnvVar, "")
-
-		// when
-		err := ConfigureLogger()
-		coreLogger := core.GetLogger()
-
-		// then
-		require.NoError(t, err)
-		require.NotNil(t, coreLogger)
-
-		libLogger, ok := coreLogger.(*libraryLogger)
-		require.True(t, ok)
-
-		assert.Equal(t, "cesapp-lib", libLogger.name)
 	})
 
 	t.Run("should set library logger for apply", func(t *testing.T) {

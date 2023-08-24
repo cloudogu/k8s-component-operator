@@ -47,18 +47,19 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 
 		It("Should install component in cluster", func() {
 			By("Creating component resource")
-			*helmClientMock = MockHelmClient{}
+			*helmClientMock = mockHelmClient{}
+			helmClientMock.EXPECT().SatisfiesDependencies(mock.Anything, mock.Anything).Return(nil)
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
-			*recorderMock = MockEventRecorder{}
+			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Starting installation...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Installation successful")
 
-			_, err := componentClient.Create(ctx, installComponent, metav1.CreateOptions{})
+			_, err := componentClientSet.ComponentV1Alpha1().Components(namespace).Create(ctx, installComponent, metav1.CreateOptions{})
 			Expect(err).Should(Succeed())
 
 			By("Expect created component")
 			Eventually(func() bool {
-				get, err := componentClient.Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
+				get, err := componentClientSet.ComponentV1Alpha1().Components(namespace).Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -77,21 +78,22 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 
 		It("Should upgrade component in cluster", func() {
 			By("Updating component resource")
-			*helmClientMock = MockHelmClient{}
+			*helmClientMock = mockHelmClient{}
+			helmClientMock.EXPECT().SatisfiesDependencies(mock.Anything, mock.Anything).Return(nil)
 			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{Name: installComponent.Spec.Name, Namespace: installComponent.Namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}, nil)
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
-			*recorderMock = MockEventRecorder{}
+			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Starting upgrade...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Upgrade successful")
 
-			upgradeComponent, err := componentClient.Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
+			upgradeComponent, err := componentClientSet.ComponentV1Alpha1().Components(namespace).Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
 			Expect(err).Should(Succeed())
 			upgradeComponent.Spec.Version = "0.2.0"
-			_, err = componentClient.Update(ctx, upgradeComponent, metav1.UpdateOptions{})
+			_, err = componentClientSet.ComponentV1Alpha1().Components(namespace).Update(ctx, upgradeComponent, metav1.UpdateOptions{})
 			Expect(err).Should(Succeed())
 
 			Eventually(func() bool {
-				comp, err := componentClient.Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
+				comp, err := componentClientSet.ComponentV1Alpha1().Components(namespace).Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
@@ -119,20 +121,20 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 
 		It("Should delete component in cluster", func() {
 			By("Delete component resource")
-			*helmClientMock = MockHelmClient{}
+			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().Uninstall(mock.Anything).Return(nil)
 			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{
 				Name: "k8s-dogu-operator",
 			}}, nil)
-			*recorderMock = MockEventRecorder{}
+			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Starting deinstallation...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Deinstallation successful")
 
-			err := componentClient.Delete(ctx, "k8s-dogu-operator", metav1.DeleteOptions{})
+			err := componentClientSet.ComponentV1Alpha1().Components(namespace).Delete(ctx, "k8s-dogu-operator", metav1.DeleteOptions{})
 			Expect(err).Should(Succeed())
 
 			Eventually(func() bool {
-				_, err := componentClient.Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
+				_, err := componentClientSet.ComponentV1Alpha1().Components(namespace).Get(ctx, "k8s-dogu-operator", metav1.GetOptions{})
 				return errors.IsNotFound(err)
 			}, TimeoutInterval, PollingInterval).Should(BeTrue())
 

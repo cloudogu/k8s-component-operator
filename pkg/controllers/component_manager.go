@@ -2,72 +2,33 @@ package controllers
 
 import (
 	"context"
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
+
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	helmclient "github.com/mittwald/go-helm-client"
-	"helm.sh/helm/v3/pkg/release"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
 
-// InstallManager includes functionality to install components in the cluster.
-type InstallManager interface {
-	// Install installs a component resource.
-	Install(ctx context.Context, component *k8sv1.Component) error
-}
-
-// DeleteManager includes functionality to delete components in the cluster.
-type DeleteManager interface {
-	// Delete deletes a component resource.
-	Delete(ctx context.Context, component *k8sv1.Component) error
-}
-
-// UpgradeManager includes functionality to upgrade components in the cluster.
-type UpgradeManager interface {
-	// Upgrade upgrades a component resource.
-	Upgrade(ctx context.Context, component *k8sv1.Component) error
-}
-
-// HelmClient is an interface for managing components with helm.
-type HelmClient interface {
-	// InstallOrUpgrade takes a helmChart and applies it.
-	InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error
-	// Uninstall removes the helmRelease for the given name
-	Uninstall(releaseName string) error
-	// ListDeployedReleases returns all deployed helm releases
-	ListDeployedReleases() ([]*release.Release, error)
-}
-
-// ComponentClient embeds the ecosystem.ComponentInterface interface for usage in this package.
-type ComponentClient interface {
-	ecosystem.ComponentInterface
-}
-
-// EventRecorder embeds the record.EventRecorder interface for usage in this package.
-type EventRecorder interface {
-	record.EventRecorder
-}
-
 // componentManager is a central unit in the process of handling component custom resources.
 // The componentManager creates, updates and deletes components.
 type componentManager struct {
-	installManager InstallManager
-	deleteManager  DeleteManager
-	upgradeManager UpgradeManager
-	recorder       EventRecorder
+	installManager installManager
+	deleteManager  deleteManager
+	upgradeManager upgradeManager
+	recorder       eventRecorder
 }
 
 // NewComponentManager creates a new instance of componentManager.
-func NewComponentManager(clientset ecosystem.ComponentInterface, helmClient HelmClient, recorder record.EventRecorder) *componentManager {
+func NewComponentManager(clientset componentInterface, helmClient helmClient, recorder record.EventRecorder) *componentManager {
 	return &componentManager{
-		installManager: NewComponentInstallManager(clientset, helmClient),
+		installManager: NewComponentInstallManager(clientset, helmClient, recorder),
 		deleteManager:  NewComponentDeleteManager(clientset, helmClient),
-		upgradeManager: NewComponentUpgradeManager(clientset, helmClient),
+		upgradeManager: NewComponentUpgradeManager(clientset, helmClient, recorder),
 		recorder:       recorder,
 	}
 }
 
-// Install installs  the given component resource.
+// Install installs the given component resource.
 func (m *componentManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	m.recorder.Event(component, corev1.EventTypeNormal, InstallEventReason, "Starting installation...")
 	return m.installManager.Install(ctx, component)

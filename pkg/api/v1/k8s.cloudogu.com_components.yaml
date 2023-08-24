@@ -5,6 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
+  labels:
+    app: ces
+    app.kubernetes.io/name: k8s-component-operator
   name: components.k8s.cloudogu.com
 spec:
   group: k8s.cloudogu.com
@@ -48,6 +51,11 @@ spec:
           status:
             description: ComponentStatus defines the observed state of a Component.
             properties:
+              requeueTimeNanos:
+                description: RequeueTimeNanos contains the time in nanoseconds to
+                  wait until the next requeue.
+                format: int64
+                type: integer
               status:
                 description: Status represents the state of the component in the ecosystem.
                 type: string

@@ -2,12 +2,22 @@ package ecosystem
 
 import (
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 )
+
+type ComponentEcosystemInterface interface {
+	kubernetes.Interface
+	ComponentV1Alpha1() ComponentV1Alpha1Interface
+}
+
+type ComponentV1Alpha1Interface interface {
+	Components(namespace string) ComponentInterface
+}
 
 // EcosystemClientset wraps the regular clientset with the ecosystemV1Alpha1 client.
 type EcosystemClientset struct {
@@ -28,8 +38,8 @@ func NewComponentClientset(config *rest.Config, clientset *kubernetes.Clientset)
 	}, nil
 }
 
-// EcosystemV1Alpha1 returns the ecosystemV1Aplha1 client.
-func (cswc *EcosystemClientset) EcosystemV1Alpha1() *V1Alpha1Client {
+// ComponentV1Alpha1 returns the ecosystemV1Aplha1 client.
+func (cswc *EcosystemClientset) ComponentV1Alpha1() ComponentV1Alpha1Interface {
 	return cswc.ecosystemV1Alpha1
 }
 

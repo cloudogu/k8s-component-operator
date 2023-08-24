@@ -22,9 +22,9 @@ func Test_componentManager_Install(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
-		installManagerMock := NewMockInstallManager(t)
+		installManagerMock := newMockInstallManager(t)
 		installManagerMock.EXPECT().Install(context.TODO(), component).Return(nil)
-		eventRecorderMock := NewMockEventRecorder(t)
+		eventRecorderMock := newMockEventRecorder(t)
 		eventRecorderMock.EXPECT().Event(component, "Normal", "Installation", "Starting installation...")
 
 		sut := &componentManager{
@@ -44,9 +44,9 @@ func Test_componentManager_Upgrade(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
-		upgradeManagerMock := NewMockUpgradeManager(t)
+		upgradeManagerMock := newMockUpgradeManager(t)
 		upgradeManagerMock.EXPECT().Upgrade(context.TODO(), component).Return(nil)
-		eventRecorderMock := NewMockEventRecorder(t)
+		eventRecorderMock := newMockEventRecorder(t)
 		eventRecorderMock.EXPECT().Event(component, "Normal", "Upgrade", "Starting upgrade...")
 
 		sut := &componentManager{
@@ -65,9 +65,9 @@ func Test_componentManager_Delete(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
-		deleteManagerMock := NewMockDeleteManager(t)
+		deleteManagerMock := newMockDeleteManager(t)
 		deleteManagerMock.EXPECT().Delete(context.TODO(), component).Return(nil)
-		eventRecorderMock := NewMockEventRecorder(t)
+		eventRecorderMock := newMockEventRecorder(t)
 		eventRecorderMock.EXPECT().Event(component, "Normal", "Deinstallation", "Starting deinstallation...")
 
 		sut := &componentManager{
