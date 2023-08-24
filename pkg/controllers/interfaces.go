@@ -51,6 +51,7 @@ type eventRecorder interface {
 }
 
 type requeueHandler interface {
+	// Handle takes an error and handles the requeue process for the current dogu operation.
 	Handle(ctx context.Context, contextMessage string, componentResource *k8sv1.Component, originalErr error, onRequeue func()) (ctrl.Result, error)
 }
 

@@ -43,7 +43,7 @@ func TestNewOperatorConfig(t *testing.T) {
 }
 
 func TestGetHelmRepositoryData(t *testing.T) {
-	t.Run("success from file", func(t *testing.T) {
+	t.Run("should return local developer", func(t *testing.T) {
 		// given
 		t.Setenv("RUNTIME", "local")
 		devHelmRepoDataPath = "testdata/helm-repository.yaml"
