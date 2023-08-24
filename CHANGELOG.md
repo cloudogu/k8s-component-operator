@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - [#15] Check if component dependencies are installed and if their version is appropriate
-  - you can find more information about components in the [operations docs]()
+  - you can find more information about components in the [operations docs](docs/operations/managing_components_en.md)
 
 ## [v0.0.3] - 2023-08-21
 ### Changed
