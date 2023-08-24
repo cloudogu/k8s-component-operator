@@ -53,6 +53,7 @@ type ComponentStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:labels=app=ces;app.kubernetes.io/name=k8s-component-operator
 
 // Component is the Schema for the ces component API
 type Component struct {

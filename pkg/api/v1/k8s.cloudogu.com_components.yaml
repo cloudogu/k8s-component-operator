@@ -5,6 +5,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
+  labels:
+    app: ces
+    app.kubernetes.io/name: k8s-component-operator
   name: components.k8s.cloudogu.com
 spec:
   group: k8s.cloudogu.com
