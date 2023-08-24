@@ -1,47 +1,67 @@
-# Manage components with the component operator
+# Developing both the component operator and components
 
-Here we describe how to install and delete k8s-CES components in the cluster using the component operator.
+This document describes both how to develop the component operator and component-specific features.
 
 ## Preparations
 
-### Configure helm repository
+### Configure Helm repository
+
 - Create the file `.env` from the template `.env.template`
-    - The variables HELM_REPO_ENDPOINT (e.g. https://registry.domain.test), HELM_REPO_USERNAME and HELM_REPO_PASSWORD are important.
-    - In addition, NAMESPACE should be set correctly.
-- Store credentials in the cluster: `make helm-repo-config`.
+   - Important are the variables
+      - `HELM_REPO_ENDPOINT` (e.g. https://registry.cloudogu.com)
+      - `HELM_REPO_USERNAME`
+      - `HELM_REPO_PASSWORD`
+      - `NAMESPACE`
+- Store credentials in the cluster: `make helm-repo-config`
+
+### Debugging the component operator locally
+
+1. follow the installation instructions of k8s-ecosystem
+2. open the file `.env.template` and follow the instructions to create an environment variables (see above)
+3. delete any component operator deployments in the cluster to avoid parallelization errors
+   - `kubectl -n ecosystem delete deployment k8s-component-operator`
+4. create a new debug configuration (e.g. in IntelliJ) to run the operator locally
+   - with these environment variables:
+   - STAGE=production;NAMESPACE=ecosystem;KUBECONFIG=/path/to/kubeconfig/.kube/k3ces.local
+5. set breakpoints and apply a component CR to the cluster if necessary.
 
 ### Install component operator
+
 - Build operator and install in cluster: `make k8s-helm-apply`
 
 ### Prepare component for test
-- Open repository of component, e.g. k8s-etcd
-- Create helm chart: `make k8s-helm-package-release`.
-    - Generates a package according to the scheme COMPONENTNAME-VERSION.tgz
-- Log in to the helm registry: e.g. `helm registry login registry.domain.test`.
-- Push helm chart to registry: e.g. `helm push target/make/k8s/helm/k8s-etcd-3.5.9-1.tgz oci://registry.domain.test/testing/`
-    - `testing` here is the namespace of the component in the helm registry and can be modified if necessary
 
-## Installing the component
-- Write custom resource (CR) for component. Example:
+Using `k8s-dogu-operator` as an example
+
+1. open the repository of the component
+2. if necessary, create a `chart.yaml` with `make k8s-helm-init-chart` in the `k8s/helm` directory
+3. create Helm package: `make k8s-helm-package-release`.
+   - generates a package according to the scheme COMPONENT-NAME-VERSION.tgz
+4. if necessary [install](../operations/managing_components_en.md#install-or-upgrade-components) all necessary non-test components
+   `kubectl -n ecosystem apply -f yourComponentCR.yaml`
+5. push test component:
+   - `make chart-import`
+6. direct the ConfigMap `component-operator-helm-repository` to the cluster-local registry
+   - `kubectl -n ecosystem patch configmap component-operator-helm-repository -p '{"data": {"endpoint": "oci://k3ces.local:30099","plainHttp": "true"}}'`
+7. revise YAML of test component and [install](../operations/managing_components_en.md#install-or-upgrade-components)
+   `kubectl -n ecosystem apply -f k8s-dogu-operator.yaml`
+
+## Manage dependencies in components
+
+Components do not necessarily have to stand alone, but can also require other components. This is defined as a dependency in the Helm chart:
 
 ```yaml
-apiVersion: k8s.cloudogu.com/v1
-kind: Component
-metadata:
-  name: k8s-etcd
-spec:
-  name: k8s-etcd
-  namespace: testing
-  version: 3.5.9-1
+apiVersion: v2
+name: k8s-dogu-operator
+...
+dependencies:
+  - name: k8s/k8s-dogu-operator
+    version: 3.*.*
+    condition: false
 ```
 
-- `namespace` here is the namespace of the component in the helm registry (see above)
-- More examples can be found at config/samples
+Dependency versions should be declared in such a way that they are not fixed to a single version, but cover different version ranges. This allows components to be run even if component versions with minor changes or bug fixes have been deployed.
 
-- Apply the CR to the cluster: e.g. `kubectl apply -f etcd.yaml`.
-- The component operator will now start installing the component
+The [Masterminds/semver](https://github.com/Masterminds/semver#checking-version-constraints) library describes in more detail which version constraints are possible.
 
-## Uninstalling the component
-
-- Delete the component CR from the cluster: e.g. `kubectl delete -f etcd.yaml`
-- The component operator will now start uninstalling the component
+Since we use the dependency declaration in the Helm chart only to represent dependencies for the component operator, the `.dependencies.[].condition` field must necessarily be set to `false`. If this field were `true`, Helm would automatically install the dependency and the component operator would be disturbed in its own activity.
