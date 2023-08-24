@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v0.0.2] - 2023-07-14
 ### Added
 - [#12] Add upgrade of components and self-upgrade of component-operator
-- Add documentation for component operator usage in a devlepment environment
+- Add documentation for component operator usage in a development environment
 
 ### Fixed
 - Operator finishes uninstallation steps even if component has been uninstalled already
