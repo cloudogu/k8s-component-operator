@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
@@ -133,7 +134,8 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 		return fmt.Errorf("failed to create clientset: %w", err)
 	}
 
-	helmRepoData, err := config.GetHelmRepositoryData(clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
+	ctx := context.Background()
+	helmRepoData, err := config.GetHelmRepositoryData(ctx, clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
 	if err != nil {
 		return err
 	}

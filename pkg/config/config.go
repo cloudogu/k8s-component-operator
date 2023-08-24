@@ -9,7 +9,6 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"gopkg.in/yaml.v3"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,6 +39,14 @@ var (
 	log             = ctrl.Log.WithName("config")
 )
 
+type EndpointSchema string
+
+const EndpointSchemaOCI EndpointSchema = "oci"
+
+type configMapInterface interface {
+	corev1.ConfigMapInterface
+}
+
 // HelmRepositoryData contains all necessary data for the helm repository.
 type HelmRepositoryData struct {
 	// Endpoint contains the Helm registry endpoint URL.
@@ -48,21 +55,30 @@ type HelmRepositoryData struct {
 	PlainHttp bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
 }
 
-// GetOciEndpoint returns the configured endpoint of the HelmRepositoryData with the OCI-protocol
-func (hrd *HelmRepositoryData) GetOciEndpoint() (string, error) {
-	split := strings.Split(hrd.Endpoint, "://")
-	if len(split) == 1 && split[0] != "" {
-		return fmt.Sprintf("oci://%s", split[0]), nil
-	}
-	if len(split) == 2 && split[1] != "" {
-		return fmt.Sprintf("oci://%s", split[1]), nil
+func (hrd *HelmRepositoryData) validate() error {
+	parts := strings.Split(hrd.Endpoint, "://")
+
+	if len(parts) != 2 {
+		return fmt.Errorf("endpoint is not formatted as <schema>://<url>")
 	}
 
-	return "", fmt.Errorf("error creating oci-endpoint from '%s': wrong format", hrd.Endpoint)
+	schema := parts[0]
+	url := parts[1]
+
+	if url == "" {
+		return fmt.Errorf("endpoint url must not be empty")
+	}
+
+	if EndpointSchema(schema) != EndpointSchemaOCI {
+		return fmt.Errorf("endpoint uses an unsupported schema '%s': valid schemas are: oci", schema)
+	}
+
+	return nil
 }
 
-func (hrd *HelmRepositoryData) IsPlainHttp() bool {
-	return hrd.PlainHttp
+func (hrd *HelmRepositoryData) EndpointSchema() EndpointSchema {
+	parts := strings.Split(hrd.Endpoint, "://")
+	return EndpointSchema(parts[0])
 }
 
 // OperatorConfig contains all configurable values for the dogu operator.
@@ -106,24 +122,22 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 }
 
 // GetHelmRepositoryData reads the repository data either from file or from a secret in the cluster.
-func GetHelmRepositoryData(configMapClient corev1.ConfigMapInterface) (*HelmRepositoryData, error) {
+func GetHelmRepositoryData(ctx context.Context, configMapClient configMapInterface) (*HelmRepositoryData, error) {
 	runtime, err := getEnvVar(runtimeEnvironmentVariable)
 	if err != nil {
 		log.Info("Runtime env var not found.")
 	}
 
 	if runtime == runtimeLocal {
-		return getHelmRepositoryDataFromFile()
+		return NewHelmRepoDataFromFile(devHelmRepoDataPath)
 	}
 
-	return getHelmRepositoryFromConfigMap(configMapClient)
+	return NewHelmRepoDataFromCluster(ctx, configMapClient)
 }
 
-func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (*HelmRepositoryData, error) {
-	configMap, err := configMapClient.Get(context.TODO(), helmRepositoryConfigMapName, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		return nil, fmt.Errorf("helm repository configMap %s not found: %w", helmRepositoryConfigMapName, err)
-	}
+// NewHelmRepoDataFromCluster reads the repo data ConfigMap, validates and returns it.
+func NewHelmRepoDataFromCluster(ctx context.Context, configMapClient configMapInterface) (*HelmRepositoryData, error) {
+	configMap, err := configMapClient.Get(ctx, helmRepositoryConfigMapName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get helm repository configMap %s: %w", helmRepositoryConfigMapName, err)
 	}
@@ -137,29 +151,37 @@ func getHelmRepositoryFromConfigMap(configMapClient corev1.ConfigMapInterface) (
 		}
 	}
 
-	return &HelmRepositoryData{
+	repoData := &HelmRepositoryData{
 		Endpoint:  configMap.Data["endpoint"],
 		PlainHttp: plainHttp,
-	}, nil
+	}
+
+	err = repoData.validate()
+	if err != nil {
+		return nil, fmt.Errorf("config map '%s' failed validation: %w", helmRepositoryConfigMapName, err)
+	}
+
+	return repoData, nil
 }
 
-func getHelmRepositoryDataFromFile() (*HelmRepositoryData, error) {
-	data := &HelmRepositoryData{}
-	if _, err := os.Stat(devHelmRepoDataPath); os.IsNotExist(err) {
-		return data, fmt.Errorf("could not find configuration at %s", devHelmRepoDataPath)
-	}
-
-	fileData, err := os.ReadFile(devHelmRepoDataPath)
+func NewHelmRepoDataFromFile(filepath string) (*HelmRepositoryData, error) {
+	fileBytes, err := os.ReadFile(filepath)
 	if err != nil {
-		return data, fmt.Errorf("failed to read configuration %s: %w", devHelmRepoDataPath, err)
+		return nil, fmt.Errorf("failed to read configuration %s: %w", filepath, err)
 	}
 
-	err = yaml.Unmarshal(fileData, data)
+	repoData := &HelmRepositoryData{}
+	err = yaml.Unmarshal(fileBytes, repoData)
 	if err != nil {
-		return data, fmt.Errorf("failed to unmarshal configuration %s: %w", devHelmRepoDataPath, err)
+		return nil, fmt.Errorf("failed to unmarshal configuration %s: %w", filepath, err)
 	}
 
-	return data, nil
+	err = repoData.validate()
+	if err != nil {
+		return nil, fmt.Errorf("helm repository data from file '%s' failed validation: %w", fileBytes, err)
+	}
+
+	return repoData, nil
 }
 
 func readNamespace() (string, error) {

@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"strings"
 
 	helmclient "github.com/mittwald/go-helm-client"
@@ -26,22 +27,16 @@ type HelmClient interface {
 	helmclient.Client
 }
 
-// ociRepositoryConfig can get an OCI-Endpoint for a helm-repository.
-type ociRepositoryConfig interface {
-	GetOciEndpoint() (string, error)
-	IsPlainHttp() bool
-}
-
 // Client wraps the HelmClient with config.HelmRepositoryData
 type Client struct {
 	helmClient        HelmClient
-	helmRepoData      ociRepositoryConfig
+	helmRepoData      *config.HelmRepositoryData
 	actionConfig      *action.Configuration
 	dependencyChecker dependencyChecker
 }
 
 // NewClient create a new instance of the helm client.
-func NewClient(namespace string, helmRepoData ociRepositoryConfig, debug bool, debugLog action.DebugLog) (*Client, error) {
+func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog) (*Client, error) {
 	opt := &helmclient.RestConfClientOptions{
 		Options: &helmclient.Options{
 			Namespace:        namespace,
@@ -51,7 +46,7 @@ func NewClient(namespace string, helmRepoData ociRepositoryConfig, debug bool, d
 			Debug:            debug,
 			DebugLog:         debugLog,
 			Linting:          true,
-			PlainHttp:        helmRepoData.IsPlainHttp(),
+			PlainHttp:        helmRepoData.PlainHttp,
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
@@ -61,7 +56,7 @@ func NewClient(namespace string, helmRepoData ociRepositoryConfig, debug bool, d
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	actionConfig, err := createActionConfig(namespace, helmRepoData.IsPlainHttp(), debug, debugLog, opt.RestConfig)
+	actionConfig, err := createActionConfig(namespace, helmRepoData.PlainHttp, debug, debugLog, opt.RestConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create action config: %w", err)
 	}
@@ -110,12 +105,9 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSp
 	// This helm-client currently only works with OCI-Helm-Repositories.
 	// Therefore, the chartName has to include the FQDN of the repository (e.g. "oci://my.repo/...")
 	// If in the future non-oci-repositories need to be used, this should be done here...
-	err := c.patchOciEndpoint(chart)
-	if err != nil {
-		return fmt.Errorf("error while patching chart '%s': %w", chart.ChartName, err)
-	}
+	c.patchOciEndpoint(chart)
 
-	_, err = c.helmClient.InstallOrUpgradeChart(ctx, chart, nil)
+	_, err := c.helmClient.InstallOrUpgradeChart(ctx, chart, nil)
 	if err != nil {
 		return fmt.Errorf("error while installOrUpgrade chart %s: %w", chart.ChartName, err)
 	}
@@ -128,10 +120,7 @@ func (c *Client) SatisfiesDependencies(ctx context.Context, chart *helmclient.Ch
 	logger := log.FromContext(ctx)
 	logger.Info("Checking if components dependencies are satisfied", "component", chart.ChartName)
 
-	err := c.patchOciEndpoint(chart)
-	if err != nil {
-		return fmt.Errorf("error while patching chart '%s': %w", chart.ChartName, err)
-	}
+	c.patchOciEndpoint(chart)
 
 	componentChart, err := c.getChart(ctx, chart)
 	if err != nil {
@@ -158,9 +147,9 @@ func (c *Client) getChart(ctx context.Context, chartSpec *helmclient.ChartSpec) 
 	logger.Info("Trying to get chart with options",
 		"chart", chartSpec.ChartName,
 		"version", chartSpec.Version,
-		"plain http", c.helmRepoData.IsPlainHttp())
+		"plain http", c.helmRepoData.PlainHttp)
 
-	pathOptions := createChartPathOptions(c.actionConfig, chartSpec, c.helmRepoData.IsPlainHttp())
+	pathOptions := createChartPathOptions(c.actionConfig, chartSpec, c.helmRepoData.PlainHttp)
 	componentChart, _, err := c.helmClient.GetChart(chartSpec.ChartName, pathOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting chart for %s:%s: %w", chartSpec.ChartName, chartSpec.Version, err)
@@ -191,20 +180,12 @@ func (c *Client) ListDeployedReleases() ([]*release.Release, error) {
 	return c.helmClient.ListDeployedReleases()
 }
 
-func (c *Client) patchOciEndpoint(chart *helmclient.ChartSpec) error {
-	if strings.Index(chart.ChartName, "oci://") == 0 {
-		// oci protocol already present -> nothing to do
-		return nil
+func (c *Client) patchOciEndpoint(chart *helmclient.ChartSpec) {
+	if strings.HasPrefix(chart.ChartName, "oci://") {
+		return
 	}
 
-	endpoint, err := c.helmRepoData.GetOciEndpoint()
-	if err != nil {
-		return fmt.Errorf("error while getting oci endpoint: %w", err)
-	}
-
-	chart.ChartName = fmt.Sprintf("%s/%s", endpoint, chart.ChartName)
-
-	return nil
+	chart.ChartName = fmt.Sprintf("%s/%s", c.helmRepoData.Endpoint, chart.ChartName)
 }
 
 type dependencyUnsatisfiedError struct {

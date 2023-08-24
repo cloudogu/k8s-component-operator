@@ -78,26 +78,6 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("should fail to install or upgrade chart for error in helmRepoData", func(t *testing.T) {
-		chartSpec := &helmclient.ChartSpec{
-			ReleaseName: "testComponent",
-			ChartName:   "testing/testComponent",
-			Namespace:   "testNS",
-			Version:     "0.1.1",
-		}
-		ctx := context.TODO()
-
-		helmRepoData := &config.HelmRepositoryData{Endpoint: ""}
-		mockHelmClient := NewMockHelmClient(t)
-
-		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
-
-		err := client.InstallOrUpgrade(ctx, chartSpec)
-
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "error while patching chart 'testing/testComponent': error while getting oci endpoint: error creating oci-endpoint from '': wrong format")
-	})
-
 	t.Run("should fail to install or upgrade chart for error in helmClient", func(t *testing.T) {
 		chartSpec := &helmclient.ChartSpec{
 			ReleaseName: "testComponent",
@@ -105,15 +85,14 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 			Namespace:   "testNS",
 			Version:     "0.1.1",
 		}
-		ctx := context.TODO()
 
-		helmRepoData := &config.HelmRepositoryData{Endpoint: "https://staging.cloudogu.com"}
+		helmRepoData := &config.HelmRepositoryData{Endpoint: "oci://staging.cloudogu.com"}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(ctx, chartSpec, mock.Anything).Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, assert.AnError)
 
 		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		err := client.InstallOrUpgrade(ctx, chartSpec)
+		err := client.InstallOrUpgrade(testCtx, chartSpec)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
@@ -206,34 +185,12 @@ func Test_dependencyUnsatisfiedError_Error(t *testing.T) {
 }
 
 func TestClient_SatisfiesDependencies(t *testing.T) {
-	t.Run("should fail to get oci endpoint", func(t *testing.T) {
-		// given
-		mockRepoConfig := newMockOciRepositoryConfig(t)
-		mockRepoConfig.EXPECT().GetOciEndpoint().Return("", assert.AnError)
-		chartSpec := &helmclient.ChartSpec{
-			ReleaseName: "testComponent",
-			ChartName:   "testComponent",
-			Namespace:   "testNS",
-			Version:     "0.1.1",
-		}
-		sut := &Client{
-			helmRepoData: mockRepoConfig,
-		}
-
-		// when
-		err := sut.SatisfiesDependencies(testCtx, chartSpec)
-
-		// then
-		require.Error(t, err)
-		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "error while patching chart 'testComponent': error while getting oci endpoint")
-	})
-
 	t.Run("should fail to get chart", func(t *testing.T) {
 		// given
-		mockRepoConfig := newMockOciRepositoryConfig(t)
-		mockRepoConfig.EXPECT().GetOciEndpoint().Return("oci://some.where/testing", nil)
-		mockRepoConfig.EXPECT().IsPlainHttp().Return(true)
+		repoConfigData := &config.HelmRepositoryData{
+			Endpoint:  "oci://some.where/testing",
+			PlainHttp: true,
+		}
 
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(nil, "", assert.AnError)
@@ -247,7 +204,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 
 		sut := &Client{
 			helmClient:   mockHelmClient,
-			helmRepoData: mockRepoConfig,
+			helmRepoData: repoConfigData,
 			actionConfig: new(action.Configuration),
 		}
 
@@ -262,9 +219,10 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 
 	t.Run("should fail to list deployed releases", func(t *testing.T) {
 		// given
-		mockRepoConfig := newMockOciRepositoryConfig(t)
-		mockRepoConfig.EXPECT().GetOciEndpoint().Return("oci://some.where/testing", nil)
-		mockRepoConfig.EXPECT().IsPlainHttp().Return(true)
+		repoConfigData := &config.HelmRepositoryData{
+			Endpoint:  "oci://some.where/testing",
+			PlainHttp: true,
+		}
 
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
 			Dependencies: []*chart.Dependency{{
@@ -285,7 +243,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 
 		sut := &Client{
 			helmClient:   mockHelmClient,
-			helmRepoData: mockRepoConfig,
+			helmRepoData: repoConfigData,
 			actionConfig: new(action.Configuration),
 		}
 
@@ -300,9 +258,10 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 
 	t.Run("should return unsatisfied error", func(t *testing.T) {
 		// given
-		mockRepoConfig := newMockOciRepositoryConfig(t)
-		mockRepoConfig.EXPECT().GetOciEndpoint().Return("oci://some.where/testing", nil)
-		mockRepoConfig.EXPECT().IsPlainHttp().Return(true)
+		repoConfigData := &config.HelmRepositoryData{
+			Endpoint:  "oci://some.where/testing",
+			PlainHttp: true,
+		}
 
 		dependencies := []*chart.Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
@@ -325,7 +284,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 
 		sut := &Client{
 			helmClient:        mockHelmClient,
-			helmRepoData:      mockRepoConfig,
+			helmRepoData:      repoConfigData,
 			actionConfig:      new(action.Configuration),
 			dependencyChecker: mockDepChecker,
 		}
@@ -343,9 +302,10 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 
 	t.Run("should succeed", func(t *testing.T) {
 		// given
-		mockRepoConfig := newMockOciRepositoryConfig(t)
-		mockRepoConfig.EXPECT().GetOciEndpoint().Return("oci://some.where/testing", nil)
-		mockRepoConfig.EXPECT().IsPlainHttp().Return(true)
+		repoConfigData := &config.HelmRepositoryData{
+			Endpoint:  "oci://some.where/testing",
+			PlainHttp: true,
+		}
 
 		dependencies := []*chart.Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
@@ -368,7 +328,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 
 		sut := &Client{
 			helmClient:        mockHelmClient,
-			helmRepoData:      mockRepoConfig,
+			helmRepoData:      repoConfigData,
 			actionConfig:      new(action.Configuration),
 			dependencyChecker: mockDepChecker,
 		}
