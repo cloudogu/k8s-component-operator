@@ -73,6 +73,10 @@ func (hrd *HelmRepositoryData) validate() error {
 		return fmt.Errorf("endpoint URL must not be empty")
 	}
 
+	if strings.Contains(hrd.Endpoint, "://") {
+		return fmt.Errorf("endpoint URL '%s' solely consist of the endpoint without schema or ://", hrd.Endpoint)
+	}
+
 	if hrd.Schema != EndpointSchemaOCI {
 		return fmt.Errorf("endpoint uses an unsupported schema '%s': valid schemas are: oci", hrd.Schema)
 	}
@@ -184,7 +188,7 @@ func NewHelmRepoDataFromFile(filepath string) (*HelmRepositoryData, error) {
 
 	err = repoData.validate()
 	if err != nil {
-		return nil, fmt.Errorf("helm repository data from file '%s' failed validation: %w", fileBytes, err)
+		return nil, fmt.Errorf("helm repository data from file '%s' failed validation: %w", filepath, err)
 	}
 
 	return repoData, nil

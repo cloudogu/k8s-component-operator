@@ -204,6 +204,14 @@ func TestNewHelmRepoDataFromFile(t *testing.T) {
 			},
 			wantErr: assert.NoError,
 		},
+		{
+			name:     "should fail with validation",
+			filepath: "testdata/invalid-endpoint-helm-repository.yaml",
+			want:     nil,
+			wantErr: func(t assert.TestingT, err error, _ ...interface{}) bool {
+				return assert.ErrorContains(t, err, "helm repository data from file 'testdata/invalid-endpoint-helm-repository.yaml' failed validation")
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
