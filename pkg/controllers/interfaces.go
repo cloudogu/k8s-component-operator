@@ -51,8 +51,8 @@ type eventRecorder interface {
 }
 
 type requeueHandler interface {
-	// Handle takes an error and handles the requeue process for the current dogu operation.
-	Handle(ctx context.Context, contextMessage string, componentResource *k8sv1.Component, originalErr error, onRequeue func()) (ctrl.Result, error)
+	// Handle takes an error and handles the requeue process for the current component operation.
+	Handle(ctx context.Context, contextMessage string, componentResource *k8sv1.Component, originalErr error, requeueStatus string) (ctrl.Result, error)
 }
 
 type componentEcosystemInterface interface {
@@ -63,7 +63,7 @@ type componentInterface interface {
 	ecosystem.ComponentInterface
 }
 
-// requeuableError indicates that the current error requires the operator to requeue the dogu.
+// requeuableError indicates that the current error requires the operator to requeue the component.
 type requeuableError interface {
 	error
 	// GetRequeueTime returns the time to wait before the next reconciliation.

@@ -327,7 +327,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 		mockRequeueHandler := newMockRequeueHandler(t)
 		mockRequeueHandler.EXPECT().Handle(testCtx, "Deinstallation failed with component dogu-op", component, assert.AnError, mock.Anything).
-			RunAndReturn(func(_ context.Context, _ string, _ *k8sv1.Component, err error, _ func()) (reconcile.Result, error) {
+			RunAndReturn(func(_ context.Context, _ string, _ *k8sv1.Component, err error, _ string) (reconcile.Result, error) {
 				return reconcile.Result{}, err
 			})
 

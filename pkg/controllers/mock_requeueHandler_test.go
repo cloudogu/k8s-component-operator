@@ -24,23 +24,23 @@ func (_m *mockRequeueHandler) EXPECT() *mockRequeueHandler_Expecter {
 	return &mockRequeueHandler_Expecter{mock: &_m.Mock}
 }
 
-// Handle provides a mock function with given fields: ctx, contextMessage, componentResource, originalErr, onRequeue
-func (_m *mockRequeueHandler) Handle(ctx context.Context, contextMessage string, componentResource *v1.Component, originalErr error, onRequeue func()) (reconcile.Result, error) {
-	ret := _m.Called(ctx, contextMessage, componentResource, originalErr, onRequeue)
+// Handle provides a mock function with given fields: ctx, contextMessage, componentResource, originalErr, requeueStatus
+func (_m *mockRequeueHandler) Handle(ctx context.Context, contextMessage string, componentResource *v1.Component, originalErr error, requeueStatus string) (reconcile.Result, error) {
+	ret := _m.Called(ctx, contextMessage, componentResource, originalErr, requeueStatus)
 
 	var r0 reconcile.Result
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, *v1.Component, error, func()) (reconcile.Result, error)); ok {
-		return rf(ctx, contextMessage, componentResource, originalErr, onRequeue)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *v1.Component, error, string) (reconcile.Result, error)); ok {
+		return rf(ctx, contextMessage, componentResource, originalErr, requeueStatus)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, *v1.Component, error, func()) reconcile.Result); ok {
-		r0 = rf(ctx, contextMessage, componentResource, originalErr, onRequeue)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *v1.Component, error, string) reconcile.Result); ok {
+		r0 = rf(ctx, contextMessage, componentResource, originalErr, requeueStatus)
 	} else {
 		r0 = ret.Get(0).(reconcile.Result)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, *v1.Component, error, func()) error); ok {
-		r1 = rf(ctx, contextMessage, componentResource, originalErr, onRequeue)
+	if rf, ok := ret.Get(1).(func(context.Context, string, *v1.Component, error, string) error); ok {
+		r1 = rf(ctx, contextMessage, componentResource, originalErr, requeueStatus)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -58,14 +58,14 @@ type mockRequeueHandler_Handle_Call struct {
 //   - contextMessage string
 //   - componentResource *v1.Component
 //   - originalErr error
-//   - onRequeue func()
-func (_e *mockRequeueHandler_Expecter) Handle(ctx interface{}, contextMessage interface{}, componentResource interface{}, originalErr interface{}, onRequeue interface{}) *mockRequeueHandler_Handle_Call {
-	return &mockRequeueHandler_Handle_Call{Call: _e.mock.On("Handle", ctx, contextMessage, componentResource, originalErr, onRequeue)}
+//   - requeueStatus string
+func (_e *mockRequeueHandler_Expecter) Handle(ctx interface{}, contextMessage interface{}, componentResource interface{}, originalErr interface{}, requeueStatus interface{}) *mockRequeueHandler_Handle_Call {
+	return &mockRequeueHandler_Handle_Call{Call: _e.mock.On("Handle", ctx, contextMessage, componentResource, originalErr, requeueStatus)}
 }
 
-func (_c *mockRequeueHandler_Handle_Call) Run(run func(ctx context.Context, contextMessage string, componentResource *v1.Component, originalErr error, onRequeue func())) *mockRequeueHandler_Handle_Call {
+func (_c *mockRequeueHandler_Handle_Call) Run(run func(ctx context.Context, contextMessage string, componentResource *v1.Component, originalErr error, requeueStatus string)) *mockRequeueHandler_Handle_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(*v1.Component), args[3].(error), args[4].(func()))
+		run(args[0].(context.Context), args[1].(string), args[2].(*v1.Component), args[3].(error), args[4].(string))
 	})
 	return _c
 }
@@ -75,7 +75,7 @@ func (_c *mockRequeueHandler_Handle_Call) Return(_a0 reconcile.Result, _a1 error
 	return _c
 }
 
-func (_c *mockRequeueHandler_Handle_Call) RunAndReturn(run func(context.Context, string, *v1.Component, error, func()) (reconcile.Result, error)) *mockRequeueHandler_Handle_Call {
+func (_c *mockRequeueHandler_Handle_Call) RunAndReturn(run func(context.Context, string, *v1.Component, error, string) (reconcile.Result, error)) *mockRequeueHandler_Handle_Call {
 	_c.Call.Return(run)
 	return _c
 }

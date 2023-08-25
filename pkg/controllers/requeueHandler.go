@@ -11,16 +11,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/retry"
 )
 
-// componentRequeueHandler is responsible to requeue a dogu resource after it failed.
+// componentRequeueHandler is responsible to requeue a component resource after it failed.
 type componentRequeueHandler struct {
 	clientSet componentEcosystemInterface
 	namespace string
 	recorder  record.EventRecorder
 }
 
-// NewComponentRequeueHandler creates a new dogu requeue handler.
+// NewComponentRequeueHandler creates a new component requeue handler.
 func NewComponentRequeueHandler(clientSet componentEcosystemInterface, recorder record.EventRecorder, namespace string) *componentRequeueHandler {
 	return &componentRequeueHandler{
 		clientSet: clientSet,
@@ -29,22 +30,30 @@ func NewComponentRequeueHandler(clientSet componentEcosystemInterface, recorder 
 	}
 }
 
-// Handle takes an error and handles the requeue process for the current dogu operation.
-func (d *componentRequeueHandler) Handle(ctx context.Context, contextMessage string, component *k8sv1.Component, originalErr error, onRequeue func()) (ctrl.Result, error) {
+// Handle takes an error and handles the requeue process for the current component operation.
+func (d *componentRequeueHandler) Handle(ctx context.Context, contextMessage string, component *k8sv1.Component, originalErr error, requeueStatus string) (ctrl.Result, error) {
 	requeueable, requeueableErr := shouldRequeue(originalErr)
 	if !requeueable {
-		return ctrl.Result{}, nil
-	}
-	if onRequeue != nil {
-		onRequeue()
+		return d.noLongerHandleRequeueing(ctx, component)
 	}
 
 	requeueTime := requeueableErr.GetRequeueTime(component.Status.RequeueTimeNanos)
-	component.Status.RequeueTimeNanos = requeueTime
 
-	_, updateError := d.clientSet.ComponentV1Alpha1().Components(d.namespace).UpdateStatus(ctx, component, metav1.UpdateOptions{})
+	updateError := retry.OnConflict(func() error {
+		compClient := d.clientSet.ComponentV1Alpha1().Components(d.namespace)
+
+		updatedComponent, err := compClient.Get(ctx, component.GetName(), metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		updatedComponent.Status.Status = requeueStatus
+		updatedComponent.Status.RequeueTimeNanos = requeueTime
+		component, err = compClient.UpdateStatus(ctx, updatedComponent, metav1.UpdateOptions{})
+		return err
+	})
 	if updateError != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to update component status: %w", updateError)
+		return ctrl.Result{}, fmt.Errorf("failed to update component status while requeueing: %w", updateError)
 	}
 
 	result := ctrl.Result{Requeue: true, RequeueAfter: requeueTime}
@@ -55,11 +64,39 @@ func (d *componentRequeueHandler) Handle(ctx context.Context, contextMessage str
 	return result, nil
 }
 
+// noLongerHandleRequeueing returns values so the component will no longer be requeued. This will occur either on a
+// successful reconciliation or errors which cannot be handled and thus not be requeued. The component may reset the
+// requeue backoff if necessary in order to avoid a wrong backoff baseline time for future reconciliations.
+func (d *componentRequeueHandler) noLongerHandleRequeueing(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	if component.Status.RequeueTimeNanos == 0 {
+		logger.Info("Skipping backoff time reset")
+		return ctrl.Result{}, nil
+	}
+
+	compClient := d.clientSet.ComponentV1Alpha1().Components(d.namespace)
+
+	err := retry.OnConflict(func() error {
+		updatedComponent, err := compClient.Get(ctx, component.GetName(), metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		logger.Info("Reset backoff time to 0")
+		updatedComponent.Status.RequeueTimeNanos = 0
+		_, err = compClient.UpdateStatus(ctx, updatedComponent, metav1.UpdateOptions{})
+		return err
+	})
+
+	return ctrl.Result{}, err
+}
+
 func shouldRequeue(err error) (bool, requeuableError) {
 	var requeueableError requeuableError
 	return errors.As(err, &requeueableError), requeueableError
 }
 
 func (d *componentRequeueHandler) fireRequeueEvent(component *k8sv1.Component, result ctrl.Result) {
-	d.recorder.Eventf(component, v1.EventTypeNormal, RequeueEventReason, "Trying again in %s.", result.RequeueAfter.String())
+	d.recorder.Eventf(component, v1.EventTypeNormal, RequeueEventReason, "Falling back to component status %s: Trying again in %s.", component.Status.Status, result.RequeueAfter.String())
 }
