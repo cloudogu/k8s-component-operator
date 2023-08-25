@@ -3,15 +3,14 @@ package config
 import (
 	"context"
 	"fmt"
-	"os"
-	"strconv"
-	"strings"
-
 	"github.com/Masterminds/semver/v3"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -39,6 +38,11 @@ var (
 	log             = ctrl.Log.WithName("config")
 )
 
+const (
+	configMapSchema    = "schema"
+	configMapPlainHttp = "plainHttp"
+)
+
 type EndpointSchema string
 
 const EndpointSchemaOCI EndpointSchema = "oci"
@@ -51,34 +55,33 @@ type configMapInterface interface {
 type HelmRepositoryData struct {
 	// Endpoint contains the Helm registry endpoint URL.
 	Endpoint string `json:"endpoint" yaml:"endpoint"`
+	// Schema describes the way how clients communicate with the Helm registry endpoint.
+	Schema EndpointSchema `json:"schema" yaml:"schema"`
 	// PlainHttp indicates that the repository endpoint should be accessed using plain http
 	PlainHttp bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
 }
 
+// URL returns the full URL Helm repository endpoint including schema.
+func (hrd *HelmRepositoryData) URL() string {
+	input := []string{string(hrd.Schema), hrd.Endpoint}
+
+	return strings.Join(input, "://")
+}
+
 func (hrd *HelmRepositoryData) validate() error {
-	parts := strings.Split(hrd.Endpoint, "://")
-
-	if len(parts) != 2 {
-		return fmt.Errorf("endpoint '%s' is not formatted as <schema>://<url>", hrd.Endpoint)
+	if hrd.Endpoint == "" {
+		return fmt.Errorf("endpoint URL must not be empty")
 	}
 
-	schema := parts[0]
-	url := parts[1]
-
-	if url == "" {
-		return fmt.Errorf("endpoint url must not be empty")
+	if strings.Contains(hrd.Endpoint, "://") {
+		return fmt.Errorf("endpoint URL '%s' solely consist of the endpoint without schema or ://", hrd.Endpoint)
 	}
 
-	if EndpointSchema(schema) != EndpointSchemaOCI {
-		return fmt.Errorf("endpoint uses an unsupported schema '%s': valid schemas are: oci", schema)
+	if hrd.Schema != EndpointSchemaOCI {
+		return fmt.Errorf("endpoint uses an unsupported schema '%s': valid schemas are: oci", hrd.Schema)
 	}
 
 	return nil
-}
-
-func (hrd *HelmRepositoryData) EndpointSchema() EndpointSchema {
-	parts := strings.Split(hrd.Endpoint, "://")
-	return EndpointSchema(parts[0])
 }
 
 // OperatorConfig contains all configurable values for the dogu operator.
@@ -143,16 +146,23 @@ func NewHelmRepoDataFromCluster(ctx context.Context, configMapClient configMapIn
 	}
 
 	plainHttp := false
-	const configMapPlainHttp = "plainHttp"
 	if plainHttpStr, exists := configMap.Data[configMapPlainHttp]; exists {
 		plainHttp, err = strconv.ParseBool(plainHttpStr)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse field %s from configMap %s", configMapPlainHttp, helmRepositoryConfigMapName)
 		}
 	}
+	var schema string
+	var schemaExists bool
+	if schema, schemaExists = configMap.Data[configMapSchema]; schemaExists {
+		if !schemaExists {
+			return nil, fmt.Errorf("field %s does not exist in configMap %s", configMapSchema, helmRepositoryConfigMapName)
+		}
+	}
 
 	repoData := &HelmRepositoryData{
 		Endpoint:  configMap.Data["endpoint"],
+		Schema:    EndpointSchema(schema),
 		PlainHttp: plainHttp,
 	}
 
@@ -178,7 +188,7 @@ func NewHelmRepoDataFromFile(filepath string) (*HelmRepositoryData, error) {
 
 	err = repoData.validate()
 	if err != nil {
-		return nil, fmt.Errorf("helm repository data from file '%s' failed validation: %w", fileBytes, err)
+		return nil, fmt.Errorf("helm repository data from file '%s' failed validation: %w", filepath, err)
 	}
 
 	return repoData, nil

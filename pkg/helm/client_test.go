@@ -67,7 +67,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 			Version:     "0.1.1",
 		}
 
-		helmRepoData := &config.HelmRepositoryData{Endpoint: "https://staging.cloudogu.com"}
+		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, nil)
 
@@ -86,7 +86,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 			Version:     "0.1.1",
 		}
 
-		helmRepoData := &config.HelmRepositoryData{Endpoint: "oci://staging.cloudogu.com"}
+		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, assert.AnError)
 
@@ -188,7 +188,8 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 	t.Run("should fail to get chart", func(t *testing.T) {
 		// given
 		repoConfigData := &config.HelmRepositoryData{
-			Endpoint:  "oci://some.where/testing",
+			Endpoint:  "some.where/testing",
+			Schema:    config.EndpointSchemaOCI,
 			PlainHttp: true,
 		}
 
@@ -220,7 +221,8 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 	t.Run("should fail to list deployed releases", func(t *testing.T) {
 		// given
 		repoConfigData := &config.HelmRepositoryData{
-			Endpoint:  "oci://some.where/testing",
+			Endpoint:  "some.where/testing",
+			Schema:    config.EndpointSchemaOCI,
 			PlainHttp: true,
 		}
 
@@ -259,7 +261,8 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 	t.Run("should return unsatisfied error", func(t *testing.T) {
 		// given
 		repoConfigData := &config.HelmRepositoryData{
-			Endpoint:  "oci://some.where/testing",
+			Endpoint:  "some.where/testing",
+			Schema:    config.EndpointSchemaOCI,
 			PlainHttp: true,
 		}
 
@@ -303,7 +306,8 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 	t.Run("should succeed", func(t *testing.T) {
 		// given
 		repoConfigData := &config.HelmRepositoryData{
-			Endpoint:  "oci://some.where/testing",
+			Endpoint:  "some.where/testing",
+			Schema:    config.EndpointSchemaOCI,
 			PlainHttp: true,
 		}
 

@@ -3,19 +3,23 @@ package ecosystem
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"net/http"
-	"net/http/httptest"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"testing"
 )
+
+var testCtx = context.Background()
 
 func Test_componentClient_Get(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
@@ -42,7 +46,7 @@ func Test_componentClient_Get(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.Get(context.TODO(), "testcomponent", metav1.GetOptions{})
+		_, err = cClient.Get(testCtx, "testcomponent", metav1.GetOptions{})
 
 		// then
 		require.NoError(t, err)
@@ -78,7 +82,7 @@ func Test_componentClient_List(t *testing.T) {
 		timeout := int64(5)
 
 		// when
-		_, err = cClient.List(context.TODO(), metav1.ListOptions{TimeoutSeconds: &timeout})
+		_, err = cClient.List(testCtx, metav1.ListOptions{TimeoutSeconds: &timeout})
 
 		// then
 		require.NoError(t, err)
@@ -115,7 +119,7 @@ func Test_componentClient_Create(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.Create(context.TODO(), component, metav1.CreateOptions{})
+		_, err = cClient.Create(testCtx, component, metav1.CreateOptions{})
 
 		// then
 		require.NoError(t, err)
@@ -152,7 +156,7 @@ func Test_componentClient_Update(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.Update(context.TODO(), component, metav1.UpdateOptions{})
+		_, err = cClient.Update(testCtx, component, metav1.UpdateOptions{})
 
 		// then
 		require.NoError(t, err)
@@ -189,7 +193,7 @@ func Test_componentClient_UpdateStatus(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.UpdateStatus(context.TODO(), component, metav1.UpdateOptions{})
+		_, err = cClient.UpdateStatus(testCtx, component, metav1.UpdateOptions{})
 
 		// then
 		require.NoError(t, err)
@@ -215,7 +219,7 @@ func Test_componentClient_Delete(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		err = cClient.Delete(context.TODO(), "testcomponent", metav1.DeleteOptions{})
+		err = cClient.Delete(testCtx, "testcomponent", metav1.DeleteOptions{})
 
 		// then
 		require.NoError(t, err)
@@ -242,7 +246,7 @@ func Test_componentClient_DeleteCollection(t *testing.T) {
 		timeout := int64(5)
 
 		// when
-		err = cClient.DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "test", TimeoutSeconds: &timeout})
+		err = cClient.DeleteCollection(testCtx, metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "test", TimeoutSeconds: &timeout})
 
 		// then
 		require.NoError(t, err)
@@ -277,7 +281,7 @@ func Test_componentClient_Patch(t *testing.T) {
 		patchData := []byte("test")
 
 		// when
-		_, err = cClient.Patch(context.TODO(), "testcomponent", types.JSONPatchType, patchData, metav1.PatchOptions{})
+		_, err = cClient.Patch(testCtx, "testcomponent", types.JSONPatchType, patchData, metav1.PatchOptions{})
 
 		// then
 		require.NoError(t, err)
@@ -309,67 +313,7 @@ func Test_componentClient_Watch(t *testing.T) {
 		timeout := int64(5)
 
 		// when
-		_, err = cClient.Watch(context.TODO(), metav1.ListOptions{LabelSelector: "test", TimeoutSeconds: &timeout})
-
-		// then
-		require.NoError(t, err)
-	})
-}
-
-func Test_componentClient_UpdateStatusInstalling(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		// given
-		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
-		mockClient := mockClientForStatusUpdates(t, "myComponent", "installing")
-		cClient := mockClient.Components("test")
-
-		// when
-		_, err := cClient.UpdateStatusInstalling(context.TODO(), component)
-
-		// then
-		require.NoError(t, err)
-	})
-}
-
-func Test_componentClient_UpdateStatusInstalled(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		// given
-		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
-		mockClient := mockClientForStatusUpdates(t, "myComponent", "installed")
-		cClient := mockClient.Components("test")
-
-		// when
-		_, err := cClient.UpdateStatusInstalled(context.TODO(), component)
-
-		// then
-		require.NoError(t, err)
-	})
-}
-
-func Test_componentClient_UpdateStatusUpgrading(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		// given
-		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
-		mockClient := mockClientForStatusUpdates(t, "myComponent", "upgrading")
-		cClient := mockClient.Components("test")
-
-		// when
-		_, err := cClient.UpdateStatusUpgrading(context.TODO(), component)
-
-		// then
-		require.NoError(t, err)
-	})
-}
-
-func Test_componentClient_UpdateStatusDeleting(t *testing.T) {
-	t.Run("success", func(t *testing.T) {
-		// given
-		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
-		mockClient := mockClientForStatusUpdates(t, "myComponent", "deleting")
-		cClient := mockClient.Components("test")
-
-		// when
-		_, err := cClient.UpdateStatusDeleting(context.TODO(), component)
+		_, err = cClient.Watch(testCtx, metav1.ListOptions{LabelSelector: "test", TimeoutSeconds: &timeout})
 
 		// then
 		require.NoError(t, err)
@@ -408,7 +352,7 @@ func Test_componentClient_AddFinalizer(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.AddFinalizer(context.TODO(), component, "myFinalizer")
+		_, err = cClient.AddFinalizer(testCtx, component, "myFinalizer")
 
 		// then
 		require.NoError(t, err)
@@ -445,7 +389,7 @@ func Test_componentClient_AddFinalizer(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.AddFinalizer(context.TODO(), component, "myFinalizer")
+		_, err = cClient.AddFinalizer(testCtx, component, "myFinalizer")
 
 		// then
 		require.Error(t, err)
@@ -487,7 +431,7 @@ func Test_componentClient_RemoveFinalizer(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.RemoveFinalizer(context.TODO(), component, "finalizer1")
+		_, err = cClient.RemoveFinalizer(testCtx, component, "finalizer1")
 
 		// then
 		require.NoError(t, err)
@@ -526,37 +470,10 @@ func Test_componentClient_RemoveFinalizer(t *testing.T) {
 		cClient := client.Components("test")
 
 		// when
-		_, err = cClient.RemoveFinalizer(context.TODO(), component, "finalizer2")
+		_, err = cClient.RemoveFinalizer(testCtx, component, "finalizer2")
 
 		// then
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "failed to remove finalizer finalizer2 from component")
 	})
-}
-
-func mockClientForStatusUpdates(t *testing.T, expectedComponentName string, expectedStatus string) *V1Alpha1Client {
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		assert.Equal(t, http.MethodPut, request.Method)
-		assert.Equal(t, fmt.Sprintf("/apis/k8s.cloudogu.com/v1/namespaces/test/components/%s/status", expectedComponentName), request.URL.Path)
-
-		bytes, err := io.ReadAll(request.Body)
-		require.NoError(t, err)
-
-		createdComponent := &v1.Component{}
-		require.NoError(t, json.Unmarshal(bytes, createdComponent))
-		assert.Equal(t, expectedComponentName, createdComponent.Name)
-		assert.Equal(t, expectedStatus, createdComponent.Status.Status)
-
-		writer.Header().Add("content-type", "application/json")
-		_, err = writer.Write(bytes)
-		require.NoError(t, err)
-		writer.WriteHeader(200)
-	}))
-
-	config := rest.Config{
-		Host: server.URL,
-	}
-	client, err := NewForConfig(&config)
-	require.NoError(t, err)
-	return client
 }
