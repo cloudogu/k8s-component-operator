@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
 	"time"
 
@@ -113,4 +114,31 @@ func createComponent(name, namespace, version string) *v1.Component {
 			Version:   version,
 		},
 	}
+}
+
+func Test_componentRequeueHandler_noLongerHandleRequeueing(t *testing.T) {
+	t.Run("reset requeue time to avoid further requeueing", func(t *testing.T) {
+		// given
+		finishedComponent := &v1.Component{Status: v1.ComponentStatus{
+			Status:           "installed",
+			RequeueTimeNanos: 3000}}
+
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().Get(testCtx, finishedComponent.Name, mock.Anything).Return(finishedComponent, nil)
+		componentInterfaceMock.EXPECT().UpdateStatus(testCtx, finishedComponent, metav1.UpdateOptions{}).Return(finishedComponent, nil)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+
+		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock}
+
+		// when
+		actual, err := sut.noLongerHandleRequeueing(testCtx, finishedComponent)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, ctrl.Result{}, actual)
+		assert.Equal(t, time.Duration(0), finishedComponent.Status.RequeueTimeNanos)
+	})
 }
