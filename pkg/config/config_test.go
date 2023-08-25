@@ -48,7 +48,8 @@ func TestGetHelmRepositoryData(t *testing.T) {
 		t.Setenv("RUNTIME", "local")
 		devHelmRepoDataPath = "testdata/helm-repository.yaml"
 		expected := &HelmRepositoryData{
-			Endpoint:  "oci://192.168.56.3:30100",
+			Endpoint:  "192.168.56.3:30100",
+			Schema:    EndpointSchemaOCI,
 			PlainHttp: true,
 		}
 
@@ -64,11 +65,12 @@ func TestGetHelmRepositoryData(t *testing.T) {
 		mockConfigMapInterface := newMockConfigMapInterface(t)
 		configMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},
-			Data:       map[string]string{"endpoint": "oci://endpoint", "plainHttp": "false"},
+			Data:       map[string]string{"endpoint": "endpoint", "schema": "oci", "plainHttp": "false"},
 		}
 		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(configMap, nil)
 		expected := &HelmRepositoryData{
-			Endpoint:  "oci://endpoint",
+			Endpoint:  "endpoint",
+			Schema:    EndpointSchemaOCI,
 			PlainHttp: false,
 		}
 
@@ -109,22 +111,9 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "failed to parse field plainHttp from configMap component-operator-helm-repository")
 	})
-	t.Run("should fail because endpoint has invalid format", func(t *testing.T) {
-		// given
-		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "invalid"}}
-		configMapClient := newMockConfigMapInterface(t)
-		configMapClient.EXPECT().Get(testCtx, "component-operator-helm-repository", getOpts).Return(configMap, nil)
-
-		// when
-		_, err := NewHelmRepoDataFromCluster(testCtx, configMapClient)
-
-		// then
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "config map 'component-operator-helm-repository' failed validation: endpoint 'invalid' is not formatted as <schema>://<url>")
-	})
 	t.Run("should fail because endpoint has empty URL", func(t *testing.T) {
 		// given
-		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "oci://"}}
+		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": ""}}
 		configMapClient := newMockConfigMapInterface(t)
 		configMapClient.EXPECT().Get(testCtx, "component-operator-helm-repository", getOpts).Return(configMap, nil)
 
@@ -133,11 +122,24 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 
 		// then
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "config map 'component-operator-helm-repository' failed validation: endpoint url must not be empty")
+		assert.ErrorContains(t, err, "config map 'component-operator-helm-repository' failed validation: endpoint URL must not be empty")
 	})
-	t.Run("should fail because endpoint schema is not oci", func(t *testing.T) {
+	t.Run("should fail because endpoint schema is empty", func(t *testing.T) {
 		// given
-		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "https://myEndpoint"}}
+		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "myEndpoint"}}
+		configMapClient := newMockConfigMapInterface(t)
+		configMapClient.EXPECT().Get(testCtx, "component-operator-helm-repository", getOpts).Return(configMap, nil)
+
+		// when
+		_, err := NewHelmRepoDataFromCluster(testCtx, configMapClient)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "config map 'component-operator-helm-repository' failed validation: endpoint uses an unsupported schema '': valid schemas are: oci")
+	})
+	t.Run("should fail because endpoint schema is unsupported", func(t *testing.T) {
+		// given
+		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "myEndpoint", "schema": "https"}}
 		configMapClient := newMockConfigMapInterface(t)
 		configMapClient.EXPECT().Get(testCtx, "component-operator-helm-repository", getOpts).Return(configMap, nil)
 
@@ -150,7 +152,7 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 	})
 	t.Run("should succeed to parse plainHttp and validate endpoint", func(t *testing.T) {
 		// given
-		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "oci://myEndpoint", "plainHttp": "true"}}
+		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "myEndpoint", "schema": "oci", "plainHttp": "true"}}
 		configMapClient := newMockConfigMapInterface(t)
 		configMapClient.EXPECT().Get(testCtx, "component-operator-helm-repository", getOpts).Return(configMap, nil)
 
@@ -159,17 +161,13 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 
 		// then
 		expected := &HelmRepositoryData{
-			Endpoint:  "oci://myEndpoint",
+			Endpoint:  "myEndpoint",
+			Schema:    EndpointSchemaOCI,
 			PlainHttp: true,
 		}
 		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	})
-}
-
-func TestHelmRepositoryData_EndpointSchema(t *testing.T) {
-	sut := &HelmRepositoryData{Endpoint: "oci://myEndpoint"}
-	assert.Equal(t, EndpointSchema("oci"), sut.EndpointSchema())
 }
 
 func TestNewHelmRepoDataFromFile(t *testing.T) {
@@ -200,7 +198,8 @@ func TestNewHelmRepoDataFromFile(t *testing.T) {
 			name:     "should succeed",
 			filepath: "testdata/helm-repository.yaml",
 			want: &HelmRepositoryData{
-				Endpoint:  "oci://192.168.56.3:30100",
+				Endpoint:  "192.168.56.3:30100",
+				Schema:    EndpointSchemaOCI,
 				PlainHttp: true,
 			},
 			wantErr: assert.NoError,
@@ -215,4 +214,12 @@ func TestNewHelmRepoDataFromFile(t *testing.T) {
 			assert.Equalf(t, tt.want, got, "NewHelmRepoDataFromFile(%v)", tt.filepath)
 		})
 	}
+}
+
+func TestHelmRepositoryData_URL(t *testing.T) {
+	actual := &HelmRepositoryData{
+		Endpoint: "example.com",
+		Schema:   "oci",
+	}
+	assert.Equal(t, "oci://example.com", actual.URL())
 }
