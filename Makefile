@@ -1,6 +1,6 @@
 # Set these to the desired values
 ARTIFACT_ID=k8s-component-operator
-VERSION=0.1.0
+VERSION=0.1.1
 ## Image URL to use all building/pushing image targets
 IMAGE_DEV=${K3CES_REGISTRY_URL_PREFIX}/${ARTIFACT_ID}:${VERSION}
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
@@ -84,7 +84,7 @@ kill-operator-pod:
 ##@ Helm-Repo-Config
 .PHONY: helm-repo-config
 helm-repo-config: ## Creates a configMap and a secret for the helm repo connection from env vars HELM_REPO_USERNAME, HELM_REPO_PASSWORD, HELM_REPO_ENDPOINT.
-	@kubectl create configmap component-operator-helm-repository --from-literal=endpoint=${HELM_REPO_ENDPOINT}
+	@kubectl create configmap component-operator-helm-repository --from-literal=endpoint=${HELM_REPO_ENDPOINT} --from-literal=schema=oci
 	@kubectl create secret generic component-operator-helm-registry --from-literal=config.json='{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "$(shell printf "%s:%s" "${HELM_REPO_USERNAME}" "${HELM_REPO_PASSWORD}" | base64 -w0)"}}}'
 
 ##@ Debug

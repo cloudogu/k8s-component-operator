@@ -25,7 +25,7 @@ The component operator has its own configuration regarding endpoint and credenti
 This configuration can be manually created for the cluster namespace `ecosystem` as follows:
 
 ```bash
-$ kubectl -n ecosystem create configmap component-operator-helm-repository --from-literal=endpoint="${HELM_REPO_ENDPOINT}"
+$ kubectl -n ecosystem create configmap component-operator-helm-repository --from-literal=endpoint="${HELM_REPO_ENDPOINT}" --from-literal=schema=oci
 $ kubectl -n ecosystem create secret generic component-operator-helm-registry \
   --from-literal=config.json='{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "$(shell printf "%s:%s" "${HELM_REPO_USERNAME}" "${HELM_REPO_PASSWORD}" | base64 -w0)"}}}'
 ```

@@ -185,7 +185,7 @@ func (c *Client) patchOciEndpoint(chart *helmclient.ChartSpec) {
 		return
 	}
 
-	chart.ChartName = fmt.Sprintf("%s/%s", c.helmRepoData.Endpoint, chart.ChartName)
+	chart.ChartName = fmt.Sprintf("%s/%s", c.helmRepoData.URL(), chart.ChartName)
 }
 
 type dependencyUnsatisfiedError struct {

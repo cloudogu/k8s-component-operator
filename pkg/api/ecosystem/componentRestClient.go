@@ -3,14 +3,17 @@ package ecosystem
 import (
 	"context"
 	"fmt"
+	"time"
+
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/retry"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 )
 
 type ComponentInterface interface {
@@ -67,26 +70,40 @@ type componentClient struct {
 
 // UpdateStatusInstalling sets the status of the component to "installing".
 func (d *componentClient) UpdateStatusInstalling(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusInstalling}
-	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusInstalling)
 }
 
 // UpdateStatusInstalled sets the status of the component to "installed".
 func (d *componentClient) UpdateStatusInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusInstalled}
-	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusInstalled)
 }
 
 // UpdateStatusUpgrading sets the status of the component to "upgrading".
 func (d *componentClient) UpdateStatusUpgrading(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusUpgrading}
-	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusUpgrading)
 }
 
 // UpdateStatusDeleting sets the status of the component to "deleting".
 func (d *componentClient) UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	component.Status = v1.ComponentStatus{Status: v1.ComponentStatusDeleting}
-	return d.UpdateStatus(ctx, component, metav1.UpdateOptions{})
+	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusDeleting)
+}
+
+func (d *componentClient) updateStatusWithRetry(ctx context.Context, component *v1.Component, targetStatus string) (*v1.Component, error) {
+	var resultComponent *v1.Component
+	err := retry.OnConflict(func() error {
+		updatedComponent, err := d.Get(ctx, component.GetName(), metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		// do not overwrite the whole status, so we do not lose other values from the Status object
+		// esp. a potentially set requeue time
+		updatedComponent.Status.Status = targetStatus
+		resultComponent, err = d.UpdateStatus(ctx, updatedComponent, metav1.UpdateOptions{})
+		return err
+	})
+
+	return resultComponent, err
 }
 
 // AddFinalizer adds the given finalizer to the component.

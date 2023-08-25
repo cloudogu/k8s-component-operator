@@ -127,7 +127,7 @@ func (r *componentReconciler) performDowngradeOperation(component *k8sv1.Compone
 }
 
 // performOperation executes the given operationFn and requeues if necessary.
-// When requeuing, the sourceComponentStatus is set as the components' status.
+// When requeueing, the sourceComponentStatus is set as the components' status.
 func (r *componentReconciler) performOperation(
 	ctx context.Context,
 	component *k8sv1.Component,
@@ -151,10 +151,7 @@ func (r *componentReconciler) performOperation(
 	// on self-upgrade of the component-operator this event might not get send, because the operator is already shutting down
 	r.recorder.Event(component, eventType, eventReason, message)
 
-	result, handleErr := r.requeueHandler.Handle(ctx, contextMessageOnError, component, operationError,
-		func() {
-			component.Status.Status = requeueStatus
-		})
+	result, handleErr := r.requeueHandler.Handle(ctx, contextMessageOnError, component, operationError, requeueStatus)
 	if handleErr != nil {
 		r.recorder.Eventf(component, corev1.EventTypeWarning, RequeueEventReason,
 			"Failed to requeue the %s.", strings.ToLower(eventReason))

@@ -1,1 +1,2 @@
-endpoint: oci://192.168.56.3:30100
+endpoint: 192.168.56.3:30100
+schema: oci
