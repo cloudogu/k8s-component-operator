@@ -35,7 +35,7 @@ RUN make compile-generic
 FROM gcr.io/distroless/static:nonroot
 LABEL maintainer="hello@cloudogu.com" \
       NAME="k8s-component-operator" \
-      VERSION="0.1.0"
+      VERSION="0.1.1"
 
 WORKDIR /
 COPY --from=builder /workspace/target/k8s-component-operator .
