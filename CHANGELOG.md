@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [#21] Fixes dependency-check for components with teh version-format "x.x.x-x"
+  - "x.x.x-x"-versions are not treated as "pre-release"-versions and are ordered accordingly
 
 ## [v0.1.1] - 2023-08-25
 ### Fixed
