@@ -3,6 +3,7 @@ package ecosystem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -320,6 +321,168 @@ func Test_componentClient_Watch(t *testing.T) {
 	})
 }
 
+func Test_componentClient_UpdateStatusInstalling(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "installing", false, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusInstalling(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+
+	t.Run("success with retry", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "installing", true, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusInstalling(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+
+	t.Run("fail on get component", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "installing", false, true)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusInstalling(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		require.ErrorContains(t, err, "an error on the server (\"\") has prevented the request from succeeding (get components.k8s.cloudogu.com myComponent)")
+	})
+}
+
+func Test_componentClient_UpdateStatusInstalled(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "installed", false, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusInstalled(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+	t.Run("success with retry", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "installed", true, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusInstalled(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+	t.Run("fail on get component", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "installed", false, true)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusInstalled(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		require.ErrorContains(t, err, "an error on the server (\"\") has prevented the request from succeeding (get components.k8s.cloudogu.com myComponent)")
+	})
+}
+
+func Test_componentClient_UpdateStatusUpgrading(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "upgrading", false, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusUpgrading(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+	t.Run("success with retry", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "upgrading", true, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusUpgrading(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+	t.Run("fail on get component", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "upgrading", false, true)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusUpgrading(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		require.ErrorContains(t, err, "an error on the server (\"\") has prevented the request from succeeding (get components.k8s.cloudogu.com myComponent)")
+	})
+}
+
+func Test_componentClient_UpdateStatusDeleting(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "deleting", false, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusDeleting(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+	t.Run("success with retry", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "deleting", true, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusDeleting(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+	t.Run("fail on get component", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "deleting", false, true)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusDeleting(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		require.ErrorContains(t, err, "an error on the server (\"\") has prevented the request from succeeding (get components.k8s.cloudogu.com myComponent)")
+	})
+}
+
 func Test_componentClient_AddFinalizer(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
@@ -476,4 +639,86 @@ func Test_componentClient_RemoveFinalizer(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "failed to remove finalizer finalizer2 from component")
 	})
+}
+
+func mockClientForStatusUpdates(t *testing.T, expectedComponent *v1.Component, expectedStatus string, withRetry bool, failOnGetComponent bool) *V1Alpha1Client {
+
+	failGetComponent := func(writer http.ResponseWriter, request *http.Request) {
+		assert.Equal(t, http.MethodGet, request.Method)
+		assert.Equal(t, fmt.Sprintf("/apis/k8s.cloudogu.com/v1/namespaces/test/components/%s", expectedComponent.Name), request.URL.Path)
+
+		writer.WriteHeader(500)
+	}
+
+	assertGetComponentRequest := func(writer http.ResponseWriter, request *http.Request) {
+		assert.Equal(t, http.MethodGet, request.Method)
+		assert.Equal(t, fmt.Sprintf("/apis/k8s.cloudogu.com/v1/namespaces/test/components/%s", expectedComponent.Name), request.URL.Path)
+
+		componentJson, err := json.Marshal(expectedComponent)
+		require.NoError(t, err)
+
+		writer.Header().Add("content-type", "application/json")
+		_, err = writer.Write(componentJson)
+		require.NoError(t, err)
+		writer.WriteHeader(200)
+	}
+
+	assertUpdateStatusRequest := func(writer http.ResponseWriter, request *http.Request) {
+		assert.Equal(t, http.MethodPut, request.Method)
+		assert.Equal(t, fmt.Sprintf("/apis/k8s.cloudogu.com/v1/namespaces/test/components/%s/status", expectedComponent.Name), request.URL.Path)
+
+		bytes, err := io.ReadAll(request.Body)
+		require.NoError(t, err)
+
+		createdComponent := &v1.Component{}
+		require.NoError(t, json.Unmarshal(bytes, createdComponent))
+		assert.Equal(t, expectedComponent.Name, createdComponent.Name)
+		assert.Equal(t, expectedStatus, createdComponent.Status.Status)
+
+		writer.Header().Add("content-type", "application/json")
+		_, err = writer.Write(bytes)
+		require.NoError(t, err)
+		writer.WriteHeader(200)
+	}
+
+	conflictUpdateStatusRequest := func(writer http.ResponseWriter, request *http.Request) {
+		assert.Equal(t, http.MethodPut, request.Method)
+		assert.Equal(t, fmt.Sprintf("/apis/k8s.cloudogu.com/v1/namespaces/test/components/%s/status", expectedComponent.Name), request.URL.Path)
+
+		writer.WriteHeader(409)
+	}
+
+	var requestAssertions []func(writer http.ResponseWriter, request *http.Request)
+
+	if failOnGetComponent {
+		requestAssertions = []func(writer http.ResponseWriter, request *http.Request){
+			failGetComponent,
+		}
+	} else if withRetry {
+		requestAssertions = []func(writer http.ResponseWriter, request *http.Request){
+			assertGetComponentRequest,
+			conflictUpdateStatusRequest,
+			assertGetComponentRequest,
+			assertUpdateStatusRequest,
+		}
+	} else {
+		requestAssertions = []func(writer http.ResponseWriter, request *http.Request){
+			assertGetComponentRequest,
+			assertUpdateStatusRequest,
+		}
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		assertRequestFunc := requestAssertions[0]
+		requestAssertions = requestAssertions[1:]
+
+		assertRequestFunc(writer, request)
+	}))
+
+	config := rest.Config{
+		Host: server.URL,
+	}
+	client, err := NewForConfig(&config)
+	require.NoError(t, err)
+	return client
 }

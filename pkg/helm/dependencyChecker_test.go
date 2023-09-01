@@ -45,6 +45,14 @@ func Test_installedDependencyChecker_CheckSatisfied(t *testing.T) {
 			},
 		},
 		{
+			name: "should succeed for wildcard-version and pre-release",
+			args: args{
+				dependencies:     []*chart.Dependency{createDependency("k8s-etcd", "~3.x.x-0")},
+				deployedReleases: []*release.Release{createRelease("k8s-etcd", "3.0.0-2")},
+			},
+			wantErr: assert.NoError,
+		},
+		{
 			name: "should fail if one dependency is not installed",
 			args: args{
 				dependencies:     []*chart.Dependency{createDependency("k8s-etcd", "~3.0.0"), createDependency("not_installed", ">1.2.3")},
