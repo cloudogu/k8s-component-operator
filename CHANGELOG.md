@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.2] - 2023-09-01
+### Fixed
+- [#21] Fixes dependency-check for components with the version-format "x.x.x-x"
+  - "x.x.x-x"-versions are not treated as "pre-release"-versions and are ordered accordingly
+
 ## [v0.1.1] - 2023-08-25
 ### Fixed
 - [#19] Fixes operator configuration by splitting helm registry endpoint and schema into separate configmap fields
