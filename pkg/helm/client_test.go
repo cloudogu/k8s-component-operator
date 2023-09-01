@@ -500,34 +500,6 @@ func Test_patchChartVersion(t *testing.T) {
 		assert.Equal(t, "1.2.3", chartSpec.Version)
 	})
 
-	t.Run("should succeed to patch version", func(t *testing.T) {
-		// given
-		repoConfigData := &config.HelmRepositoryData{
-			Endpoint:  "some.endpoint",
-			Schema:    config.EndpointSchemaOCI,
-			PlainHttp: false,
-		}
-
-		chartSpec := &helmclient.ChartSpec{
-			ReleaseName: "k8s-etcd",
-			ChartName:   "oci://some.endpoint/testing/myChart",
-		}
-
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(strings.TrimPrefix(chartSpec.ChartName, ociSchemePrefix)).Return([]string{"1.2.3", "1.0.5"}, nil)
-
-		sut := &Client{
-			helmRepoData: repoConfigData,
-			tagResolver:  mockedTagResolver,
-		}
-
-		// when
-		err := sut.patchChartVersion(chartSpec)
-
-		require.NoError(t, err)
-		assert.Equal(t, "1.2.3", chartSpec.Version)
-	})
-
 	t.Run("should fail when tag-list is empty", func(t *testing.T) {
 		// given
 		repoConfigData := &config.HelmRepositoryData{
