@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
 	"time"
 
@@ -521,4 +523,41 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, Ignore, requiredOperation)
 	})
+}
+
+func Test_componentReconciler_validateName(t *testing.T) {
+	tests := []struct {
+		name         string
+		recorderFunc func(t *testing.T) record.EventRecorder
+		component    *k8sv1.Component
+		wantSuccess  bool
+		wantResult   *ctrl.Result
+	}{
+		{
+			name: "should fail validation",
+			recorderFunc: func(t *testing.T) record.EventRecorder {
+				recorder := newMockEventRecorder(t)
+				recorder.EXPECT().Eventf(mock.Anything, "Warning", "NameValidation", "Component resource does not follow naming rules: The component's metadata.name must equal spec.name. metadata.name: %s ; spec.name: %s", "example", "invalid-example")
+				return recorder
+			},
+			component:   &k8sv1.Component{ObjectMeta: v1.ObjectMeta{Name: "example"}, Spec: k8sv1.ComponentSpec{Name: "invalid-example"}},
+			wantSuccess: false,
+			wantResult:  &ctrl.Result{},
+		},
+		{
+			name:         "should succeed validation",
+			recorderFunc: func(t *testing.T) record.EventRecorder { return newMockEventRecorder(t) },
+			component:    &k8sv1.Component{ObjectMeta: v1.ObjectMeta{Name: "example"}, Spec: k8sv1.ComponentSpec{Name: "example"}},
+			wantSuccess:  true,
+			wantResult:   nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &componentReconciler{recorder: tt.recorderFunc(t)}
+			success, result := r.validateName(tt.component)
+			assert.Equal(t, tt.wantSuccess, success)
+			assert.Equal(t, tt.wantResult, result)
+		})
+	}
 }

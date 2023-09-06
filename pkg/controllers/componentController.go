@@ -32,6 +32,8 @@ const (
 	DowngradeEventReason = "Downgrade"
 	// RequeueEventReason The name of the requeue event
 	RequeueEventReason = "Requeue"
+	// NameValidationEventReason The name of the event to validate spec.name and metadata.name of a component.
+	NameValidationEventReason = "NameValidation"
 	// Install represents the install-operation
 	Install = operation("Install")
 	// Upgrade represents the upgrade-operation
@@ -87,6 +89,11 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	logger.Info(fmt.Sprintf("Component %+v has been found", req))
 
+	success, validationResult := r.validateName(component)
+	if !success {
+		return *validationResult, nil
+	}
+
 	operation, err := r.evaluateRequiredOperation(ctx, component)
 	if err != nil {
 		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
@@ -107,6 +114,15 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	default:
 		return ctrl.Result{}, nil
 	}
+}
+
+func (r *componentReconciler) validateName(component *k8sv1.Component) (success bool, result *ctrl.Result) {
+	if component.ObjectMeta.Name != component.Spec.Name {
+		r.recorder.Eventf(component, corev1.EventTypeWarning, NameValidationEventReason, "Component resource does not follow naming rules: The component's metadata.name must equal spec.name. metadata.name: %s ; spec.name: %s", component.ObjectMeta.Name, component.Spec.Name)
+		return false, &ctrl.Result{}
+	}
+
+	return true, nil
 }
 
 func (r *componentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
