@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -106,9 +107,11 @@ func getK8sManagerOptions(operatorConfig *config.OperatorConfig) manager.Options
 			"Enabling this will ensure there is only one active controller manager.")
 
 	options := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Cache:                  cache.Options{Namespaces: []string{operatorConfig.Namespace}},
+		Scheme:  scheme,
+		Metrics: server.Options{BindAddress: metricsAddr},
+		Cache: cache.Options{DefaultNamespaces: map[string]cache.Config{
+			operatorConfig.Namespace: {},
+		}},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
