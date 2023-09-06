@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.20.3 AS builder
+FROM golang:1.21 AS builder
 
 ENV GOPRIVATE=github.com/cloudogu/cesapp/v5
 
