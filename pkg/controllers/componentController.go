@@ -118,7 +118,7 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 func (r *componentReconciler) validateName(component *k8sv1.Component) (success bool) {
 	if component.ObjectMeta.Name != component.Spec.Name {
-		r.recorder.Eventf(component, corev1.EventTypeWarning, FailedNameValidationEventReason, "Component resource does not follow naming rules: The component's metadata.name must equal spec.name. metadata.name: %s ; spec.name: %s", component.ObjectMeta.Name, component.Spec.Name)
+		r.recorder.Eventf(component, corev1.EventTypeWarning, FailedNameValidationEventReason, "Component resource does not follow naming rules: The component's metadata.name '%s' must be the same as its spec.name '%s'.", component.ObjectMeta.Name, component.Spec.Name)
 		return false
 	}
 
