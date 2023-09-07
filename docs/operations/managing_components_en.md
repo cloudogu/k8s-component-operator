@@ -61,6 +61,10 @@ spec:
   version: 0.35.0
 ```
 
+> [!IMPORTANT]
+> `metadata.name` and `spec.name` must be equal.
+> Otherwise the installation will fail.
+
 CRs like this can then be applied to the cluster:
 
 ```bash
