@@ -535,7 +535,7 @@ func Test_componentReconciler_validateName(t *testing.T) {
 			name: "should fail validation",
 			recorderFunc: func(t *testing.T) record.EventRecorder {
 				recorder := newMockEventRecorder(t)
-				recorder.EXPECT().Eventf(mock.Anything, "Warning", "NameValidation", "Component resource does not follow naming rules: The component's metadata.name must equal spec.name. metadata.name: %s ; spec.name: %s", "example", "invalid-example")
+				recorder.EXPECT().Eventf(mock.Anything, "Warning", "FailedNameValidation", "Component resource does not follow naming rules: The component's metadata.name must equal spec.name. metadata.name: %s ; spec.name: %s", "example", "invalid-example")
 				return recorder
 			},
 			component:   &k8sv1.Component{ObjectMeta: v1.ObjectMeta{Name: "example"}, Spec: k8sv1.ComponentSpec{Name: "invalid-example"}},
