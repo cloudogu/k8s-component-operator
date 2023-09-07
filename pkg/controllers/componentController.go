@@ -89,9 +89,9 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 	logger.Info(fmt.Sprintf("Component %+v has been found", req))
 
-	success, validationResult := r.validateName(component)
+	success := r.validateName(component)
 	if !success {
-		return *validationResult, nil
+		return finishOperation()
 	}
 
 	operation, err := r.evaluateRequiredOperation(ctx, component)
@@ -116,13 +116,13 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 }
 
-func (r *componentReconciler) validateName(component *k8sv1.Component) (success bool, result *ctrl.Result) {
+func (r *componentReconciler) validateName(component *k8sv1.Component) (success bool) {
 	if component.ObjectMeta.Name != component.Spec.Name {
 		r.recorder.Eventf(component, corev1.EventTypeWarning, NameValidationEventReason, "Component resource does not follow naming rules: The component's metadata.name must equal spec.name. metadata.name: %s ; spec.name: %s", component.ObjectMeta.Name, component.Spec.Name)
-		return false, &ctrl.Result{}
+		return false
 	}
 
-	return true, nil
+	return true
 }
 
 func (r *componentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
@@ -194,6 +194,15 @@ func requeueWithError(err error) (ctrl.Result, error) {
 // Use finishOperation() if the reconciler should not requeue the operation.
 func requeueOrFinishOperation(result ctrl.Result) (ctrl.Result, error) {
 	return result, nil
+}
+
+// finishOperation is a syntax sugar function to express that the current operation should be finished and not be
+// requeued. This can happen if the operation was successful or even if an unhandleable error occurred which prevents
+// requeueing.
+//
+// Use requeueOrFinishOperation() or requeueWithError() if the reconciler should requeue the operation.
+func finishOperation() (ctrl.Result, error) {
+	return ctrl.Result{}, nil
 }
 
 func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
