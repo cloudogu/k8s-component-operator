@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2.0] - 2023-09-07
+### Added
+- [#23] Validate that `metadata.Name` equals `spec.Name`.
+
 ## [v0.1.2] - 2023-09-01
 ### Fixed
 - [#21] Fixes dependency-check for components with the version-format "x.x.x-x"

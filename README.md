@@ -1,5 +1,5 @@
 # k8s-component-operator
-Cloudogu EcoSystem Dogu operator for Kubernetes
+Cloudogu EcoSystem component operator for Kubernetes
 
 ---
 
