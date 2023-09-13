@@ -312,9 +312,11 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 			PlainHttp: true,
 		}
 
-		dependencies := []*chart.Dependency{createDependency("k8s-etcd", "3.2.1")}
+		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
-			Dependencies: dependencies,
+			Annotations: map[string]string{
+				"k8s.cloudogu.com/ces-dependencies/k8s-etcd": "3.2.1",
+			},
 		}}
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(helmChart, "myPath", nil)
@@ -357,9 +359,11 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 			PlainHttp: true,
 		}
 
-		dependencies := []*chart.Dependency{createDependency("k8s-etcd", "3.2.1")}
+		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
-			Dependencies: dependencies,
+			Annotations: map[string]string{
+				"k8s.cloudogu.com/ces-dependencies/k8s-etcd": "3.2.1",
+			},
 		}}
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(helmChart, "myPath", nil)
@@ -398,9 +402,11 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 			PlainHttp: true,
 		}
 
-		dependencies := []*chart.Dependency{createDependency("k8s-etcd", "3.2.1")}
+		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
-			Dependencies: dependencies,
+			Annotations: map[string]string{
+				"k8s.cloudogu.com/ces-dependencies/k8s-etcd": "3.2.1",
+			},
 		}}
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(helmChart, "myPath", nil)

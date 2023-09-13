@@ -3,6 +3,7 @@ package helm
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
@@ -10,15 +11,34 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
+const cesDependencyAnnotationIdentifier = "k8s.cloudogu.com/ces-dependencies/"
+
+type Dependency struct {
+	Name    string
+	Version string
+}
+
+func getComponentDependencies(chart *chart.Chart) []Dependency {
+	var dependencies []Dependency
+	for key, value := range chart.Metadata.Annotations {
+		after, found := strings.CutPrefix(key, cesDependencyAnnotationIdentifier)
+		if found && after != "" {
+			dependencies = append(dependencies, Dependency{Name: after, Version: value})
+		}
+	}
+
+	return dependencies
+}
+
 type dependencyChecker interface {
 	// CheckSatisfied validates that all dependencies are installed in the required version.
-	CheckSatisfied(dependencies []*chart.Dependency, deployedReleases []*release.Release) error
+	CheckSatisfied(dependencies []Dependency, deployedReleases []*release.Release) error
 }
 
 type installedDependencyChecker struct{}
 
 // CheckSatisfied validates that all dependencies are installed in the required version.
-func (d *installedDependencyChecker) CheckSatisfied(dependencies []*chart.Dependency, deployedReleases []*release.Release) error {
+func (d *installedDependencyChecker) CheckSatisfied(dependencies []Dependency, deployedReleases []*release.Release) error {
 	var errs []error
 	for _, dependency := range dependencies {
 		isInstalled := false
@@ -40,7 +60,7 @@ func (d *installedDependencyChecker) CheckSatisfied(dependencies []*chart.Depend
 	return errors.Join(errs...)
 }
 
-func checkVersion(dependency *chart.Dependency, deployedChart *chart.Chart) error {
+func checkVersion(dependency Dependency, deployedChart *chart.Chart) error {
 	constraint, err := semver.NewConstraint(dependency.Version)
 	if err != nil {
 		return fmt.Errorf("failed to parse constraint for dependency %s with version requirement %s: %w", dependency.Name, dependency.Version, err)
