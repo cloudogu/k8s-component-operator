@@ -69,7 +69,10 @@ func Test_getComponentDependencies(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := getComponentDependencies(tt.chart)
-			assert.Equalf(t, tt.want, got, "getComponentDependencies(%v)", tt.chart)
+			for _, dependency := range tt.want {
+				assert.Contains(t, got, dependency)
+			}
+			assert.Len(t, got, len(tt.want))
 		})
 	}
 }
