@@ -11,7 +11,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
-const cesDependencyAnnotationIdentifier = "k8s.cloudogu.com/ces-dependencies/"
+const cesDependencyAnnotationIdentifier = "k8s.cloudogu.com/ces-dependency/"
 
 type Dependency struct {
 	Name    string

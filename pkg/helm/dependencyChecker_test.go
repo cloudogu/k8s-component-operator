@@ -18,8 +18,8 @@ func Test_getComponentDependencies(t *testing.T) {
 			name: "find all",
 			chart: &chart.Chart{Metadata: &chart.Metadata{
 				Annotations: map[string]string{
-					"k8s.cloudogu.com/ces-dependencies/test": "1.2.3",
-					"k8s.cloudogu.com/ces-dependencies/foo":  "bar",
+					"k8s.cloudogu.com/ces-dependency/test": "1.2.3",
+					"k8s.cloudogu.com/ces-dependency/foo":  "bar",
 				},
 			}},
 			want: []Dependency{
@@ -31,9 +31,9 @@ func Test_getComponentDependencies(t *testing.T) {
 			name: "ignore dependencies without component-name",
 			chart: &chart.Chart{Metadata: &chart.Metadata{
 				Annotations: map[string]string{
-					"k8s.cloudogu.com/ces-dependencies/test": "1.2.3",
-					"k8s.cloudogu.com/ces-dependencies/foo":  "bar",
-					"k8s.cloudogu.com/ces-dependencies/":     "ignored",
+					"k8s.cloudogu.com/ces-dependency/test": "1.2.3",
+					"k8s.cloudogu.com/ces-dependency/foo":  "bar",
+					"k8s.cloudogu.com/ces-dependency/":     "ignored",
 				},
 			}},
 			want: []Dependency{
@@ -45,9 +45,9 @@ func Test_getComponentDependencies(t *testing.T) {
 			name: "ignore dependencies without correct identifier",
 			chart: &chart.Chart{Metadata: &chart.Metadata{
 				Annotations: map[string]string{
-					"k8s.cloudogu.com/ces-dependencies/test": "1.2.3",
-					"something/ces-dependencies/":            "ignored",
-					"k8s.cloudogu.com/ces-dependencies/foo":  "bar",
+					"k8s.cloudogu.com/ces-dependency/test": "1.2.3",
+					"something/ces-dependency/":            "ignored",
+					"k8s.cloudogu.com/ces-dependency/foo":  "bar",
 				},
 			}},
 			want: []Dependency{
@@ -59,8 +59,8 @@ func Test_getComponentDependencies(t *testing.T) {
 			name: "get empty list when no annotation matches",
 			chart: &chart.Chart{Metadata: &chart.Metadata{
 				Annotations: map[string]string{
-					"something/ces-dependencies/": "ignored",
-					"foo":                         "bar",
+					"something/ces-dependency/": "ignored",
+					"foo":                       "bar",
 				},
 			}},
 			want: []Dependency(nil),

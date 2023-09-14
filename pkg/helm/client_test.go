@@ -315,7 +315,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
 			Annotations: map[string]string{
-				"k8s.cloudogu.com/ces-dependencies/k8s-etcd": "3.2.1",
+				"k8s.cloudogu.com/ces-dependency/k8s-etcd": "3.2.1",
 			},
 		}}
 		mockHelmClient := NewMockHelmClient(t)
@@ -362,7 +362,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
 			Annotations: map[string]string{
-				"k8s.cloudogu.com/ces-dependencies/k8s-etcd": "3.2.1",
+				"k8s.cloudogu.com/ces-dependency/k8s-etcd": "3.2.1",
 			},
 		}}
 		mockHelmClient := NewMockHelmClient(t)
@@ -405,7 +405,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}
 		helmChart := &chart.Chart{Metadata: &chart.Metadata{
 			Annotations: map[string]string{
-				"k8s.cloudogu.com/ces-dependencies/k8s-etcd": "3.2.1",
+				"k8s.cloudogu.com/ces-dependency/k8s-etcd": "3.2.1",
 			},
 		}}
 		mockHelmClient := NewMockHelmClient(t)
