@@ -66,7 +66,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	if component.Spec.Version == "" {
 		component, err = cim.UpdateComponentVersion(helmCtx, component)
 		if err != nil {
-			return err
+			return &genericRequeueableError{"failed to update version for component " + component.Spec.Name, err}
 		}
 	}
 
@@ -83,7 +83,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 func (cim *componentInstallManager) UpdateComponentVersion(ctx context.Context, component *k8sv1.Component) (*k8sv1.Component, error) {
 	deployedReleases, err := cim.helmClient.ListDeployedReleases()
 	if err != nil {
-		return nil, fmt.Errorf("could not list deployed Helm releases: %w", err)
+		return component, fmt.Errorf("could not list deployed Helm releases: %w", err)
 	}
 
 	for _, release := range deployedReleases {
@@ -92,7 +92,7 @@ func (cim *componentInstallManager) UpdateComponentVersion(ctx context.Context, 
 
 			_, err = cim.componentClient.Update(ctx, component, metav1.UpdateOptions{})
 			if err != nil {
-				return nil, fmt.Errorf("failed to update version in component with name %s: %w", component.Spec.Name, err)
+				return component, fmt.Errorf("failed to update version in component with name %s: %w", component.Spec.Name, err)
 			}
 			break
 		}

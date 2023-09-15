@@ -21,9 +21,9 @@ type Dependency struct {
 func getComponentDependencies(chart *chart.Chart) []Dependency {
 	var dependencies []Dependency
 	for key, value := range chart.Metadata.Annotations {
-		after, found := strings.CutPrefix(key, cesDependencyAnnotationIdentifier)
-		if found && after != "" {
-			dependencies = append(dependencies, Dependency{Name: after, Version: value})
+		componentName, found := strings.CutPrefix(key, cesDependencyAnnotationIdentifier)
+		if found && componentName != "" {
+			dependencies = append(dependencies, Dependency{Name: componentName, Version: value})
 		}
 	}
 

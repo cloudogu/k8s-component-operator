@@ -46,7 +46,7 @@ func Test_getComponentDependencies(t *testing.T) {
 			chart: &chart.Chart{Metadata: &chart.Metadata{
 				Annotations: map[string]string{
 					"k8s.cloudogu.com/ces-dependency/test": "1.2.3",
-					"something/ces-dependency/":            "ignored",
+					"something/ces-dependency/my-comp":     "ignored",
 					"k8s.cloudogu.com/ces-dependency/foo":  "bar",
 				},
 			}},
@@ -62,6 +62,13 @@ func Test_getComponentDependencies(t *testing.T) {
 					"something/ces-dependency/": "ignored",
 					"foo":                       "bar",
 				},
+			}},
+			want: []Dependency(nil),
+		},
+		{
+			name: "get empty list when no annotations",
+			chart: &chart.Chart{Metadata: &chart.Metadata{
+				Annotations: map[string]string{},
 			}},
 			want: []Dependency(nil),
 		},

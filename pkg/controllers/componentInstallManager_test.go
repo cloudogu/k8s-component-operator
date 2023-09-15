@@ -193,6 +193,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
+		assert.Equal(t, componentWithVersion.Spec.Version, componentWithoutVersion.Spec.Version)
 	})
 
 	t.Run("should fail to update version of component on error while listing releases", func(t *testing.T) {
