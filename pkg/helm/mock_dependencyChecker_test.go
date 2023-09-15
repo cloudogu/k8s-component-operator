@@ -4,8 +4,6 @@ package helm
 
 import (
 	mock "github.com/stretchr/testify/mock"
-	chart "helm.sh/helm/v3/pkg/chart"
-
 	release "helm.sh/helm/v3/pkg/release"
 )
 
@@ -23,11 +21,11 @@ func (_m *mockDependencyChecker) EXPECT() *mockDependencyChecker_Expecter {
 }
 
 // CheckSatisfied provides a mock function with given fields: dependencies, deployedReleases
-func (_m *mockDependencyChecker) CheckSatisfied(dependencies []*chart.Dependency, deployedReleases []*release.Release) error {
+func (_m *mockDependencyChecker) CheckSatisfied(dependencies []Dependency, deployedReleases []*release.Release) error {
 	ret := _m.Called(dependencies, deployedReleases)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func([]*chart.Dependency, []*release.Release) error); ok {
+	if rf, ok := ret.Get(0).(func([]Dependency, []*release.Release) error); ok {
 		r0 = rf(dependencies, deployedReleases)
 	} else {
 		r0 = ret.Error(0)
@@ -42,15 +40,15 @@ type mockDependencyChecker_CheckSatisfied_Call struct {
 }
 
 // CheckSatisfied is a helper method to define mock.On call
-//   - dependencies []*chart.Dependency
+//   - dependencies []Dependency
 //   - deployedReleases []*release.Release
 func (_e *mockDependencyChecker_Expecter) CheckSatisfied(dependencies interface{}, deployedReleases interface{}) *mockDependencyChecker_CheckSatisfied_Call {
 	return &mockDependencyChecker_CheckSatisfied_Call{Call: _e.mock.On("CheckSatisfied", dependencies, deployedReleases)}
 }
 
-func (_c *mockDependencyChecker_CheckSatisfied_Call) Run(run func(dependencies []*chart.Dependency, deployedReleases []*release.Release)) *mockDependencyChecker_CheckSatisfied_Call {
+func (_c *mockDependencyChecker_CheckSatisfied_Call) Run(run func(dependencies []Dependency, deployedReleases []*release.Release)) *mockDependencyChecker_CheckSatisfied_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].([]*chart.Dependency), args[1].([]*release.Release))
+		run(args[0].([]Dependency), args[1].([]*release.Release))
 	})
 	return _c
 }
@@ -60,7 +58,7 @@ func (_c *mockDependencyChecker_CheckSatisfied_Call) Return(_a0 error) *mockDepe
 	return _c
 }
 
-func (_c *mockDependencyChecker_CheckSatisfied_Call) RunAndReturn(run func([]*chart.Dependency, []*release.Release) error) *mockDependencyChecker_CheckSatisfied_Call {
+func (_c *mockDependencyChecker_CheckSatisfied_Call) RunAndReturn(run func([]Dependency, []*release.Release) error) *mockDependencyChecker_CheckSatisfied_Call {
 	_c.Call.Return(run)
 	return _c
 }

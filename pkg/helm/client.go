@@ -152,7 +152,7 @@ func (c *Client) SatisfiesDependencies(ctx context.Context, chart *helmclient.Ch
 		return fmt.Errorf("failed to get chart %s: %w", chart.ChartName, err)
 	}
 
-	dependencies := componentChart.Metadata.Dependencies
+	dependencies := getComponentDependencies(componentChart)
 	deployedReleases, err := c.ListDeployedReleases()
 	if err != nil {
 		return fmt.Errorf("failed to list deployed releases: %w", err)
