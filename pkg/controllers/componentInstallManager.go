@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 
@@ -61,6 +62,14 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 	}
 
+	// set the installed version in the component to use it for version-comparison in future upgrades
+	if component.Spec.Version == "" {
+		component, err = cim.UpdateComponentVersion(helmCtx, component)
+		if err != nil {
+			return &genericRequeueableError{"failed to update version for component " + component.Spec.Name, err}
+		}
+	}
+
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return &genericRequeueableError{"failed to update status-installed for component " + component.Spec.Name, err}
@@ -69,4 +78,24 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))
 
 	return nil
+}
+
+func (cim *componentInstallManager) UpdateComponentVersion(ctx context.Context, component *k8sv1.Component) (*k8sv1.Component, error) {
+	deployedReleases, err := cim.helmClient.ListDeployedReleases()
+	if err != nil {
+		return component, fmt.Errorf("could not list deployed Helm releases: %w", err)
+	}
+
+	for _, release := range deployedReleases {
+		if component.Spec.Name == release.Name {
+			component.Spec.Version = release.Chart.AppVersion()
+
+			_, err = cim.componentClient.Update(ctx, component, metav1.UpdateOptions{})
+			if err != nil {
+				return component, fmt.Errorf("failed to update version in component with name %s: %w", component.Spec.Name, err)
+			}
+			break
+		}
+	}
+	return component, nil
 }
