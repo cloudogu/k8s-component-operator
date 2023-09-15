@@ -15,10 +15,10 @@ require (
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.12.0-dev.1.0.20230817154107-a749b663101d
-	k8s.io/api v0.28.1
-	k8s.io/apimachinery v0.28.1
-	k8s.io/client-go v0.28.1
-	sigs.k8s.io/controller-runtime v0.16.1
+	k8s.io/api v0.28.2
+	k8s.io/apimachinery v0.28.2
+	k8s.io/client-go v0.28.2
+	sigs.k8s.io/controller-runtime v0.16.2
 )
 
 // replace mittwald client with our own until mittwald supports plain HTTP helm registries
