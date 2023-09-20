@@ -1,6 +1,6 @@
 #!groovy
 
-@Library(['github.com/cloudogu/ces-build-lib@1.65.0'])
+@Library(['github.com/cloudogu/ces-build-lib@1.67.0'])
 import com.cloudogu.ces.cesbuildlib.*
 
 // Creating necessary git objects
@@ -110,7 +110,7 @@ node('docker') {
             stageAutomaticRelease()
         } catch (Exception e) {
             k3d.collectAndArchiveLogs()
-            throw e
+            throw e as java.lang.Throwable
         } finally {
             stage('Remove k3d cluster') {
                 k3d.deleteK3d()
