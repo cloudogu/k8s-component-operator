@@ -98,8 +98,6 @@ node('docker') {
             }
 
             stage('Deploy Manager') {
-                k3d.kubectl("create secret generic component-operator-helm-registry --from-file=config.json=k8s/emptyHelmRegistry.json --namespace default")
-                k3d.kubectl("create cm component-operator-helm-repository --from-literal=endpoint=dummy --from-literal=schema=oci --namespace default")
                 k3d.kubectl("apply -f ${sourceDeploymentYaml}")
             }
 
