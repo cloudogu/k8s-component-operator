@@ -1,6 +1,6 @@
 #!groovy
 
-@Library(['github.com/cloudogu/ces-build-lib@1.65.0'])
+@Library(['github.com/cloudogu/ces-build-lib@1.67.0'])
 import com.cloudogu.ces.cesbuildlib.*
 
 // Creating necessary git objects
@@ -98,8 +98,6 @@ node('docker') {
             }
 
             stage('Deploy Manager') {
-                k3d.kubectl("create secret generic component-operator-helm-registry --from-file=config.json=k8s/emptyHelmRegistry.json --namespace default")
-                k3d.kubectl("create cm component-operator-helm-repository --from-literal=endpoint=dummy --from-literal=schema=oci --namespace default")
                 k3d.kubectl("apply -f ${sourceDeploymentYaml}")
             }
 
@@ -110,7 +108,7 @@ node('docker') {
             stageAutomaticRelease()
         } catch (Exception e) {
             k3d.collectAndArchiveLogs()
-            throw e
+            throw e as java.lang.Throwable
         } finally {
             stage('Remove k3d cluster') {
                 k3d.deleteK3d()
