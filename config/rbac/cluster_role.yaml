@@ -20,3 +20,9 @@ rules:
       - clusterrolebindings
     verbs:
       - "*"
+  - apiGroups:
+      - snapshot.storage.k8s.io
+    resources:
+      - volumesnapshotclasses
+    verbs:
+      - "*"
