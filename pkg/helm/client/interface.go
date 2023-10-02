@@ -6,14 +6,11 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/repo"
 )
 
 // Client holds the method signatures for a Helm client.
 // NOTE: This is an interface to allow for mocking in tests.
 type Client interface {
-	AddOrUpdateChartRepo(entry repo.Entry) error
-	UpdateChartRepos() error
 	InstallOrUpgradeChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error)
 	InstallChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error)
 	UpgradeChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error)

@@ -135,56 +135,6 @@ func setEnvSettings(ppOptions **Options, settings *cli.EnvSettings) error {
 	return nil
 }
 
-// AddOrUpdateChartRepo adds or updates the provided helm chart repository.
-func (c *HelmClient) AddOrUpdateChartRepo(entry repo.Entry) error {
-	chartRepo, err := repo.NewChartRepository(&entry, c.Providers)
-	if err != nil {
-		return err
-	}
-
-	chartRepo.CachePath = c.Settings.RepositoryCache
-
-	if c.storage.Has(entry.Name) {
-		c.DebugLog("WARNING: repository name %q already exists", entry.Name)
-		return nil
-	}
-
-	if !registry.IsOCI(entry.URL) {
-		_, err = chartRepo.DownloadIndexFile()
-		if err != nil {
-			return err
-		}
-	}
-
-	c.storage.Update(&entry)
-	err = c.storage.WriteFile(c.Settings.RepositoryConfig, 0o644)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// UpdateChartRepos updates the list of chart repositories stored in the client's cache.
-func (c *HelmClient) UpdateChartRepos() error {
-	for _, entry := range c.storage.Repositories {
-		chartRepo, err := repo.NewChartRepository(entry, c.Providers)
-		if err != nil {
-			return err
-		}
-
-		chartRepo.CachePath = c.Settings.RepositoryCache
-		_, err = chartRepo.DownloadIndexFile()
-		if err != nil {
-			return err
-		}
-
-		c.storage.Update(entry)
-	}
-
-	return c.storage.WriteFile(c.Settings.RepositoryConfig, 0o644)
-}
-
 // InstallOrUpgradeChart installs or upgrades the provided chart and returns the corresponding release.
 // Namespace and other context is provided via the client.Options struct when instantiating a client.
 func (c *HelmClient) InstallOrUpgradeChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error) {
