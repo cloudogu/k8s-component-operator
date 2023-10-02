@@ -6,9 +6,9 @@ import (
 	action "helm.sh/helm/v3/pkg/action"
 	chart "helm.sh/helm/v3/pkg/chart"
 
-	context "context"
+	client "github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 
-	helmclient "github.com/mittwald/go-helm-client"
+	context "context"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -72,32 +72,32 @@ func (_c *MockHelmClient_AddOrUpdateChartRepo_Call) RunAndReturn(run func(repo.E
 	return _c
 }
 
-// GetChart provides a mock function with given fields: chartName, chartPathOptions
-func (_m *MockHelmClient) GetChart(chartName string, chartPathOptions *action.ChartPathOptions) (*chart.Chart, string, error) {
-	ret := _m.Called(chartName, chartPathOptions)
+// GetChart provides a mock function with given fields: spec
+func (_m *MockHelmClient) GetChart(spec *client.ChartSpec) (*chart.Chart, string, error) {
+	ret := _m.Called(spec)
 
 	var r0 *chart.Chart
 	var r1 string
 	var r2 error
-	if rf, ok := ret.Get(0).(func(string, *action.ChartPathOptions) (*chart.Chart, string, error)); ok {
-		return rf(chartName, chartPathOptions)
+	if rf, ok := ret.Get(0).(func(*client.ChartSpec) (*chart.Chart, string, error)); ok {
+		return rf(spec)
 	}
-	if rf, ok := ret.Get(0).(func(string, *action.ChartPathOptions) *chart.Chart); ok {
-		r0 = rf(chartName, chartPathOptions)
+	if rf, ok := ret.Get(0).(func(*client.ChartSpec) *chart.Chart); ok {
+		r0 = rf(spec)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*chart.Chart)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, *action.ChartPathOptions) string); ok {
-		r1 = rf(chartName, chartPathOptions)
+	if rf, ok := ret.Get(1).(func(*client.ChartSpec) string); ok {
+		r1 = rf(spec)
 	} else {
 		r1 = ret.Get(1).(string)
 	}
 
-	if rf, ok := ret.Get(2).(func(string, *action.ChartPathOptions) error); ok {
-		r2 = rf(chartName, chartPathOptions)
+	if rf, ok := ret.Get(2).(func(*client.ChartSpec) error); ok {
+		r2 = rf(spec)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -111,15 +111,14 @@ type MockHelmClient_GetChart_Call struct {
 }
 
 // GetChart is a helper method to define mock.On call
-//   - chartName string
-//   - chartPathOptions *action.ChartPathOptions
-func (_e *MockHelmClient_Expecter) GetChart(chartName interface{}, chartPathOptions interface{}) *MockHelmClient_GetChart_Call {
-	return &MockHelmClient_GetChart_Call{Call: _e.mock.On("GetChart", chartName, chartPathOptions)}
+//   - spec *client.ChartSpec
+func (_e *MockHelmClient_Expecter) GetChart(spec interface{}) *MockHelmClient_GetChart_Call {
+	return &MockHelmClient_GetChart_Call{Call: _e.mock.On("GetChart", spec)}
 }
 
-func (_c *MockHelmClient_GetChart_Call) Run(run func(chartName string, chartPathOptions *action.ChartPathOptions)) *MockHelmClient_GetChart_Call {
+func (_c *MockHelmClient_GetChart_Call) Run(run func(spec *client.ChartSpec)) *MockHelmClient_GetChart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(*action.ChartPathOptions))
+		run(args[0].(*client.ChartSpec))
 	})
 	return _c
 }
@@ -129,7 +128,7 @@ func (_c *MockHelmClient_GetChart_Call) Return(_a0 *chart.Chart, _a1 string, _a2
 	return _c
 }
 
-func (_c *MockHelmClient_GetChart_Call) RunAndReturn(run func(string, *action.ChartPathOptions) (*chart.Chart, string, error)) *MockHelmClient_GetChart_Call {
+func (_c *MockHelmClient_GetChart_Call) RunAndReturn(run func(*client.ChartSpec) (*chart.Chart, string, error)) *MockHelmClient_GetChart_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -244,15 +243,15 @@ func (_c *MockHelmClient_GetReleaseValues_Call) RunAndReturn(run func(string, bo
 }
 
 // InstallChart provides a mock function with given fields: ctx, spec, opts
-func (_m *MockHelmClient) InstallChart(ctx context.Context, spec *helmclient.ChartSpec, opts *helmclient.GenericHelmOptions) (*release.Release, error) {
+func (_m *MockHelmClient) InstallChart(ctx context.Context, spec *client.ChartSpec, opts *client.GenericHelmOptions) (*release.Release, error) {
 	ret := _m.Called(ctx, spec, opts)
 
 	var r0 *release.Release
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) (*release.Release, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) (*release.Release, error)); ok {
 		return rf(ctx, spec, opts)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) *release.Release); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) *release.Release); ok {
 		r0 = rf(ctx, spec, opts)
 	} else {
 		if ret.Get(0) != nil {
@@ -260,7 +259,7 @@ func (_m *MockHelmClient) InstallChart(ctx context.Context, spec *helmclient.Cha
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) error); ok {
 		r1 = rf(ctx, spec, opts)
 	} else {
 		r1 = ret.Error(1)
@@ -276,15 +275,15 @@ type MockHelmClient_InstallChart_Call struct {
 
 // InstallChart is a helper method to define mock.On call
 //   - ctx context.Context
-//   - spec *helmclient.ChartSpec
-//   - opts *helmclient.GenericHelmOptions
+//   - spec *client.ChartSpec
+//   - opts *client.GenericHelmOptions
 func (_e *MockHelmClient_Expecter) InstallChart(ctx interface{}, spec interface{}, opts interface{}) *MockHelmClient_InstallChart_Call {
 	return &MockHelmClient_InstallChart_Call{Call: _e.mock.On("InstallChart", ctx, spec, opts)}
 }
 
-func (_c *MockHelmClient_InstallChart_Call) Run(run func(ctx context.Context, spec *helmclient.ChartSpec, opts *helmclient.GenericHelmOptions)) *MockHelmClient_InstallChart_Call {
+func (_c *MockHelmClient_InstallChart_Call) Run(run func(ctx context.Context, spec *client.ChartSpec, opts *client.GenericHelmOptions)) *MockHelmClient_InstallChart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*helmclient.ChartSpec), args[2].(*helmclient.GenericHelmOptions))
+		run(args[0].(context.Context), args[1].(*client.ChartSpec), args[2].(*client.GenericHelmOptions))
 	})
 	return _c
 }
@@ -294,21 +293,21 @@ func (_c *MockHelmClient_InstallChart_Call) Return(_a0 *release.Release, _a1 err
 	return _c
 }
 
-func (_c *MockHelmClient_InstallChart_Call) RunAndReturn(run func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) (*release.Release, error)) *MockHelmClient_InstallChart_Call {
+func (_c *MockHelmClient_InstallChart_Call) RunAndReturn(run func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) (*release.Release, error)) *MockHelmClient_InstallChart_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // InstallOrUpgradeChart provides a mock function with given fields: ctx, spec, opts
-func (_m *MockHelmClient) InstallOrUpgradeChart(ctx context.Context, spec *helmclient.ChartSpec, opts *helmclient.GenericHelmOptions) (*release.Release, error) {
+func (_m *MockHelmClient) InstallOrUpgradeChart(ctx context.Context, spec *client.ChartSpec, opts *client.GenericHelmOptions) (*release.Release, error) {
 	ret := _m.Called(ctx, spec, opts)
 
 	var r0 *release.Release
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) (*release.Release, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) (*release.Release, error)); ok {
 		return rf(ctx, spec, opts)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) *release.Release); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) *release.Release); ok {
 		r0 = rf(ctx, spec, opts)
 	} else {
 		if ret.Get(0) != nil {
@@ -316,7 +315,7 @@ func (_m *MockHelmClient) InstallOrUpgradeChart(ctx context.Context, spec *helmc
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) error); ok {
 		r1 = rf(ctx, spec, opts)
 	} else {
 		r1 = ret.Error(1)
@@ -332,15 +331,15 @@ type MockHelmClient_InstallOrUpgradeChart_Call struct {
 
 // InstallOrUpgradeChart is a helper method to define mock.On call
 //   - ctx context.Context
-//   - spec *helmclient.ChartSpec
-//   - opts *helmclient.GenericHelmOptions
+//   - spec *client.ChartSpec
+//   - opts *client.GenericHelmOptions
 func (_e *MockHelmClient_Expecter) InstallOrUpgradeChart(ctx interface{}, spec interface{}, opts interface{}) *MockHelmClient_InstallOrUpgradeChart_Call {
 	return &MockHelmClient_InstallOrUpgradeChart_Call{Call: _e.mock.On("InstallOrUpgradeChart", ctx, spec, opts)}
 }
 
-func (_c *MockHelmClient_InstallOrUpgradeChart_Call) Run(run func(ctx context.Context, spec *helmclient.ChartSpec, opts *helmclient.GenericHelmOptions)) *MockHelmClient_InstallOrUpgradeChart_Call {
+func (_c *MockHelmClient_InstallOrUpgradeChart_Call) Run(run func(ctx context.Context, spec *client.ChartSpec, opts *client.GenericHelmOptions)) *MockHelmClient_InstallOrUpgradeChart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*helmclient.ChartSpec), args[2].(*helmclient.GenericHelmOptions))
+		run(args[0].(context.Context), args[1].(*client.ChartSpec), args[2].(*client.GenericHelmOptions))
 	})
 	return _c
 }
@@ -350,49 +349,7 @@ func (_c *MockHelmClient_InstallOrUpgradeChart_Call) Return(_a0 *release.Release
 	return _c
 }
 
-func (_c *MockHelmClient_InstallOrUpgradeChart_Call) RunAndReturn(run func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) (*release.Release, error)) *MockHelmClient_InstallOrUpgradeChart_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// LintChart provides a mock function with given fields: spec
-func (_m *MockHelmClient) LintChart(spec *helmclient.ChartSpec) error {
-	ret := _m.Called(spec)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*helmclient.ChartSpec) error); ok {
-		r0 = rf(spec)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockHelmClient_LintChart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LintChart'
-type MockHelmClient_LintChart_Call struct {
-	*mock.Call
-}
-
-// LintChart is a helper method to define mock.On call
-//   - spec *helmclient.ChartSpec
-func (_e *MockHelmClient_Expecter) LintChart(spec interface{}) *MockHelmClient_LintChart_Call {
-	return &MockHelmClient_LintChart_Call{Call: _e.mock.On("LintChart", spec)}
-}
-
-func (_c *MockHelmClient_LintChart_Call) Run(run func(spec *helmclient.ChartSpec)) *MockHelmClient_LintChart_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*helmclient.ChartSpec))
-	})
-	return _c
-}
-
-func (_c *MockHelmClient_LintChart_Call) Return(_a0 error) *MockHelmClient_LintChart_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockHelmClient_LintChart_Call) RunAndReturn(run func(*helmclient.ChartSpec) error) *MockHelmClient_LintChart_Call {
+func (_c *MockHelmClient_InstallOrUpgradeChart_Call) RunAndReturn(run func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) (*release.Release, error)) *MockHelmClient_InstallOrUpgradeChart_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -446,61 +403,6 @@ func (_c *MockHelmClient_ListDeployedReleases_Call) Return(_a0 []*release.Releas
 }
 
 func (_c *MockHelmClient_ListDeployedReleases_Call) RunAndReturn(run func() ([]*release.Release, error)) *MockHelmClient_ListDeployedReleases_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ListReleaseHistory provides a mock function with given fields: name, max
-func (_m *MockHelmClient) ListReleaseHistory(name string, max int) ([]*release.Release, error) {
-	ret := _m.Called(name, max)
-
-	var r0 []*release.Release
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string, int) ([]*release.Release, error)); ok {
-		return rf(name, max)
-	}
-	if rf, ok := ret.Get(0).(func(string, int) []*release.Release); ok {
-		r0 = rf(name, max)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*release.Release)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(string, int) error); ok {
-		r1 = rf(name, max)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockHelmClient_ListReleaseHistory_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListReleaseHistory'
-type MockHelmClient_ListReleaseHistory_Call struct {
-	*mock.Call
-}
-
-// ListReleaseHistory is a helper method to define mock.On call
-//   - name string
-//   - max int
-func (_e *MockHelmClient_Expecter) ListReleaseHistory(name interface{}, max interface{}) *MockHelmClient_ListReleaseHistory_Call {
-	return &MockHelmClient_ListReleaseHistory_Call{Call: _e.mock.On("ListReleaseHistory", name, max)}
-}
-
-func (_c *MockHelmClient_ListReleaseHistory_Call) Run(run func(name string, max int)) *MockHelmClient_ListReleaseHistory_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(int))
-	})
-	return _c
-}
-
-func (_c *MockHelmClient_ListReleaseHistory_Call) Return(_a0 []*release.Release, _a1 error) *MockHelmClient_ListReleaseHistory_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockHelmClient_ListReleaseHistory_Call) RunAndReturn(run func(string, int) ([]*release.Release, error)) *MockHelmClient_ListReleaseHistory_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -560,11 +462,11 @@ func (_c *MockHelmClient_ListReleasesByStateMask_Call) RunAndReturn(run func(act
 }
 
 // RollbackRelease provides a mock function with given fields: spec
-func (_m *MockHelmClient) RollbackRelease(spec *helmclient.ChartSpec) error {
+func (_m *MockHelmClient) RollbackRelease(spec *client.ChartSpec) error {
 	ret := _m.Called(spec)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*helmclient.ChartSpec) error); ok {
+	if rf, ok := ret.Get(0).(func(*client.ChartSpec) error); ok {
 		r0 = rf(spec)
 	} else {
 		r0 = ret.Error(0)
@@ -579,14 +481,14 @@ type MockHelmClient_RollbackRelease_Call struct {
 }
 
 // RollbackRelease is a helper method to define mock.On call
-//   - spec *helmclient.ChartSpec
+//   - spec *client.ChartSpec
 func (_e *MockHelmClient_Expecter) RollbackRelease(spec interface{}) *MockHelmClient_RollbackRelease_Call {
 	return &MockHelmClient_RollbackRelease_Call{Call: _e.mock.On("RollbackRelease", spec)}
 }
 
-func (_c *MockHelmClient_RollbackRelease_Call) Run(run func(spec *helmclient.ChartSpec)) *MockHelmClient_RollbackRelease_Call {
+func (_c *MockHelmClient_RollbackRelease_Call) Run(run func(spec *client.ChartSpec)) *MockHelmClient_RollbackRelease_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*helmclient.ChartSpec))
+		run(args[0].(*client.ChartSpec))
 	})
 	return _c
 }
@@ -596,63 +498,30 @@ func (_c *MockHelmClient_RollbackRelease_Call) Return(_a0 error) *MockHelmClient
 	return _c
 }
 
-func (_c *MockHelmClient_RollbackRelease_Call) RunAndReturn(run func(*helmclient.ChartSpec) error) *MockHelmClient_RollbackRelease_Call {
+func (_c *MockHelmClient_RollbackRelease_Call) RunAndReturn(run func(*client.ChartSpec) error) *MockHelmClient_RollbackRelease_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// SetDebugLog provides a mock function with given fields: debugLog
-func (_m *MockHelmClient) SetDebugLog(debugLog action.DebugLog) {
-	_m.Called(debugLog)
-}
+// Tags provides a mock function with given fields: ref
+func (_m *MockHelmClient) Tags(ref string) ([]string, error) {
+	ret := _m.Called(ref)
 
-// MockHelmClient_SetDebugLog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetDebugLog'
-type MockHelmClient_SetDebugLog_Call struct {
-	*mock.Call
-}
-
-// SetDebugLog is a helper method to define mock.On call
-//   - debugLog action.DebugLog
-func (_e *MockHelmClient_Expecter) SetDebugLog(debugLog interface{}) *MockHelmClient_SetDebugLog_Call {
-	return &MockHelmClient_SetDebugLog_Call{Call: _e.mock.On("SetDebugLog", debugLog)}
-}
-
-func (_c *MockHelmClient_SetDebugLog_Call) Run(run func(debugLog action.DebugLog)) *MockHelmClient_SetDebugLog_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(action.DebugLog))
-	})
-	return _c
-}
-
-func (_c *MockHelmClient_SetDebugLog_Call) Return() *MockHelmClient_SetDebugLog_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *MockHelmClient_SetDebugLog_Call) RunAndReturn(run func(action.DebugLog)) *MockHelmClient_SetDebugLog_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// TemplateChart provides a mock function with given fields: spec, options
-func (_m *MockHelmClient) TemplateChart(spec *helmclient.ChartSpec, options *helmclient.HelmTemplateOptions) ([]byte, error) {
-	ret := _m.Called(spec, options)
-
-	var r0 []byte
+	var r0 []string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(*helmclient.ChartSpec, *helmclient.HelmTemplateOptions) ([]byte, error)); ok {
-		return rf(spec, options)
+	if rf, ok := ret.Get(0).(func(string) ([]string, error)); ok {
+		return rf(ref)
 	}
-	if rf, ok := ret.Get(0).(func(*helmclient.ChartSpec, *helmclient.HelmTemplateOptions) []byte); ok {
-		r0 = rf(spec, options)
+	if rf, ok := ret.Get(0).(func(string) []string); ok {
+		r0 = rf(ref)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
+			r0 = ret.Get(0).([]string)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(*helmclient.ChartSpec, *helmclient.HelmTemplateOptions) error); ok {
-		r1 = rf(spec, options)
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(ref)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -660,41 +529,40 @@ func (_m *MockHelmClient) TemplateChart(spec *helmclient.ChartSpec, options *hel
 	return r0, r1
 }
 
-// MockHelmClient_TemplateChart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TemplateChart'
-type MockHelmClient_TemplateChart_Call struct {
+// MockHelmClient_Tags_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Tags'
+type MockHelmClient_Tags_Call struct {
 	*mock.Call
 }
 
-// TemplateChart is a helper method to define mock.On call
-//   - spec *helmclient.ChartSpec
-//   - options *helmclient.HelmTemplateOptions
-func (_e *MockHelmClient_Expecter) TemplateChart(spec interface{}, options interface{}) *MockHelmClient_TemplateChart_Call {
-	return &MockHelmClient_TemplateChart_Call{Call: _e.mock.On("TemplateChart", spec, options)}
+// Tags is a helper method to define mock.On call
+//   - ref string
+func (_e *MockHelmClient_Expecter) Tags(ref interface{}) *MockHelmClient_Tags_Call {
+	return &MockHelmClient_Tags_Call{Call: _e.mock.On("Tags", ref)}
 }
 
-func (_c *MockHelmClient_TemplateChart_Call) Run(run func(spec *helmclient.ChartSpec, options *helmclient.HelmTemplateOptions)) *MockHelmClient_TemplateChart_Call {
+func (_c *MockHelmClient_Tags_Call) Run(run func(ref string)) *MockHelmClient_Tags_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*helmclient.ChartSpec), args[1].(*helmclient.HelmTemplateOptions))
+		run(args[0].(string))
 	})
 	return _c
 }
 
-func (_c *MockHelmClient_TemplateChart_Call) Return(_a0 []byte, _a1 error) *MockHelmClient_TemplateChart_Call {
+func (_c *MockHelmClient_Tags_Call) Return(_a0 []string, _a1 error) *MockHelmClient_Tags_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockHelmClient_TemplateChart_Call) RunAndReturn(run func(*helmclient.ChartSpec, *helmclient.HelmTemplateOptions) ([]byte, error)) *MockHelmClient_TemplateChart_Call {
+func (_c *MockHelmClient_Tags_Call) RunAndReturn(run func(string) ([]string, error)) *MockHelmClient_Tags_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UninstallRelease provides a mock function with given fields: spec
-func (_m *MockHelmClient) UninstallRelease(spec *helmclient.ChartSpec) error {
+func (_m *MockHelmClient) UninstallRelease(spec *client.ChartSpec) error {
 	ret := _m.Called(spec)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*helmclient.ChartSpec) error); ok {
+	if rf, ok := ret.Get(0).(func(*client.ChartSpec) error); ok {
 		r0 = rf(spec)
 	} else {
 		r0 = ret.Error(0)
@@ -709,14 +577,14 @@ type MockHelmClient_UninstallRelease_Call struct {
 }
 
 // UninstallRelease is a helper method to define mock.On call
-//   - spec *helmclient.ChartSpec
+//   - spec *client.ChartSpec
 func (_e *MockHelmClient_Expecter) UninstallRelease(spec interface{}) *MockHelmClient_UninstallRelease_Call {
 	return &MockHelmClient_UninstallRelease_Call{Call: _e.mock.On("UninstallRelease", spec)}
 }
 
-func (_c *MockHelmClient_UninstallRelease_Call) Run(run func(spec *helmclient.ChartSpec)) *MockHelmClient_UninstallRelease_Call {
+func (_c *MockHelmClient_UninstallRelease_Call) Run(run func(spec *client.ChartSpec)) *MockHelmClient_UninstallRelease_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*helmclient.ChartSpec))
+		run(args[0].(*client.ChartSpec))
 	})
 	return _c
 }
@@ -726,7 +594,7 @@ func (_c *MockHelmClient_UninstallRelease_Call) Return(_a0 error) *MockHelmClien
 	return _c
 }
 
-func (_c *MockHelmClient_UninstallRelease_Call) RunAndReturn(run func(*helmclient.ChartSpec) error) *MockHelmClient_UninstallRelease_Call {
+func (_c *MockHelmClient_UninstallRelease_Call) RunAndReturn(run func(*client.ChartSpec) error) *MockHelmClient_UninstallRelease_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -815,15 +683,15 @@ func (_c *MockHelmClient_UpdateChartRepos_Call) RunAndReturn(run func() error) *
 }
 
 // UpgradeChart provides a mock function with given fields: ctx, spec, opts
-func (_m *MockHelmClient) UpgradeChart(ctx context.Context, spec *helmclient.ChartSpec, opts *helmclient.GenericHelmOptions) (*release.Release, error) {
+func (_m *MockHelmClient) UpgradeChart(ctx context.Context, spec *client.ChartSpec, opts *client.GenericHelmOptions) (*release.Release, error) {
 	ret := _m.Called(ctx, spec, opts)
 
 	var r0 *release.Release
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) (*release.Release, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) (*release.Release, error)); ok {
 		return rf(ctx, spec, opts)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) *release.Release); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) *release.Release); ok {
 		r0 = rf(ctx, spec, opts)
 	} else {
 		if ret.Get(0) != nil {
@@ -831,7 +699,7 @@ func (_m *MockHelmClient) UpgradeChart(ctx context.Context, spec *helmclient.Cha
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) error); ok {
 		r1 = rf(ctx, spec, opts)
 	} else {
 		r1 = ret.Error(1)
@@ -847,15 +715,15 @@ type MockHelmClient_UpgradeChart_Call struct {
 
 // UpgradeChart is a helper method to define mock.On call
 //   - ctx context.Context
-//   - spec *helmclient.ChartSpec
-//   - opts *helmclient.GenericHelmOptions
+//   - spec *client.ChartSpec
+//   - opts *client.GenericHelmOptions
 func (_e *MockHelmClient_Expecter) UpgradeChart(ctx interface{}, spec interface{}, opts interface{}) *MockHelmClient_UpgradeChart_Call {
 	return &MockHelmClient_UpgradeChart_Call{Call: _e.mock.On("UpgradeChart", ctx, spec, opts)}
 }
 
-func (_c *MockHelmClient_UpgradeChart_Call) Run(run func(ctx context.Context, spec *helmclient.ChartSpec, opts *helmclient.GenericHelmOptions)) *MockHelmClient_UpgradeChart_Call {
+func (_c *MockHelmClient_UpgradeChart_Call) Run(run func(ctx context.Context, spec *client.ChartSpec, opts *client.GenericHelmOptions)) *MockHelmClient_UpgradeChart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*helmclient.ChartSpec), args[2].(*helmclient.GenericHelmOptions))
+		run(args[0].(context.Context), args[1].(*client.ChartSpec), args[2].(*client.GenericHelmOptions))
 	})
 	return _c
 }
@@ -865,7 +733,7 @@ func (_c *MockHelmClient_UpgradeChart_Call) Return(_a0 *release.Release, _a1 err
 	return _c
 }
 
-func (_c *MockHelmClient_UpgradeChart_Call) RunAndReturn(run func(context.Context, *helmclient.ChartSpec, *helmclient.GenericHelmOptions) (*release.Release, error)) *MockHelmClient_UpgradeChart_Call {
+func (_c *MockHelmClient_UpgradeChart_Call) RunAndReturn(run func(context.Context, *client.ChartSpec, *client.GenericHelmOptions) (*release.Release, error)) *MockHelmClient_UpgradeChart_Call {
 	_c.Call.Return(run)
 	return _c
 }

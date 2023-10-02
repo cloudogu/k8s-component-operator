@@ -3,19 +3,19 @@ package helm
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/cesapp-lib/core"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"sort"
 	"strings"
 
-	helmclient "github.com/mittwald/go-helm-client"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/release"
-	"k8s.io/client-go/rest"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/cloudogu/cesapp-lib/core"
+	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 )
 
 const (
@@ -25,28 +25,22 @@ const (
 	ociSchemePrefix        = string(config.EndpointSchemaOCI + "://")
 )
 
-// HelmClient embeds the helmclient.Client interface for usage in this package.
+// HelmClient embeds the client.Client interface for usage in this package.
 type HelmClient interface {
-	helmclient.Client
-}
-
-type tagResolver interface {
-	Tags(ref string) ([]string, error)
+	client.Client
 }
 
 // Client wraps the HelmClient with config.HelmRepositoryData
 type Client struct {
 	helmClient        HelmClient
 	helmRepoData      *config.HelmRepositoryData
-	actionConfig      *action.Configuration
 	dependencyChecker dependencyChecker
-	tagResolver       tagResolver
 }
 
 // NewClient create a new instance of the helm client.
 func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog) (*Client, error) {
-	opt := &helmclient.RestConfClientOptions{
-		Options: &helmclient.Options{
+	opt := &client.RestConfClientOptions{
+		Options: &client.Options{
 			Namespace:        namespace,
 			RepositoryCache:  helmRepositoryCache,
 			RepositoryConfig: helmRepositoryConfig,
@@ -59,66 +53,20 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
 
-	helmClient, err := helmclient.NewClientFromRestConf(opt)
+	helmClient, err := client.NewClientFromRestConf(opt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create helm client: %w", err)
-	}
-
-	helmRegistryClient, err := createRegistryClient(debug, helmRepoData.PlainHttp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create helm registry client: %w", err)
-	}
-
-	actionConfig, err := createActionConfig(namespace, helmRegistryClient, debugLog, opt.RestConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create action config: %w", err)
 	}
 
 	return &Client{
 		helmClient:        helmClient,
 		helmRepoData:      helmRepoData,
-		tagResolver:       helmRegistryClient,
-		actionConfig:      actionConfig,
 		dependencyChecker: &installedDependencyChecker{},
 	}, nil
 }
 
-func createActionConfig(namespace string, helmRegistryClient *registry.Client, debugLog action.DebugLog, restConfig *rest.Config) (*action.Configuration, error) {
-	actionConfig := new(action.Configuration)
-	clientGetter := helmclient.NewRESTClientGetter(namespace, nil, restConfig)
-	err := actionConfig.Init(
-		clientGetter,
-		namespace,
-		"secret",
-		debugLog,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to init actionConfig: %w", err)
-	}
-
-	actionConfig.RegistryClient = helmRegistryClient
-	return actionConfig, nil
-}
-
-func createRegistryClient(debug bool, plainHttp bool) (*registry.Client, error) {
-	clientOpts := []registry.ClientOption{
-		registry.ClientOptDebug(debug),
-		registry.ClientOptCredentialsFile(helmRegistryConfigFile),
-	}
-
-	if plainHttp {
-		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
-	}
-
-	helmRegistryClient, err := registry.NewClient(clientOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create helm registry client: %w", err)
-	}
-	return helmRegistryClient, nil
-}
-
 // InstallOrUpgrade takes a helmChart and applies it.
-func (c *Client) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error {
+func (c *Client) InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) error {
 	// This helm-client currently only works with OCI-Helm-Repositories.
 	// Therefore, the chartName has to include the FQDN of the repository (e.g. "oci://my.repo/...")
 	// If in the future non-oci-repositories need to be used, this should be done here...
@@ -137,7 +85,7 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSp
 }
 
 // SatisfiesDependencies checks if all dependencies are satisfied in terms of installation and version.
-func (c *Client) SatisfiesDependencies(ctx context.Context, chart *helmclient.ChartSpec) error {
+func (c *Client) SatisfiesDependencies(ctx context.Context, chart *client.ChartSpec) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Checking if components dependencies are satisfied", "component", chart.ChartName)
 
@@ -166,7 +114,7 @@ func (c *Client) SatisfiesDependencies(ctx context.Context, chart *helmclient.Ch
 	return nil
 }
 
-func (c *Client) getChart(ctx context.Context, chartSpec *helmclient.ChartSpec) (*chart.Chart, error) {
+func (c *Client) getChart(ctx context.Context, chartSpec *client.ChartSpec) (*chart.Chart, error) {
 	logger := log.FromContext(ctx)
 
 	logger.Info("Trying to get chart with options",
@@ -174,22 +122,12 @@ func (c *Client) getChart(ctx context.Context, chartSpec *helmclient.ChartSpec) 
 		"version", chartSpec.Version,
 		"plain http", c.helmRepoData.PlainHttp)
 
-	pathOptions := createChartPathOptions(c.actionConfig, chartSpec, c.helmRepoData.PlainHttp)
-	componentChart, _, err := c.helmClient.GetChart(chartSpec.ChartName, pathOptions)
+	componentChart, _, err := c.helmClient.GetChart(chartSpec)
 	if err != nil {
 		return nil, fmt.Errorf("error while getting chart for %s:%s: %w", chartSpec.ChartName, chartSpec.Version, err)
 	}
 
 	return componentChart, nil
-}
-
-func createChartPathOptions(config *action.Configuration, chartSpec *helmclient.ChartSpec, plainHttp bool) *action.ChartPathOptions {
-	// We need this installAction because it sets the registryClient in ChartPathOptions which is a private field.
-	install := action.NewInstall(config)
-	install.Version = chartSpec.Version
-	install.PlainHTTP = plainHttp
-
-	return &install.ChartPathOptions
 }
 
 // Uninstall removes the helmRelease for the given name
@@ -205,7 +143,7 @@ func (c *Client) ListDeployedReleases() ([]*release.Release, error) {
 	return c.helmClient.ListDeployedReleases()
 }
 
-func (c *Client) patchOciEndpoint(chart *helmclient.ChartSpec) {
+func (c *Client) patchOciEndpoint(chart *client.ChartSpec) {
 	if strings.HasPrefix(chart.ChartName, ociSchemePrefix) {
 		return
 	}
@@ -213,13 +151,13 @@ func (c *Client) patchOciEndpoint(chart *helmclient.ChartSpec) {
 	chart.ChartName = fmt.Sprintf("%s/%s", c.helmRepoData.URL(), chart.ChartName)
 }
 
-func (c *Client) patchChartVersion(chart *helmclient.ChartSpec) error {
+func (c *Client) patchChartVersion(chart *client.ChartSpec) error {
 	if chart.Version != "" {
 		return nil
 	}
 
 	ref := strings.TrimPrefix(chart.ChartName, ociSchemePrefix)
-	tags, err := c.tagResolver.Tags(ref)
+	tags, err := c.helmClient.Tags(ref)
 	if err != nil {
 		return fmt.Errorf("error resolving tags for chart %s: %w", chart.ChartName, err)
 	}
