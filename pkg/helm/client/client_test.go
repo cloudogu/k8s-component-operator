@@ -262,3 +262,54 @@ func TestHelmClient_GetRelease(t *testing.T) {
 		assert.Equal(t, expectedRelease, *actual)
 	})
 }
+
+func TestHelmClient_GetReleaseValues(t *testing.T) {
+	t.Run("should fail to get release values", func(t *testing.T) {
+		// given
+		getValuesAction := &action.GetValues{}
+		getValuesMock := newMockGetReleaseValuesAction(t)
+		getValuesMock.EXPECT().raw().Return(getValuesAction)
+		getValuesMock.EXPECT().getReleaseValues("test-release").Return(nil, assert.AnError)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newGetReleaseValues().Return(getValuesMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.GetReleaseValues("test-release", true)
+
+		// then
+		require.Error(t, err)
+
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to get values of release 'test-release'")
+
+		assert.Nil(t, actual)
+		assert.True(t, getValuesAction.AllValues)
+	})
+	t.Run("should succeed to get release values", func(t *testing.T) {
+		// given
+		getValuesAction := &action.GetValues{}
+		expectedValues := map[string]interface{}{"myKey": "myValue"}
+		getValuesMock := newMockGetReleaseValuesAction(t)
+		getValuesMock.EXPECT().raw().Return(getValuesAction)
+		getValuesMock.EXPECT().getReleaseValues("test-release").Return(expectedValues, nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newGetReleaseValues().Return(getValuesMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.GetReleaseValues("test-release", false)
+
+		// then
+		require.NoError(t, err)
+
+		assert.Equal(t, expectedValues, actual)
+		assert.False(t, getValuesAction.AllValues)
+	})
+}
