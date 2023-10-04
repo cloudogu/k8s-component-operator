@@ -36,7 +36,6 @@ type Options struct {
 	RepositoryConfig string
 	RepositoryCache  string
 	Debug            bool
-	Linting          bool
 	DebugLog         action.DebugLog
 	RegistryConfig   string
 	Output           io.Writer

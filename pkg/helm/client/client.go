@@ -24,6 +24,10 @@ const (
 	defaultRepositoryConfigPath = "/tmp/.helmrepo"
 )
 
+var defaultDebugLog = func(format string, v ...interface{}) {
+	log.Printf(format, v...)
+}
+
 // NewClientFromRestConf returns a new Helm client constructed with the provided REST config options.
 func NewClientFromRestConf(options *RestConfClientOptions) (Client, error) {
 	settings := cli.New()
@@ -43,9 +47,7 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 
 	debugLog := options.DebugLog
 	if debugLog == nil {
-		debugLog = func(format string, v ...interface{}) {
-			log.Printf(format, v...)
-		}
+		debugLog = defaultDebugLog
 	}
 
 	if options.Output == nil {
@@ -99,7 +101,6 @@ func setEnvSettings(ppOptions **Options, settings *cli.EnvSettings) error {
 		*ppOptions = &Options{
 			RepositoryConfig: defaultRepositoryConfigPath,
 			RepositoryCache:  defaultCachePath,
-			Linting:          true,
 		}
 	}
 
@@ -218,15 +219,13 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec, opts *Generic
 		client.Version = ">0.0.0-0"
 	}
 
-	if opts != nil {
-		if opts.PostRenderer != nil {
-			client.PostRenderer = opts.PostRenderer
-		}
+	if opts != nil && opts.PostRenderer != nil {
+		client.PostRenderer = opts.PostRenderer
 	}
 
 	helmChart, _, err := c.GetChart(spec)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get chart for release '%s': %w", spec.ReleaseName, err)
 	}
 
 	if helmChart.Metadata.Type != "" && helmChart.Metadata.Type != "application" {
@@ -240,12 +239,12 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec, opts *Generic
 	p := getter.All(c.Settings)
 	values, err := spec.GetValuesMap(p)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get values for release '%s': %w", spec.ReleaseName, err)
 	}
 
 	rel, err := installAction.install(ctx, helmChart, values)
 	if err != nil {
-		return rel, err
+		return nil, fmt.Errorf("failed to install release '%s': %w", spec.ReleaseName, err)
 	}
 
 	c.DebugLog("release installed successfully: %s/%s-%s", rel.Name, rel.Chart.Metadata.Name, rel.Chart.Metadata.Version)
@@ -265,21 +264,19 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec, opts *Generic
 		client.Version = ">0.0.0-0"
 	}
 
-	if opts != nil {
-		if opts.PostRenderer != nil {
-			client.PostRenderer = opts.PostRenderer
-		}
+	if opts != nil && opts.PostRenderer != nil {
+		client.PostRenderer = opts.PostRenderer
 	}
 
 	helmChart, _, err := c.GetChart(spec)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get chart for release '%s': %w", spec.ReleaseName, err)
 	}
 
 	p := getter.All(c.Settings)
 	values, err := spec.GetValuesMap(p)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get values for release '%s': %w", spec.ReleaseName, err)
 	}
 
 	upgradedRelease, upgradeErr := upgradeAction.upgrade(ctx, spec.ReleaseName, helmChart, values)
@@ -294,7 +291,7 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec, opts *Generic
 			}
 		}
 		c.DebugLog("release upgrade failed: %s", resultErr)
-		return nil, resultErr
+		return nil, fmt.Errorf("failed to upgrade release '%s': %w", spec.ReleaseName, resultErr)
 	}
 
 	c.DebugLog("release upgraded successfully: %s/%s-%s", upgradedRelease.Name, upgradedRelease.Chart.Metadata.Name, upgradedRelease.Chart.Metadata.Version)
@@ -309,7 +306,7 @@ func (c *HelmClient) uninstallRelease(spec *ChartSpec) error {
 
 	resp, err := uninstallAction.uninstall(spec.ReleaseName)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to uninstall release '%s': %w", spec.ReleaseName, err)
 	}
 
 	c.DebugLog("release uninstalled, response: %v", resp)
@@ -323,7 +320,7 @@ func (c *HelmClient) uninstallReleaseByName(name string) error {
 
 	resp, err := uninstallAction.uninstall(name)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to uninstall release '%s': %w", name, err)
 	}
 
 	c.DebugLog("release uninstalled, response: %v", resp)
@@ -337,12 +334,12 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 
 	chartPath, err := locateAction.locateChart(spec.ChartName, spec.Version, c.Settings)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to locate chart '%s:%s': %w", spec.ChartName, spec.Version, err)
 	}
 
 	helmChart, err := loader.Load(chartPath)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to load chart '%s:%s' from path '%s': %w", spec.ChartName, spec.Version, chartPath, err)
 	}
 
 	if helmChart.Metadata.Deprecated {
@@ -358,7 +355,7 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 func (c *HelmClient) chartExists(spec *ChartSpec) (bool, error) {
 	releases, err := c.listReleases(action.ListAll)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("could not check if chart '%s' is already installed: %w", spec.ReleaseName, err)
 	}
 
 	for _, r := range releases {
@@ -375,7 +372,12 @@ func (c *HelmClient) listReleases(state action.ListStates) ([]*release.Release, 
 	listAction := c.actions.newListReleases()
 	listAction.raw().StateMask = state
 
-	return listAction.listReleases()
+	releases, err := listAction.listReleases()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list releases: %w", err)
+	}
+
+	return releases, nil
 }
 
 // getReleaseValues returns the values for the provided release 'name'.
@@ -384,14 +386,24 @@ func (c *HelmClient) getReleaseValues(name string, allValues bool) (map[string]i
 	getReleaseValuesAction := c.actions.newGetReleaseValues()
 	getReleaseValuesAction.raw().AllValues = allValues
 
-	return getReleaseValuesAction.getReleaseValues(name)
+	values, err := getReleaseValuesAction.getReleaseValues(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get values of release '%s': %w", name, err)
+	}
+
+	return values, nil
 }
 
 // getRelease returns a release matching the provided 'name'.
 func (c *HelmClient) getRelease(name string) (*release.Release, error) {
 	getReleaseAction := c.actions.newGetRelease()
 
-	return getReleaseAction.getRelease(name)
+	rel, err := getReleaseAction.getRelease(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get release '%s': %w", name, err)
+	}
+
+	return rel, nil
 }
 
 // rollbackRelease implicitly rolls back a release to the last revision.
@@ -399,7 +411,12 @@ func (c *HelmClient) rollbackRelease(spec *ChartSpec) error {
 	rollbackAction := c.actions.newRollbackRelease()
 	mergeRollbackOptions(spec, rollbackAction.raw())
 
-	return rollbackAction.rollbackRelease(spec.ReleaseName)
+	err := rollbackAction.rollbackRelease(spec.ReleaseName)
+	if err != nil {
+		return fmt.Errorf("failed to rollback release '%s': %w", spec.ReleaseName, err)
+	}
+
+	return nil
 }
 
 // mergeRollbackOptions merges values of the provided chart to helm rollback options used by the client.

@@ -15,7 +15,6 @@ func ExampleNewClientFromRestConf() {
 			RepositoryCache:  "/tmp/.helmcache",
 			RepositoryConfig: "/tmp/.helmrepo",
 			Debug:            true,
-			Linting:          true, // Change this to false if you don't want linting.
 			DebugLog: func(format string, v ...interface{}) {
 				// Change this to your own logger. Default is 'log.Printf(format, v...)'.
 			},

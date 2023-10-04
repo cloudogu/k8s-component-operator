@@ -47,7 +47,6 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 			RegistryConfig:   helmRegistryConfigFile,
 			Debug:            debug,
 			DebugLog:         debugLog,
-			Linting:          true,
 			PlainHttp:        helmRepoData.PlainHttp,
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
