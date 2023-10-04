@@ -313,3 +313,77 @@ func TestHelmClient_GetReleaseValues(t *testing.T) {
 		assert.False(t, getValuesAction.AllValues)
 	})
 }
+
+func TestHelmClient_ListDeployedReleases(t *testing.T) {
+	t.Run("should fail to list deployed releases", func(t *testing.T) {
+		// given
+		listAction := &action.List{}
+		listMock := newMockListReleasesAction(t)
+		listMock.EXPECT().raw().Return(listAction)
+		listMock.EXPECT().listReleases().Return(nil, assert.AnError)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newListReleases().Return(listMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.ListDeployedReleases()
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to list releases")
+
+		assert.Nil(t, actual)
+		assert.Equal(t, action.ListDeployed, listAction.StateMask)
+	})
+	t.Run("should succeed to list deployed releases", func(t *testing.T) {
+		// given
+		listAction := &action.List{}
+		expectedReleases := []*release.Release{{Name: "test-release"}}
+		listMock := newMockListReleasesAction(t)
+		listMock.EXPECT().raw().Return(listAction)
+		listMock.EXPECT().listReleases().Return(expectedReleases, nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newListReleases().Return(listMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.ListDeployedReleases()
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, expectedReleases, actual)
+		assert.Equal(t, action.ListDeployed, listAction.StateMask)
+	})
+}
+
+func TestHelmClient_ListReleasesByStateMask(t *testing.T) {
+	t.Run("should succeed to list failed releases", func(t *testing.T) {
+		// given
+		listAction := &action.List{}
+		expectedReleases := []*release.Release{{Name: "test-release"}}
+		listMock := newMockListReleasesAction(t)
+		listMock.EXPECT().raw().Return(listAction)
+		listMock.EXPECT().listReleases().Return(expectedReleases, nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newListReleases().Return(listMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.ListReleasesByStateMask(action.ListFailed)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, expectedReleases, actual)
+		assert.Equal(t, action.ListFailed, listAction.StateMask)
+	})
+}
