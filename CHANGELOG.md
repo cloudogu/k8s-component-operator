@@ -6,8 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- [#29] Add permissions to the `longhorn-system` namespace and for `VolumeSnapshotClasses` resources.
-  - With these permissions the component operator can install backup provider components required by the backup-operator.
+- [#29] Add permissions on all namespaces to install components in namespaces like monitoring or longhorn-system. Add a new property deployNamespace. It is used to determine where the helm deployment should go. If it is empty the actual namespace is used.
 
 ## [v0.3.0] - 2023-09-15
 ### Changed
