@@ -3,9 +3,10 @@ package client
 import (
 	"context"
 
-	"helm.sh/helm/v3/pkg/action"
 	"k8s.io/client-go/rest"
 )
+
+var helmClient *HelmClient
 
 func ExampleNewClientFromRestConf() {
 	opt := &RestConfClientOptions{
@@ -110,11 +111,11 @@ type customRollBack struct {
 var _ RollBack = &customRollBack{}
 
 func (c customRollBack) RollbackRelease(spec *ChartSpec) error {
-	client := action.NewRollback(c.ActionConfig)
+	client := c.actions.newRollbackRelease()
 
-	client.Force = true
+	client.raw().Force = true
 
-	return client.Run(spec.ReleaseName)
+	return client.rollbackRelease(spec.ReleaseName)
 }
 
 func ExampleHelmClient_InstallOrUpgradeChart_useCustomRollBackStrategy() {

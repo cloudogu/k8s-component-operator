@@ -5,6 +5,7 @@ import (
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 )
 
@@ -32,4 +33,54 @@ type TagResolver interface {
 
 type RollBack interface {
 	RollbackRelease(spec *ChartSpec) error
+}
+
+type actionProvider interface {
+	newInstall() installAction
+	newUpgrade() upgradeAction
+	newLocateChart() locateChartAction
+	newUninstall() uninstallAction
+	newListReleases() listReleasesAction
+	newGetReleaseValues() getReleaseValuesAction
+	newGetRelease() getReleaseAction
+	newRollbackRelease() rollbackReleaseAction
+}
+
+type installAction interface {
+	install(ctx context.Context, chart *chart.Chart, values map[string]interface{}) (*release.Release, error)
+	raw() *action.Install
+}
+
+type upgradeAction interface {
+	upgrade(ctx context.Context, releaseName string, chart *chart.Chart, values map[string]interface{}) (*release.Release, error)
+	raw() *action.Upgrade
+}
+
+type locateChartAction interface {
+	locateChart(name, version string, settings *cli.EnvSettings) (chartPath string, err error)
+}
+
+type uninstallAction interface {
+	uninstall(releaseName string) (*release.UninstallReleaseResponse, error)
+	raw() *action.Uninstall
+}
+
+type listReleasesAction interface {
+	listReleases() ([]*release.Release, error)
+	raw() *action.List
+}
+
+type getReleaseValuesAction interface {
+	getReleaseValues(releaseName string) (map[string]interface{}, error)
+	raw() *action.GetValues
+}
+
+type getReleaseAction interface {
+	getRelease(releaseName string) (*release.Release, error)
+	raw() *action.Get
+}
+
+type rollbackReleaseAction interface {
+	rollbackRelease(releaseName string) error
+	raw() *action.Rollback
 }

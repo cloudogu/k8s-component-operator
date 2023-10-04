@@ -12,7 +12,6 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/postrender"
-	"helm.sh/helm/v3/pkg/repo"
 )
 
 // Type Guard asserting that HelmClient satisfies the HelmClient interface.
@@ -63,12 +62,9 @@ type HelmClient struct {
 	// Settings defines the environment settings of a client.
 	Settings  *cli.EnvSettings
 	Providers getter.Providers
-	storage   *repo.File
-	// ActionConfig is the helm action configuration.
-	ActionConfig *action.Configuration
-	plainHttp    bool
-	output       io.Writer
-	DebugLog     action.DebugLog
+	actions   actionProvider
+	output    io.Writer
+	DebugLog  action.DebugLog
 }
 
 type GenericHelmOptions struct {
