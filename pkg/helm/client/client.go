@@ -332,6 +332,10 @@ func (c *HelmClient) uninstallReleaseByName(name string) error {
 func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 	locateAction := c.actions.newLocateChart()
 
+	if spec.Version == "" {
+		spec.Version = ">0.0.0-0"
+	}
+
 	chartPath, err := locateAction.locateChart(spec.ChartName, spec.Version, c.Settings)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to locate chart '%s:%s': %w", spec.ChartName, spec.Version, err)
