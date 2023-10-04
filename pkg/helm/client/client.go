@@ -211,7 +211,7 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec, opts *Generic
 	// the ReleaseName if set or the generatedName as the first return value.
 	releaseName, _, err := client.NameAndChart([]string{spec.ChartName})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to determine release name for chart '%s': %w", spec.ChartName, err)
 	}
 	client.ReleaseName = releaseName
 
