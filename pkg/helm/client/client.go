@@ -219,10 +219,6 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec, opts *Generic
 		client.Version = ">0.0.0-0"
 	}
 
-	if opts != nil && opts.PostRenderer != nil {
-		client.PostRenderer = opts.PostRenderer
-	}
-
 	helmChart, _, err := c.GetChart(spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chart for release '%s': %w", spec.ReleaseName, err)
@@ -262,10 +258,6 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec, opts *Generic
 
 	if client.Version == "" {
 		client.Version = ">0.0.0-0"
-	}
-
-	if opts != nil && opts.PostRenderer != nil {
-		client.PostRenderer = opts.PostRenderer
 	}
 
 	helmChart, _, err := c.GetChart(spec)
@@ -338,12 +330,12 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 
 	chartPath, err := locateAction.locateChart(spec.ChartName, spec.Version, c.Settings)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to locate chart '%s:%s': %w", spec.ChartName, spec.Version, err)
+		return nil, "", fmt.Errorf("failed to locate chart '%s' with version '%s': %w", spec.ChartName, spec.Version, err)
 	}
 
 	helmChart, err := loader.Load(chartPath)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to load chart '%s:%s' from path '%s': %w", spec.ChartName, spec.Version, chartPath, err)
+		return nil, "", fmt.Errorf("failed to load chart '%s' with version '%s' from path '%s': %w", spec.ChartName, spec.Version, chartPath, err)
 	}
 
 	if helmChart.Metadata.Deprecated {

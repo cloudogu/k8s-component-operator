@@ -11,7 +11,6 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/postrender"
 )
 
 // Type Guard asserting that HelmClient satisfies the HelmClient interface.
@@ -67,8 +66,7 @@ type HelmClient struct {
 }
 
 type GenericHelmOptions struct {
-	PostRenderer postrender.PostRenderer
-	RollBack     RollBack
+	RollBack RollBack
 	// PlainHttp forces use of plain HTTP for communication with the helm registry.
 	PlainHttp bool
 }
