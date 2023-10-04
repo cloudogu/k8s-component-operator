@@ -1,15 +1,21 @@
 package client
 
 import (
+	"context"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
+
 	"k8s.io/client-go/rest"
-	"testing"
-	"time"
 )
+
+var testCtx = context.TODO()
 
 func TestNewClientFromRestConf(t *testing.T) {
 	// given
@@ -385,5 +391,63 @@ func TestHelmClient_ListReleasesByStateMask(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expectedReleases, actual)
 		assert.Equal(t, action.ListFailed, listAction.StateMask)
+	})
+}
+
+func TestHelmClient_InstallChart(t *testing.T) {
+	t.Run("should fail on empty release name", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{ChartName: "test-chart", ReleaseName: ""}
+		installAction := &action.Install{}
+
+		installMock := newMockInstallAction(t)
+		installMock.EXPECT().raw().Return(installAction)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newInstall().Return(installMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.InstallChart(testCtx, spec, nil)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "failed to determine release name for chart 'test-chart'")
+		assert.Nil(t, actual)
+	})
+	t.Run("should fail to get chart", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+		installAction := &action.Install{}
+
+		installMock := newMockInstallAction(t)
+		installMock.EXPECT().raw().Return(installAction)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", (*cli.EnvSettings)(nil)).Return("", assert.AnError)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newInstall().Return(installMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.InstallChart(testCtx, spec, nil)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to get chart for release 'test-release'")
+		assert.ErrorContains(t, err, "failed to locate chart 'test-chart' with version '>0.0.0-0'")
+		assert.Nil(t, actual)
+	})
+	t.Run("should fail because chart has unsupported type", func(t *testing.T) {
+		t.Fail()
 	})
 }
