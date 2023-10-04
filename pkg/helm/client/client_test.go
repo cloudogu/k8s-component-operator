@@ -220,3 +220,45 @@ func TestHelmClient_RollbackRelease(t *testing.T) {
 		assert.False(t, rollbackAction.CleanupOnFail)
 	})
 }
+
+func TestHelmClient_GetRelease(t *testing.T) {
+	t.Run("should fail to get release", func(t *testing.T) {
+		// given
+		getReleaseMock := newMockGetReleaseAction(t)
+		getReleaseMock.EXPECT().getRelease("test-release").Return(nil, assert.AnError)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newGetRelease().Return(getReleaseMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.GetRelease("test-release")
+
+		// then
+		require.Error(t, err)
+		assert.Nil(t, actual)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to get release 'test-release'")
+	})
+	t.Run("should succeed to get release", func(t *testing.T) {
+		// given
+		expectedRelease := release.Release{Name: "test-release"}
+		getReleaseMock := newMockGetReleaseAction(t)
+		getReleaseMock.EXPECT().getRelease("test-release").Return(&expectedRelease, nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newGetRelease().Return(getReleaseMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.GetRelease("test-release")
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, expectedRelease, *actual)
+	})
+}
