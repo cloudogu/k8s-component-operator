@@ -71,7 +71,7 @@ func TestHelmClient_UninstallReleaseByName(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to uninstall release 'test-release'")
+		assert.ErrorContains(t, err, "failed to uninstall release \"test-release\"")
 	})
 	t.Run("should succeed to uninstall release", func(t *testing.T) {
 		// given
@@ -128,7 +128,7 @@ func TestHelmClient_UninstallRelease(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to uninstall release 'test-release'")
+		assert.ErrorContains(t, err, "failed to uninstall release \"test-release\"")
 		assert.Equal(t, time.Duration(42), uninstallAction.Timeout)
 	})
 	t.Run("should succeed to uninstall release", func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestHelmClient_RollbackRelease(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to rollback release 'test-release'")
+		assert.ErrorContains(t, err, "failed to rollback release \"test-release\"")
 
 		assert.Equal(t, time.Duration(42), rollbackAction.Timeout)
 		assert.True(t, rollbackAction.CleanupOnFail)
@@ -246,7 +246,7 @@ func TestHelmClient_GetRelease(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, actual)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to get release 'test-release'")
+		assert.ErrorContains(t, err, "failed to get release \"test-release\"")
 	})
 	t.Run("should succeed to get release", func(t *testing.T) {
 		// given
@@ -290,7 +290,7 @@ func TestHelmClient_GetReleaseValues(t *testing.T) {
 		require.Error(t, err)
 
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to get values of release 'test-release'")
+		assert.ErrorContains(t, err, "failed to get values of release \"test-release\"")
 
 		assert.Nil(t, actual)
 		assert.True(t, getValuesAction.AllValues)
@@ -414,7 +414,7 @@ func TestHelmClient_InstallChart(t *testing.T) {
 
 		// then
 		require.Error(t, err)
-		assert.ErrorContains(t, err, "failed to determine release name for chart 'test-chart'")
+		assert.ErrorContains(t, err, "failed to determine release name for chart \"test-chart\"")
 		assert.Nil(t, actual)
 	})
 	t.Run("should fail to get chart", func(t *testing.T) {
@@ -443,8 +443,8 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to get chart for release 'test-release'")
-		assert.ErrorContains(t, err, "failed to locate chart 'test-chart' with version '>0.0.0-0'")
+		assert.ErrorContains(t, err, "failed to get chart for release \"test-release\"")
+		assert.ErrorContains(t, err, "failed to locate chart \"test-chart\" with version \">0.0.0-0\"")
 		assert.Nil(t, actual)
 	})
 	t.Run("should fail because chart has unsupported type", func(t *testing.T) {
