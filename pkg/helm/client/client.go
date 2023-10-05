@@ -24,6 +24,8 @@ const (
 	defaultRepositoryConfigPath = "/tmp/.helmrepo"
 )
 
+const anyVersionConstraint = ">0.0.0-0"
+
 var defaultDebugLog = func(format string, v ...interface{}) {
 	log.Printf(format, v...)
 }
@@ -215,7 +217,7 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec, opts *Generic
 	client.ReleaseName = releaseName
 
 	if client.Version == "" {
-		client.Version = ">0.0.0-0"
+		client.Version = anyVersionConstraint
 	}
 
 	helmChart, _, err := c.GetChart(spec)
@@ -256,7 +258,7 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec, opts *Generic
 	client.Install = true
 
 	if client.Version == "" {
-		client.Version = ">0.0.0-0"
+		client.Version = anyVersionConstraint
 	}
 
 	helmChart, _, err := c.GetChart(spec)
@@ -324,7 +326,7 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 	locateAction := c.actions.newLocateChart()
 
 	if spec.Version == "" {
-		spec.Version = ">0.0.0-0"
+		spec.Version = anyVersionConstraint
 	}
 
 	chartPath, err := locateAction.locateChart(spec.ChartName, spec.Version, c.Settings)
