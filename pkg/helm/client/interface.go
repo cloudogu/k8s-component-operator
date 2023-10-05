@@ -12,9 +12,9 @@ import (
 // Client holds the method signatures for a Helm client.
 // NOTE: This is an interface to allow for mocking in tests.
 type Client interface {
-	InstallOrUpgradeChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error)
-	InstallChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error)
-	UpgradeChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error)
+	InstallOrUpgradeChart(ctx context.Context, spec *ChartSpec) (*release.Release, error)
+	InstallChart(ctx context.Context, spec *ChartSpec) (*release.Release, error)
+	UpgradeChart(ctx context.Context, spec *ChartSpec) (*release.Release, error)
 	ListDeployedReleases() ([]*release.Release, error)
 	ListReleasesByStateMask(action.ListStates) ([]*release.Release, error)
 	GetRelease(name string) (*release.Release, error)

@@ -11,7 +11,6 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"helm.sh/helm/v3/pkg/chart"
@@ -52,7 +51,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "https://staging.cloudogu.com"}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, nil)
 
 		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
@@ -71,7 +70,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, nil)
 
 		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
@@ -89,7 +88,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, nil)
 		mockHelmClient.EXPECT().Tags(fmt.Sprintf("%s/%s", helmRepoData.Endpoint, chartSpec.ChartName)).Return([]string{"1.2.3", "1.0.5"}, nil)
 
 		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
@@ -130,7 +129,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, assert.AnError)
 
 		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 

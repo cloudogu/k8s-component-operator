@@ -139,29 +139,29 @@ func setEnvSettings(ppOptions **Options, settings *cli.EnvSettings) error {
 
 // InstallOrUpgradeChart installs or upgrades the provided chart and returns the corresponding release.
 // Namespace and other context is provided via the client.Options struct when instantiating a client.
-func (c *HelmClient) InstallOrUpgradeChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error) {
+func (c *HelmClient) InstallOrUpgradeChart(ctx context.Context, spec *ChartSpec) (*release.Release, error) {
 	exists, err := c.chartExists(spec)
 	if err != nil {
 		return nil, err
 	}
 
 	if exists {
-		return c.upgrade(ctx, spec, opts)
+		return c.upgrade(ctx, spec)
 	}
 
-	return c.install(ctx, spec, opts)
+	return c.install(ctx, spec)
 }
 
 // InstallChart installs the provided chart and returns the corresponding release.
 // Namespace and other context is provided via the client.Options struct when instantiating a client.
-func (c *HelmClient) InstallChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error) {
-	return c.install(ctx, spec, opts)
+func (c *HelmClient) InstallChart(ctx context.Context, spec *ChartSpec) (*release.Release, error) {
+	return c.install(ctx, spec)
 }
 
 // UpgradeChart upgrades the provided chart and returns the corresponding release.
 // Namespace and other context is provided via the client.Options struct when instantiating a client.
-func (c *HelmClient) UpgradeChart(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error) {
-	return c.upgrade(ctx, spec, opts)
+func (c *HelmClient) UpgradeChart(ctx context.Context, spec *ChartSpec) (*release.Release, error) {
+	return c.upgrade(ctx, spec)
 }
 
 // ListDeployedReleases lists all deployed releases.
@@ -203,7 +203,7 @@ func (c *HelmClient) UninstallReleaseByName(name string) error {
 
 // install installs the provided chart.
 // Optionally lints the chart if the linting flag is set.
-func (c *HelmClient) install(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error) {
+func (c *HelmClient) install(ctx context.Context, spec *ChartSpec) (*release.Release, error) {
 	installAction := c.actions.newInstall()
 	client := installAction.raw()
 	mergeInstallOptions(spec, client)
@@ -251,7 +251,7 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec, opts *Generic
 
 // upgrade upgrades a chart and CRDs.
 // Optionally lints the chart if the linting flag is set.
-func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec, opts *GenericHelmOptions) (*release.Release, error) {
+func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec) (*release.Release, error) {
 	upgradeAction := c.actions.newUpgrade()
 	client := upgradeAction.raw()
 	mergeUpgradeOptions(spec, client)
@@ -275,14 +275,14 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec, opts *Generic
 	upgradedRelease, upgradeErr := upgradeAction.upgrade(ctx, spec.ReleaseName, helmChart, values)
 	if upgradeErr != nil {
 		resultErr := upgradeErr
-		if upgradedRelease == nil && opts != nil && opts.RollBack != nil {
-			rollbackErr := opts.RollBack.RollbackRelease(spec)
-			if rollbackErr != nil {
-				resultErr = fmt.Errorf("release failed, rollback failed: release error: %w, rollback error: %v", upgradeErr, rollbackErr)
-			} else {
-				resultErr = fmt.Errorf("release failed, rollback succeeded: release error: %w", upgradeErr)
-			}
+
+		rollbackErr := c.rollbackRelease(spec)
+		if rollbackErr != nil {
+			resultErr = fmt.Errorf("release failed, rollback failed: release error: %w, rollback error: %v", upgradeErr, rollbackErr)
+		} else {
+			resultErr = fmt.Errorf("release failed, rollback succeeded: release error: %w", upgradeErr)
 		}
+
 		c.DebugLog("release upgrade failed: %s", resultErr)
 		return nil, fmt.Errorf("failed to upgrade release %q: %w", spec.ReleaseName, resultErr)
 	}

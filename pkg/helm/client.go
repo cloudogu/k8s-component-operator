@@ -75,7 +75,7 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) 
 		return fmt.Errorf("error patching chart-version for chart %s: %w", chart.ChartName, err)
 	}
 
-	_, err := c.helmClient.InstallOrUpgradeChart(ctx, chart, nil)
+	_, err := c.helmClient.InstallOrUpgradeChart(ctx, chart)
 	if err != nil {
 		return fmt.Errorf("error while installOrUpgrade chart %s: %w", chart.ChartName, err)
 	}

@@ -63,12 +63,6 @@ type HelmClient struct {
 	DebugLog action.DebugLog
 }
 
-type GenericHelmOptions struct {
-	RollBack RollBack
-	// PlainHttp forces use of plain HTTP for communication with the helm registry.
-	PlainHttp bool
-}
-
 type HelmTemplateOptions struct {
 	KubeVersion *chartutil.KubeVersion
 	// APIVersions defined here will be appended to the default list helm provides

@@ -412,7 +412,7 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		}
 
 		// when
-		actual, err := sut.InstallChart(testCtx, spec, nil)
+		actual, err := sut.InstallChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -440,7 +440,7 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		}
 
 		// when
-		actual, err := sut.InstallChart(testCtx, spec, nil)
+		actual, err := sut.InstallChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -470,7 +470,7 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		}
 
 		// when
-		actual, err := sut.InstallChart(testCtx, spec, nil)
+		actual, err := sut.InstallChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -504,7 +504,7 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		}
 
 		// when
-		actual, err := sut.InstallChart(testCtx, spec, nil)
+		actual, err := sut.InstallChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -538,7 +538,7 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		}
 
 		// when
-		actual, err := sut.InstallChart(testCtx, spec, nil)
+		actual, err := sut.InstallChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -584,7 +584,7 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		}
 
 		// when
-		actual, err := sut.InstallChart(testCtx, spec, nil)
+		actual, err := sut.InstallChart(testCtx, spec)
 
 		// then
 		require.NoError(t, err)
