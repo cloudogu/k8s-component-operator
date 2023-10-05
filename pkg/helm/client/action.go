@@ -33,6 +33,7 @@ func (p *provider) newUninstall() uninstallAction {
 
 func (p *provider) newLocateChart() locateChartAction {
 	dummyAction := action.NewInstall(p.Configuration)
+	dummyAction.PlainHTTP = p.plainHttp
 	return &locateChart{dummyAction: dummyAction}
 }
 
