@@ -88,7 +88,6 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 	return &HelmClient{
 		TagResolver: registryClient,
 		Settings:    settings,
-		Providers:   getter.All(settings),
 		actions:     actionProvider,
 		DebugLog:    debugLog,
 		output:      options.Output,

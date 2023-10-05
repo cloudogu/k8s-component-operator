@@ -10,7 +10,6 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/getter"
 )
 
 // Type Guard asserting that HelmClient satisfies the HelmClient interface.
@@ -58,11 +57,10 @@ type RESTClientGetter struct {
 type HelmClient struct {
 	TagResolver
 	// Settings defines the environment settings of a client.
-	Settings  *cli.EnvSettings
-	Providers getter.Providers
-	actions   actionProvider
-	output    io.Writer
-	DebugLog  action.DebugLog
+	Settings *cli.EnvSettings
+	actions  actionProvider
+	output   io.Writer
+	DebugLog action.DebugLog
 }
 
 type GenericHelmOptions struct {
