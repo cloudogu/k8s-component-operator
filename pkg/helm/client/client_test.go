@@ -4,6 +4,9 @@ import (
 	"context"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
+	"log"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +21,19 @@ import (
 )
 
 var testCtx = context.TODO()
+
+func Test_defaultDebugLog(t *testing.T) {
+	// given
+	defer func() { log.Default().SetOutput(os.Stderr) }()
+	buf := new(strings.Builder)
+	log.Default().SetOutput(buf)
+
+	// when
+	defaultDebugLog("test %s %d %v", "1", 2, 3)
+
+	// then
+	assert.Contains(t, buf.String(), "test 1 2 3")
+}
 
 func TestNewClientFromRestConf(t *testing.T) {
 	// given
