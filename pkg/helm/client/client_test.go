@@ -925,3 +925,85 @@ func TestHelmClient_InstallOrUpgradeChart(t *testing.T) {
 		assert.Same(t, expectedRelease, actual)
 	})
 }
+
+func TestHelmClient_GetChart(t *testing.T) {
+	t.Run("should fail to locate chart", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", (*cli.EnvSettings)(nil)).Return("", assert.AnError)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actualChart, chartPath, err := sut.GetChart(spec)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to locate chart \"test-chart\" with version \">0.0.0-0\"")
+		assert.Nil(t, actualChart)
+		assert.Empty(t, chartPath)
+	})
+	t.Run("should fail to load chart", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", (*cli.EnvSettings)(nil)).Return("invalid-path", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actualChart, chartPath, err := sut.GetChart(spec)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "failed to load chart \"test-chart\" with version \">0.0.0-0\" from path \"invalid-path\"")
+		assert.Nil(t, actualChart)
+		assert.Empty(t, chartPath)
+	})
+	t.Run("should succeed to get chart with deprecation warning", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", (*cli.EnvSettings)(nil)).Return("testdata/deprecated-chart", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+			DebugLog: func(format string, v ...interface{}) {
+				t.Helper()
+				assert.Equal(t, "WARNING: This chart (%q) is deprecated", format)
+			},
+		}
+
+		// when
+		actualChart, chartPath, err := sut.GetChart(spec)
+
+		// then
+		require.NoError(t, err)
+		assert.NotEmpty(t, actualChart)
+		assert.Equal(t, "testdata/deprecated-chart", chartPath)
+	})
+}
