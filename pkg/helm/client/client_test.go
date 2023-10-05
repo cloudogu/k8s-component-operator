@@ -794,3 +794,134 @@ func TestHelmClient_UpgradeChart(t *testing.T) {
 		assert.Same(t, expectedRelease, actual)
 	})
 }
+
+func TestHelmClient_InstallOrUpgradeChart(t *testing.T) {
+	t.Run("should fail to check if chart exists", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+
+		listMock := newMockListReleasesAction(t)
+		listMock.EXPECT().raw().Return(&action.List{})
+		listMock.EXPECT().listReleases().Return(nil, assert.AnError)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newListReleases().Return(listMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.InstallOrUpgradeChart(testCtx, spec)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to list releases")
+		assert.ErrorContains(t, err, "could not check if release \"test-release\" is already installed")
+		assert.Nil(t, actual)
+	})
+	t.Run("should find release to upgrade", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+			Namespace:   "test-namespace",
+		}
+		upgradeAction := &action.Upgrade{}
+		envSettings := &cli.EnvSettings{
+			RepositoryConfig: defaultRepositoryConfigPath,
+			RepositoryCache:  defaultCachePath,
+		}
+		releaseToUpgrade := &release.Release{
+			Name:      "test-release",
+			Namespace: "test-namespace",
+		}
+		expectedRelease := &release.Release{
+			Name: "test-release",
+			Chart: &chart.Chart{Metadata: &chart.Metadata{
+				Name:    "test-chart",
+				Version: "1.1.0",
+			}},
+		}
+
+		upgradeMock := newMockUpgradeAction(t)
+		upgradeMock.EXPECT().raw().Return(upgradeAction)
+		upgradeMock.EXPECT().upgrade(testCtx, "test-release", mock.Anything, mock.Anything).Return(expectedRelease, nil)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", envSettings).Return("testdata/test-chart", nil)
+		listMock := newMockListReleasesAction(t)
+		listMock.EXPECT().raw().Return(&action.List{})
+		listMock.EXPECT().listReleases().Return([]*release.Release{releaseToUpgrade}, nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newListReleases().Return(listMock)
+		providerMock.EXPECT().newUpgrade().Return(upgradeMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			Settings: envSettings,
+			actions:  providerMock,
+			DebugLog: func(format string, v ...interface{}) {
+				t.Helper()
+				assert.Equal(t, "release upgraded successfully: %s/%s-%s", format)
+			},
+		}
+
+		// when
+		actual, err := sut.InstallOrUpgradeChart(testCtx, spec)
+
+		// then
+		require.NoError(t, err)
+		assert.Same(t, expectedRelease, actual)
+	})
+	t.Run("should install if no release found", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+		installAction := &action.Install{}
+		envSettings := &cli.EnvSettings{
+			RepositoryConfig: defaultRepositoryConfigPath,
+			RepositoryCache:  defaultCachePath,
+		}
+		expectedRelease := &release.Release{
+			Name: "test-release",
+			Chart: &chart.Chart{Metadata: &chart.Metadata{
+				Name:    "test-chart",
+				Version: "1.0.0",
+			}},
+		}
+
+		installMock := newMockInstallAction(t)
+		installMock.EXPECT().raw().Return(installAction)
+		installMock.EXPECT().install(testCtx, mock.Anything, mock.Anything).Return(expectedRelease, nil)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", envSettings).Return("testdata/test-chart", nil)
+		listMock := newMockListReleasesAction(t)
+		listMock.EXPECT().raw().Return(&action.List{})
+		listMock.EXPECT().listReleases().Return([]*release.Release{}, nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newListReleases().Return(listMock)
+		providerMock.EXPECT().newInstall().Return(installMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			Settings: envSettings,
+			actions:  providerMock,
+			DebugLog: func(format string, v ...interface{}) {
+				t.Helper()
+				assert.Equal(t, "release installed successfully: %s/%s-%s", format)
+			},
+		}
+
+		// when
+		actual, err := sut.InstallOrUpgradeChart(testCtx, spec)
+
+		// then
+		require.NoError(t, err)
+		assert.Same(t, expectedRelease, actual)
+	})
+}
