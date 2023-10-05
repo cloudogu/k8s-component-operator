@@ -274,7 +274,7 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec) (*release.Rel
 
 	upgradedRelease, upgradeErr := upgradeAction.upgrade(ctx, spec.ReleaseName, helmChart, values)
 	if upgradeErr != nil {
-		resultErr := upgradeErr
+		var resultErr error
 
 		rollbackErr := c.rollbackRelease(spec)
 		if rollbackErr != nil {
