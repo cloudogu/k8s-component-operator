@@ -83,20 +83,6 @@ func ExampleHelmClient_InstallOrUpgradeChart_useURL() {
 	}
 }
 
-type customRollBack struct {
-	HelmClient
-}
-
-var _ RollBack = &customRollBack{}
-
-func (c customRollBack) RollbackRelease(spec *ChartSpec) error {
-	client := c.actions.newRollbackRelease()
-
-	client.raw().Force = true
-
-	return client.rollbackRelease(spec.ReleaseName)
-}
-
 func ExampleHelmClient_UninstallRelease() {
 	// Define the released chart to be installed.
 	chartSpec := ChartSpec{
