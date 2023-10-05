@@ -352,7 +352,7 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 func (c *HelmClient) chartExists(spec *ChartSpec) (bool, error) {
 	releases, err := c.listReleases(action.ListAll)
 	if err != nil {
-		return false, fmt.Errorf("could not check if chart %q is already installed: %w", spec.ReleaseName, err)
+		return false, fmt.Errorf("could not check if release %q is already installed: %w", spec.ReleaseName, err)
 	}
 
 	for _, r := range releases {
