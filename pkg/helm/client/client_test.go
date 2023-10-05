@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"github.com/stretchr/testify/mock"
+	"helm.sh/helm/v3/pkg/chart"
 	"testing"
 	"time"
 
@@ -448,6 +450,144 @@ func TestHelmClient_InstallChart(t *testing.T) {
 		assert.Nil(t, actual)
 	})
 	t.Run("should fail because chart has unsupported type", func(t *testing.T) {
-		t.Fail()
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+		installAction := &action.Install{}
+
+		installMock := newMockInstallAction(t)
+		installMock.EXPECT().raw().Return(installAction)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", (*cli.EnvSettings)(nil)).Return("testdata/invalid-type-test-chart", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newInstall().Return(installMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		actual, err := sut.InstallChart(testCtx, spec, nil)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "chart \"test-chart\" has an unsupported type and is not installable: \"library\"")
+		assert.Nil(t, actual)
+	})
+	t.Run("should fail to get values", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+			ValuesYaml:  "invalid YAML",
+		}
+		installAction := &action.Install{}
+		envSettings := &cli.EnvSettings{
+			RepositoryConfig: defaultRepositoryConfigPath,
+			RepositoryCache:  defaultCachePath,
+		}
+
+		installMock := newMockInstallAction(t)
+		installMock.EXPECT().raw().Return(installAction)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", envSettings).Return("testdata/test-chart", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newInstall().Return(installMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			Settings: envSettings,
+			actions:  providerMock,
+		}
+
+		// when
+		actual, err := sut.InstallChart(testCtx, spec, nil)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "failed to get values for release \"test-release\"")
+		assert.Nil(t, actual)
+	})
+	t.Run("should fail to install release", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+		installAction := &action.Install{}
+		envSettings := &cli.EnvSettings{
+			RepositoryConfig: defaultRepositoryConfigPath,
+			RepositoryCache:  defaultCachePath,
+		}
+
+		installMock := newMockInstallAction(t)
+		installMock.EXPECT().raw().Return(installAction)
+		installMock.EXPECT().install(testCtx, mock.Anything, mock.Anything).Return(nil, assert.AnError)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", envSettings).Return("testdata/test-chart", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newInstall().Return(installMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			Settings: envSettings,
+			actions:  providerMock,
+		}
+
+		// when
+		actual, err := sut.InstallChart(testCtx, spec, nil)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to install release \"test-release\"")
+		assert.Nil(t, actual)
+	})
+	t.Run("should succeed to install release", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+		installAction := &action.Install{}
+		envSettings := &cli.EnvSettings{
+			RepositoryConfig: defaultRepositoryConfigPath,
+			RepositoryCache:  defaultCachePath,
+		}
+		expectedRelease := &release.Release{
+			Name: "test-release",
+			Chart: &chart.Chart{Metadata: &chart.Metadata{
+				Name:    "test-chart",
+				Version: "1.0.0",
+			}},
+		}
+
+		installMock := newMockInstallAction(t)
+		installMock.EXPECT().raw().Return(installAction)
+		installMock.EXPECT().install(testCtx, mock.Anything, mock.Anything).Return(expectedRelease, nil)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", envSettings).Return("testdata/test-chart", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newInstall().Return(installMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			Settings: envSettings,
+			actions:  providerMock,
+			DebugLog: func(format string, v ...interface{}) {
+				t.Helper()
+				assert.Equal(t, "release installed successfully: %s/%s-%s", format)
+			},
+		}
+
+		// when
+		actual, err := sut.InstallChart(testCtx, spec, nil)
+
+		// then
+		require.NoError(t, err)
+		assert.Same(t, expectedRelease, actual)
 	})
 }
