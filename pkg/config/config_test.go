@@ -62,6 +62,7 @@ func TestGetHelmRepositoryData(t *testing.T) {
 	})
 	t.Run("success with cluster", func(t *testing.T) {
 		// given
+		t.Setenv("RUNTIME", "")
 		mockConfigMapInterface := newMockConfigMapInterface(t)
 		configMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},

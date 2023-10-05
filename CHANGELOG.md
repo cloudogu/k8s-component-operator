@@ -5,9 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v0.4.0] - 2023-10-05
+### Added
+- [#30] Add CRD-Release to Jenkinsfile
+
 ## [v0.3.0] - 2023-09-15
 ### Changed
-- [#25] Use component-dependencies from the annotations of a HelmChart instead of the Helm-dependencies 
+- [#25] Use component-dependencies from the annotations of a HelmChart instead of the Helm-dependencies
+- [#27] updated go dependencies
+- [#27] updated kube-rbac-proxy
+
+### Fixed
+- [#27] deprecation warning for argument `logtostderr` in kube-rbac-proxy
+
+### Removed
+- [#27] deprecated argument `logtostderr` from kube-rbac-proxy
 
 ## [v0.2.0] - 2023-09-07
 ### Added
