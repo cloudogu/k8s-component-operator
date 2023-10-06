@@ -9,6 +9,11 @@
 # field above.
 namePrefix: k8s-component-operator-
 
+# Labels to add to all resources and selectors.
+commonLabels:
+  app: ces
+  app.kubernetes.io/name: k8s-component-operator
+
 bases:
 - ../crd
 - ../rbac
