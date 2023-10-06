@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v0.5.0] - 2023-10-06
 ### Added
 - [#29] Add permissions on all namespaces to install components in namespaces like monitoring or longhorn-system. Add a new property deployNamespace. It is used to determine where the helm deployment should go. If it is empty the namespace from the component-operator is used.
 
