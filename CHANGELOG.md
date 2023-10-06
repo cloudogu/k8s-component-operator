@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- [#29] Add permissions on all namespaces to install components in namespaces like monitoring or longhorn-system. Add a new property deployNamespace. It is used to determine where the helm deployment should go. If it is empty the actual namespace is used.
+- [#29] Add permissions on all namespaces to install components in namespaces like monitoring or longhorn-system. Add a new property deployNamespace. It is used to determine where the helm deployment should go. If it is empty the namespace from the component-operator is used.
 
 ## [v0.4.0] - 2023-10-05
 ### Added

@@ -42,6 +42,7 @@ type ComponentSpec struct {
 	// Version of the component (e.g. 2.4.48-3)
 	Version string `json:"version,omitempty"`
 	// DeployNamespace is the namespace where the helm chart should be deployed in.
+	// This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
 	DeployNamespace string `json:"deployNamespace,omitempty"`
 }
 
