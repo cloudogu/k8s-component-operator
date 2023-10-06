@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"strings"
 	"testing"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
