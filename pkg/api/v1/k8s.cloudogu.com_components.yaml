@@ -38,6 +38,10 @@ spec:
           spec:
             description: ComponentSpec defines the desired state of a component.
             properties:
+              deployNamespace:
+                description: DeployNamespace is the namespace where the helm chart
+                  should be deployed in.
+                type: string
               name:
                 description: Name of the component (e.g. k8s-dogu-operator)
                 type: string
