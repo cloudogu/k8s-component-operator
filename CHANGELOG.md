@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ### Changed
 - [#33] Replace mittwald-go-helm-client with a reduced implementation fitted to our needs
 
+## [v0.4.0] - 2023-10-05
+### Added
+- [#30] Add CRD-Release to Jenkinsfile
+
 ## [v0.3.0] - 2023-09-15
 ### Changed
 - [#25] Use component-dependencies from the annotations of a HelmChart instead of the Helm-dependencies
