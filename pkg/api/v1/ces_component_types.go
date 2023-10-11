@@ -43,6 +43,9 @@ type ComponentSpec struct {
 	Name string `json:"name,omitempty"`
 	// Version of the component (e.g. 2.4.48-3)
 	Version string `json:"version,omitempty"`
+	// DeployNamespace is the namespace where the helm chart should be deployed in.
+	// This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
+	DeployNamespace string `json:"deployNamespace,omitempty"`
 }
 
 // ComponentStatus defines the observed state of a Component.
@@ -73,10 +76,18 @@ func (c *Component) String() string {
 
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.
 func (c *Component) GetHelmChartSpec() *client.ChartSpec {
+	deployNamespace := ""
+
+	if c.Spec.DeployNamespace != "" {
+		deployNamespace = c.Spec.DeployNamespace
+	} else {
+		deployNamespace = c.Namespace
+	}
+
 	return &client.ChartSpec{
 		ReleaseName: c.Spec.Name,
 		ChartName:   fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name),
-		Namespace:   c.Namespace,
+		Namespace:   deployNamespace,
 		Version:     c.Spec.Version,
 		// Rollback to previous release on failure.
 		Atomic: true,
@@ -84,6 +95,8 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		Timeout: time.Second * 300,
 		// True would lead the client to delete a CRD on failure which could delete all Dogus.
 		CleanupOnFail: false,
+		// Create non-existent namespace so that the operator can install charts in other namespaces.
+		CreateNamespace: true,
 	}
 }
 
