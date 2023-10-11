@@ -202,7 +202,6 @@ func (c *HelmClient) UninstallReleaseByName(name string) error {
 }
 
 // install installs the provided chart.
-// Optionally lints the chart if the linting flag is set.
 func (c *HelmClient) install(ctx context.Context, spec *ChartSpec) (*release.Release, error) {
 	installAction := c.actions.newInstall()
 	client := installAction.raw()
@@ -250,7 +249,6 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec) (*release.Rel
 }
 
 // upgrade upgrades a chart and CRDs.
-// Optionally lints the chart if the linting flag is set.
 func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec) (*release.Release, error) {
 	upgradeAction := c.actions.newUpgrade()
 	client := upgradeAction.raw()
