@@ -3,9 +3,11 @@ package v1
 import (
 	"embed"
 	"fmt"
-	helmclient "github.com/mittwald/go-helm-client"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -73,7 +75,7 @@ func (c *Component) String() string {
 }
 
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.
-func (c *Component) GetHelmChartSpec() *helmclient.ChartSpec {
+func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 	deployNamespace := ""
 
 	if c.Spec.DeployNamespace != "" {
@@ -82,7 +84,7 @@ func (c *Component) GetHelmChartSpec() *helmclient.ChartSpec {
 		deployNamespace = c.Namespace
 	}
 
-	return &helmclient.ChartSpec{
+	return &client.ChartSpec{
 		ReleaseName: c.Spec.Name,
 		ChartName:   fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name),
 		Namespace:   deployNamespace,

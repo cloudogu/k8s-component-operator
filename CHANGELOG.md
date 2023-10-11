@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - [#29] Add permissions on all namespaces to install components in namespaces like monitoring or longhorn-system. Add a new property deployNamespace. It is used to determine where the helm deployment should go. If it is empty the namespace from the component-operator is used.
 
+### Changed
+- [#33] Replace mittwald-go-helm-client with a reduced implementation fitted to our needs
+
 ## [v0.4.0] - 2023-10-05
 ### Added
 - [#30] Add CRD-Release to Jenkinsfile
