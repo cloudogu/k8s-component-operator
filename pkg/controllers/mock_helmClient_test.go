@@ -5,7 +5,8 @@ package controllers
 import (
 	context "context"
 
-	helmclient "github.com/mittwald/go-helm-client"
+	client "github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+
 	mock "github.com/stretchr/testify/mock"
 
 	release "helm.sh/helm/v3/pkg/release"
@@ -25,11 +26,11 @@ func (_m *mockHelmClient) EXPECT() *mockHelmClient_Expecter {
 }
 
 // InstallOrUpgrade provides a mock function with given fields: ctx, chart
-func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, chart *helmclient.ChartSpec) error {
+func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) error {
 	ret := _m.Called(ctx, chart)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec) error); ok {
 		r0 = rf(ctx, chart)
 	} else {
 		r0 = ret.Error(0)
@@ -45,14 +46,14 @@ type mockHelmClient_InstallOrUpgrade_Call struct {
 
 // InstallOrUpgrade is a helper method to define mock.On call
 //   - ctx context.Context
-//   - chart *helmclient.ChartSpec
+//   - chart *client.ChartSpec
 func (_e *mockHelmClient_Expecter) InstallOrUpgrade(ctx interface{}, chart interface{}) *mockHelmClient_InstallOrUpgrade_Call {
 	return &mockHelmClient_InstallOrUpgrade_Call{Call: _e.mock.On("InstallOrUpgrade", ctx, chart)}
 }
 
-func (_c *mockHelmClient_InstallOrUpgrade_Call) Run(run func(ctx context.Context, chart *helmclient.ChartSpec)) *mockHelmClient_InstallOrUpgrade_Call {
+func (_c *mockHelmClient_InstallOrUpgrade_Call) Run(run func(ctx context.Context, chart *client.ChartSpec)) *mockHelmClient_InstallOrUpgrade_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*helmclient.ChartSpec))
+		run(args[0].(context.Context), args[1].(*client.ChartSpec))
 	})
 	return _c
 }
@@ -62,7 +63,7 @@ func (_c *mockHelmClient_InstallOrUpgrade_Call) Return(_a0 error) *mockHelmClien
 	return _c
 }
 
-func (_c *mockHelmClient_InstallOrUpgrade_Call) RunAndReturn(run func(context.Context, *helmclient.ChartSpec) error) *mockHelmClient_InstallOrUpgrade_Call {
+func (_c *mockHelmClient_InstallOrUpgrade_Call) RunAndReturn(run func(context.Context, *client.ChartSpec) error) *mockHelmClient_InstallOrUpgrade_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -121,11 +122,11 @@ func (_c *mockHelmClient_ListDeployedReleases_Call) RunAndReturn(run func() ([]*
 }
 
 // SatisfiesDependencies provides a mock function with given fields: ctx, chart
-func (_m *mockHelmClient) SatisfiesDependencies(ctx context.Context, chart *helmclient.ChartSpec) error {
+func (_m *mockHelmClient) SatisfiesDependencies(ctx context.Context, chart *client.ChartSpec) error {
 	ret := _m.Called(ctx, chart)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *helmclient.ChartSpec) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec) error); ok {
 		r0 = rf(ctx, chart)
 	} else {
 		r0 = ret.Error(0)
@@ -141,14 +142,14 @@ type mockHelmClient_SatisfiesDependencies_Call struct {
 
 // SatisfiesDependencies is a helper method to define mock.On call
 //   - ctx context.Context
-//   - chart *helmclient.ChartSpec
+//   - chart *client.ChartSpec
 func (_e *mockHelmClient_Expecter) SatisfiesDependencies(ctx interface{}, chart interface{}) *mockHelmClient_SatisfiesDependencies_Call {
 	return &mockHelmClient_SatisfiesDependencies_Call{Call: _e.mock.On("SatisfiesDependencies", ctx, chart)}
 }
 
-func (_c *mockHelmClient_SatisfiesDependencies_Call) Run(run func(ctx context.Context, chart *helmclient.ChartSpec)) *mockHelmClient_SatisfiesDependencies_Call {
+func (_c *mockHelmClient_SatisfiesDependencies_Call) Run(run func(ctx context.Context, chart *client.ChartSpec)) *mockHelmClient_SatisfiesDependencies_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*helmclient.ChartSpec))
+		run(args[0].(context.Context), args[1].(*client.ChartSpec))
 	})
 	return _c
 }
@@ -158,7 +159,7 @@ func (_c *mockHelmClient_SatisfiesDependencies_Call) Return(_a0 error) *mockHelm
 	return _c
 }
 
-func (_c *mockHelmClient_SatisfiesDependencies_Call) RunAndReturn(run func(context.Context, *helmclient.ChartSpec) error) *mockHelmClient_SatisfiesDependencies_Call {
+func (_c *mockHelmClient_SatisfiesDependencies_Call) RunAndReturn(run func(context.Context, *client.ChartSpec) error) *mockHelmClient_SatisfiesDependencies_Call {
 	_c.Call.Return(run)
 	return _c
 }

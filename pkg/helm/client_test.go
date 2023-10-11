@@ -8,15 +8,14 @@ import (
 	"testing"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	helmclient "github.com/mittwald/go-helm-client"
-	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/release"
+
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -34,16 +33,16 @@ func TestNew(t *testing.T) {
 			return &rest.Config{}
 		}
 
-		client, err := NewClient(namespace, &config.HelmRepositoryData{PlainHttp: true}, false, nil)
+		helmClient, err := NewClient(namespace, &config.HelmRepositoryData{PlainHttp: true}, false, nil)
 
 		require.NoError(t, err)
-		assert.NotNil(t, client)
+		assert.NotNil(t, helmClient)
 	})
 }
 
 func TestClient_InstallOrUpgrade(t *testing.T) {
 	t.Run("should install or upgrade chart", func(t *testing.T) {
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testing/testComponent",
 			Namespace:   "testNS",
@@ -52,17 +51,17 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "https://staging.cloudogu.com"}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, nil)
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		err := client.InstallOrUpgrade(testCtx, chartSpec)
+		err := helmClient.InstallOrUpgrade(testCtx, chartSpec)
 
 		require.NoError(t, err)
 	})
 
 	t.Run("should install or upgrade chart with oci-endpoint in chart-name", func(t *testing.T) {
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "oci://some.where/testing/testComponent",
 			Namespace:   "testNS",
@@ -71,17 +70,17 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, nil)
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		err := client.InstallOrUpgrade(testCtx, chartSpec)
+		err := helmClient.InstallOrUpgrade(testCtx, chartSpec)
 
 		require.NoError(t, err)
 	})
 
 	t.Run("should patch version in install or upgrade chart when given version is empty", func(t *testing.T) {
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testing/testComponent",
 			Namespace:   "testNS",
@@ -89,21 +88,19 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, nil)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, nil)
+		mockHelmClient.EXPECT().Tags(fmt.Sprintf("%s/%s", helmRepoData.Endpoint, chartSpec.ChartName)).Return([]string{"1.2.3", "1.0.5"}, nil)
 
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(fmt.Sprintf("%s/%s", helmRepoData.Endpoint, chartSpec.ChartName)).Return([]string{"1.2.3", "1.0.5"}, nil)
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData, tagResolver: mockedTagResolver}
-
-		err := client.InstallOrUpgrade(testCtx, chartSpec)
+		err := helmClient.InstallOrUpgrade(testCtx, chartSpec)
 
 		require.NoError(t, err)
 		assert.Equal(t, "1.2.3", chartSpec.Version)
 	})
 
 	t.Run("should fail to install or upgrade chart for error while patching version", func(t *testing.T) {
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testing/testComponent",
 			Namespace:   "testNS",
@@ -111,13 +108,11 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().Tags(fmt.Sprintf("%s/%s", helmRepoData.Endpoint, chartSpec.ChartName)).Return(nil, assert.AnError)
 
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(fmt.Sprintf("%s/%s", helmRepoData.Endpoint, chartSpec.ChartName)).Return(nil, assert.AnError)
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData, tagResolver: mockedTagResolver}
-
-		err := client.InstallOrUpgrade(testCtx, chartSpec)
+		err := helmClient.InstallOrUpgrade(testCtx, chartSpec)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
@@ -125,7 +120,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 	})
 
 	t.Run("should fail to install or upgrade chart for error in helmClient", func(t *testing.T) {
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testing/testComponent",
 			Namespace:   "testNS",
@@ -134,11 +129,11 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 
 		helmRepoData := &config.HelmRepositoryData{Endpoint: "staging.cloudogu.com", Schema: config.EndpointSchemaOCI}
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec, mock.Anything).Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().InstallOrUpgradeChart(testCtx, chartSpec).Return(nil, assert.AnError)
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: helmRepoData}
 
-		err := client.InstallOrUpgrade(testCtx, chartSpec)
+		err := helmClient.InstallOrUpgrade(testCtx, chartSpec)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
@@ -152,9 +147,9 @@ func TestClient_Uninstall(t *testing.T) {
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().UninstallReleaseByName(releaseName).Return(nil)
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: nil}
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: nil}
 
-		err := client.Uninstall(releaseName)
+		err := helmClient.Uninstall(releaseName)
 
 		require.NoError(t, err)
 	})
@@ -165,9 +160,9 @@ func TestClient_Uninstall(t *testing.T) {
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().UninstallReleaseByName(releaseName).Return(assert.AnError)
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: nil}
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: nil}
 
-		err := client.Uninstall(releaseName)
+		err := helmClient.Uninstall(releaseName)
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
@@ -185,9 +180,9 @@ func TestClient_ListDeployedReleases(t *testing.T) {
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(releases, nil)
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: nil}
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: nil}
 
-		result, err := client.ListDeployedReleases()
+		result, err := helmClient.ListDeployedReleases()
 
 		require.NoError(t, err)
 		assert.Equal(t, releases, result)
@@ -197,9 +192,9 @@ func TestClient_ListDeployedReleases(t *testing.T) {
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
 
-		client := &Client{helmClient: mockHelmClient, helmRepoData: nil}
+		helmClient := &Client{helmClient: mockHelmClient, helmRepoData: nil}
 
-		result, err := client.ListDeployedReleases()
+		result, err := helmClient.ListDeployedReleases()
 
 		require.Error(t, err)
 		assert.Nil(t, result)
@@ -239,20 +234,19 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 			PlainHttp: true,
 		}
 
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(nil, "", assert.AnError)
-
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testComponent",
 			Namespace:   "testNS",
 			Version:     "0.1.1",
 		}
 
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().GetChart(chartSpec).Return(nil, "", assert.AnError)
+
 		sut := &Client{
 			helmClient:   mockHelmClient,
 			helmRepoData: repoConfigData,
-			actionConfig: new(action.Configuration),
 		}
 
 		// when
@@ -278,21 +272,21 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 				Version: "3.*.*",
 			}},
 		}}
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(helmChart, "myPath", nil)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
 
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testComponent",
 			Namespace:   "testNS",
 			Version:     "0.1.1",
 		}
 
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().GetChart(chartSpec).Return(helmChart, "myPath", nil)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
+
 		sut := &Client{
 			helmClient:   mockHelmClient,
 			helmRepoData: repoConfigData,
-			actionConfig: new(action.Configuration),
 		}
 
 		// when
@@ -318,25 +312,24 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 				"k8s.cloudogu.com/ces-dependency/k8s-etcd": "3.2.1",
 			},
 		}}
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(helmChart, "myPath", nil)
-		var deployedReleases []*release.Release
-		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
-
-		mockDepChecker := newMockDependencyChecker(t)
-		mockDepChecker.EXPECT().CheckSatisfied(dependencies, deployedReleases).Return(assert.AnError)
-
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testComponent",
 			Namespace:   "testNS",
 			Version:     "0.1.1",
 		}
 
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().GetChart(chartSpec).Return(helmChart, "myPath", nil)
+		var deployedReleases []*release.Release
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
+
+		mockDepChecker := newMockDependencyChecker(t)
+		mockDepChecker.EXPECT().CheckSatisfied(dependencies, deployedReleases).Return(assert.AnError)
+
 		sut := &Client{
 			helmClient:        mockHelmClient,
 			helmRepoData:      repoConfigData,
-			actionConfig:      new(action.Configuration),
 			dependencyChecker: mockDepChecker,
 		}
 
@@ -365,25 +358,24 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 				"k8s.cloudogu.com/ces-dependency/k8s-etcd": "3.2.1",
 			},
 		}}
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(helmChart, "myPath", nil)
-		deployedReleases := []*release.Release{createRelease("k8s-etcd", "3.2.1")}
-		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
-
-		mockDepChecker := newMockDependencyChecker(t)
-		mockDepChecker.EXPECT().CheckSatisfied(dependencies, deployedReleases).Return(nil)
-
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testComponent",
 			Namespace:   "testNS",
 			Version:     "0.1.1",
 		}
 
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().GetChart(chartSpec).Return(helmChart, "myPath", nil)
+		deployedReleases := []*release.Release{createRelease("k8s-etcd", "3.2.1")}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
+
+		mockDepChecker := newMockDependencyChecker(t)
+		mockDepChecker.EXPECT().CheckSatisfied(dependencies, deployedReleases).Return(nil)
+
 		sut := &Client{
 			helmClient:        mockHelmClient,
 			helmRepoData:      repoConfigData,
-			actionConfig:      new(action.Configuration),
 			dependencyChecker: mockDepChecker,
 		}
 
@@ -408,28 +400,24 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 				"k8s.cloudogu.com/ces-dependency/k8s-etcd": "3.2.1",
 			},
 		}}
-		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart("oci://some.where/testing/testComponent", mock.Anything).Return(helmChart, "myPath", nil)
-		deployedReleases := []*release.Release{createRelease("k8s-etcd", "3.2.1")}
-		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
-
-		mockDepChecker := newMockDependencyChecker(t)
-		mockDepChecker.EXPECT().CheckSatisfied(dependencies, deployedReleases).Return(nil)
-
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testComponent",
 			Namespace:   "testNS",
 		}
 
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(fmt.Sprintf("%s/%s", repoConfigData.Endpoint, chartSpec.ChartName)).Return([]string{"1.2.3", "1.0.5"}, nil)
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().GetChart(chartSpec).Return(helmChart, "myPath", nil)
+		deployedReleases := []*release.Release{createRelease("k8s-etcd", "3.2.1")}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
+		mockHelmClient.EXPECT().Tags(fmt.Sprintf("%s/%s", repoConfigData.Endpoint, chartSpec.ChartName)).Return([]string{"1.2.3", "1.0.5"}, nil)
+
+		mockDepChecker := newMockDependencyChecker(t)
+		mockDepChecker.EXPECT().CheckSatisfied(dependencies, deployedReleases).Return(nil)
 
 		sut := &Client{
 			helmClient:        mockHelmClient,
 			helmRepoData:      repoConfigData,
-			tagResolver:       mockedTagResolver,
-			actionConfig:      new(action.Configuration),
 			dependencyChecker: mockDepChecker,
 		}
 
@@ -449,22 +437,18 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 			PlainHttp: true,
 		}
 
-		mockHelmClient := NewMockHelmClient(t)
-
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testComponent",
 			Namespace:   "testNS",
 		}
 
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(fmt.Sprintf("%s/%s", repoConfigData.Endpoint, chartSpec.ChartName)).Return(nil, assert.AnError)
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().Tags(fmt.Sprintf("%s/%s", repoConfigData.Endpoint, chartSpec.ChartName)).Return(nil, assert.AnError)
 
 		sut := &Client{
 			helmClient:   mockHelmClient,
 			helmRepoData: repoConfigData,
-			tagResolver:  mockedTagResolver,
-			actionConfig: new(action.Configuration),
 		}
 
 		// when
@@ -486,17 +470,17 @@ func Test_patchChartVersion(t *testing.T) {
 			PlainHttp: false,
 		}
 
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "k8s-etcd",
 			ChartName:   "oci://some.endpoint/testing/myChart",
 		}
 
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(strings.TrimPrefix(chartSpec.ChartName, ociSchemePrefix)).Return([]string{"1.2.3", "1.0.5"}, nil)
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().Tags(strings.TrimPrefix(chartSpec.ChartName, ociSchemePrefix)).Return([]string{"1.2.3", "1.0.5"}, nil)
 
 		sut := &Client{
+			helmClient:   mockedHelmClient,
 			helmRepoData: repoConfigData,
-			tagResolver:  mockedTagResolver,
 		}
 
 		// when
@@ -514,17 +498,17 @@ func Test_patchChartVersion(t *testing.T) {
 			PlainHttp: false,
 		}
 
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "k8s-etcd",
 			ChartName:   "oci://some.endpoint/testing/myChart",
 		}
 
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(strings.TrimPrefix(chartSpec.ChartName, ociSchemePrefix)).Return([]string{}, nil)
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().Tags(strings.TrimPrefix(chartSpec.ChartName, ociSchemePrefix)).Return([]string{}, nil)
 
 		sut := &Client{
+			helmClient:   mockedHelmClient,
 			helmRepoData: repoConfigData,
-			tagResolver:  mockedTagResolver,
 		}
 
 		// when
@@ -542,17 +526,17 @@ func Test_patchChartVersion(t *testing.T) {
 			PlainHttp: false,
 		}
 
-		chartSpec := &helmclient.ChartSpec{
+		chartSpec := &client.ChartSpec{
 			ReleaseName: "k8s-etcd",
 			ChartName:   "oci://some.endpoint/testing/myChart",
 		}
 
-		mockedTagResolver := newMockTagResolver(t)
-		mockedTagResolver.EXPECT().Tags(strings.TrimPrefix(chartSpec.ChartName, ociSchemePrefix)).Return(nil, assert.AnError)
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().Tags(strings.TrimPrefix(chartSpec.ChartName, ociSchemePrefix)).Return(nil, assert.AnError)
 
 		sut := &Client{
+			helmClient:   mockedHelmClient,
 			helmRepoData: repoConfigData,
-			tagResolver:  mockedTagResolver,
 		}
 
 		// when

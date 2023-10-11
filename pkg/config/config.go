@@ -3,14 +3,16 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
-	"gopkg.in/yaml.v3"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"os"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/yaml"
 )
 
 const (

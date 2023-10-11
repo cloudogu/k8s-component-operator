@@ -129,6 +129,15 @@ func Test_installedDependencyChecker_CheckSatisfied(t *testing.T) {
 			wantErr: assert.NoError,
 		},
 		{
+			name: "should succeed for version-range with pre-release",
+			args: args{
+				// the upper bound must be a pre-release as well due to a bug, see https://github.com/Masterminds/semver/issues/177
+				dependencies:     []Dependency{createDependency("k8s-etcd", ">=3.0.0-0  <4.0-0")},
+				deployedReleases: []*release.Release{createRelease("k8s-etcd", "3.0.0-2")},
+			},
+			wantErr: assert.NoError,
+		},
+		{
 			name: "should fail if one dependency is not installed",
 			args: args{
 				dependencies:     []Dependency{createDependency("k8s-etcd", "~3.0.0"), createDependency("not_installed", ">1.2.3")},
