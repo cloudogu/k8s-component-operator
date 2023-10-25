@@ -119,7 +119,8 @@ func (c *Client) getChart(ctx context.Context, chartSpec *client.ChartSpec) (*ch
 	logger.Info("Trying to get chart with options",
 		"chart", chartSpec.ChartName,
 		"version", chartSpec.Version,
-		"plain http", c.helmRepoData.PlainHttp)
+		"plain HTTP", c.helmRepoData.PlainHttp,
+		"insecure TLS", c.helmRepoData.InsecureTLS)
 
 	componentChart, _, err := c.helmClient.GetChart(chartSpec)
 	if err != nil {

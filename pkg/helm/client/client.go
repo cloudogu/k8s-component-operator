@@ -2,8 +2,10 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -74,6 +76,12 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 
 	if options.PlainHttp {
 		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
+	}
+
+	if !options.PlainHttp && options.InsecureTls {
+		insecureHttpsClient := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		httpClientOpt := registry.ClientOptHTTPClient(insecureHttpsClient)
+		clientOpts = append(clientOpts, httpClientOpt)
 	}
 
 	registryClient, err := registry.NewClient(clientOpts...)

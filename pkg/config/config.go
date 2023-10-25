@@ -60,7 +60,8 @@ type HelmRepositoryData struct {
 	// Schema describes the way how clients communicate with the Helm registry endpoint.
 	Schema EndpointSchema `json:"schema" yaml:"schema"`
 	// PlainHttp indicates that the repository endpoint should be accessed using plain http
-	PlainHttp bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
+	PlainHttp   bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
+	InsecureTLS bool `json:"insecureTls" yaml:"insecureTls"`
 }
 
 // URL returns the full URL Helm repository endpoint including schema.
