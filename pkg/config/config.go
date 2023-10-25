@@ -41,8 +41,9 @@ var (
 )
 
 const (
-	configMapSchema    = "schema"
-	configMapPlainHttp = "plainHttp"
+	configMapSchema      = "schema"
+	configMapPlainHttp   = "plainHttp"
+	configMapInsecureTls = "insecureTls"
 )
 
 type EndpointSchema string
@@ -155,6 +156,13 @@ func NewHelmRepoDataFromCluster(ctx context.Context, configMapClient configMapIn
 			return nil, fmt.Errorf("failed to parse field %s from configMap %s", configMapPlainHttp, helmRepositoryConfigMapName)
 		}
 	}
+	insecureTls := false
+	if insecureTlsStr, exists := configMap.Data[configMapInsecureTls]; exists {
+		insecureTls, err = strconv.ParseBool(insecureTlsStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse field %s from configMap %s", configMapInsecureTls, helmRepositoryConfigMapName)
+		}
+	}
 	var schema string
 	var schemaExists bool
 	if schema, schemaExists = configMap.Data[configMapSchema]; schemaExists {
@@ -164,9 +172,10 @@ func NewHelmRepoDataFromCluster(ctx context.Context, configMapClient configMapIn
 	}
 
 	repoData := &HelmRepositoryData{
-		Endpoint:  configMap.Data["endpoint"],
-		Schema:    EndpointSchema(schema),
-		PlainHttp: plainHttp,
+		Endpoint:    configMap.Data["endpoint"],
+		Schema:      EndpointSchema(schema),
+		PlainHttp:   plainHttp,
+		InsecureTLS: insecureTls,
 	}
 
 	err = repoData.validate()

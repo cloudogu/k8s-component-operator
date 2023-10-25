@@ -93,6 +93,7 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 	actionProvider := &provider{
 		Configuration: actionConfig,
 		plainHttp:     options.PlainHttp,
+		insecureTls:   options.InsecureTls,
 	}
 
 	return &HelmClient{

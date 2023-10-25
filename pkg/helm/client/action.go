@@ -11,18 +11,21 @@ import (
 
 type provider struct {
 	*action.Configuration
-	plainHttp bool
+	plainHttp   bool
+	insecureTls bool
 }
 
 func (p *provider) newInstall() installAction {
 	installAction := action.NewInstall(p.Configuration)
 	installAction.PlainHTTP = p.plainHttp
+	installAction.InsecureSkipTLSverify = p.insecureTls
 	return &install{Install: installAction}
 }
 
 func (p *provider) newUpgrade() upgradeAction {
 	upgradeAction := action.NewUpgrade(p.Configuration)
 	upgradeAction.PlainHTTP = p.plainHttp
+	upgradeAction.InsecureSkipTLSverify = p.insecureTls
 	return &upgrade{Upgrade: upgradeAction}
 }
 
@@ -34,6 +37,7 @@ func (p *provider) newUninstall() uninstallAction {
 func (p *provider) newLocateChart() locateChartAction {
 	dummyAction := action.NewInstall(p.Configuration)
 	dummyAction.PlainHTTP = p.plainHttp
+	dummyAction.InsecureSkipTLSverify = p.insecureTls
 	return &locateChart{dummyAction: dummyAction}
 }
 

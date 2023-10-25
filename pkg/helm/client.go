@@ -48,6 +48,7 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 			Debug:            debug,
 			DebugLog:         debugLog,
 			PlainHttp:        helmRepoData.PlainHttp,
+			InsecureTls:      helmRepoData.InsecureTLS,
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
