@@ -211,8 +211,6 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 		return Delete, nil
 	}
 
-	logger.Info("===== current state", component.Status.Status)
-
 	switch component.Status.Status {
 	case k8sv1.ComponentStatusNotInstalled:
 		return Install, nil
@@ -243,41 +241,35 @@ func (r *componentReconciler) getChangeOperation(ctx context.Context, component 
 		return "", fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
 
-	logger.Info("==== getChangeOperation 1")
-
 	for _, deployedRelease := range deployedReleases {
-		logger.Info("==== getChangeOperation for", deployedRelease)
 
 		isComponentToBeChanged := deployedRelease.Name == component.Spec.Name
-		compareNamespace := component.Spec.DeployNamespace
+		targetNamespace := component.Spec.DeployNamespace
 
-		if compareNamespace == "" {
-			compareNamespace = component.Namespace
+		if targetNamespace == "" {
+			targetNamespace = component.Namespace
 		}
 
-		logger.Info("==== getChangeOperation compare existing release with target namespace", compareNamespace, deployedRelease.Namespace)
-		existsReleaseInCompareNamespace := deployedRelease.Namespace == compareNamespace
+		existsReleaseInTargetNamespace := deployedRelease.Namespace == targetNamespace
 
-		if isComponentToBeChanged && existsReleaseInCompareNamespace {
-			logger.Info("==== getChangeOperation component hit", compareNamespace)
-			return getChangeOperationForRelease(ctx, component, deployedRelease)
+		if isComponentToBeChanged {
+			logger.Info("Found existing release for reconciled component",
+				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
+			if existsReleaseInTargetNamespace {
+				return getChangeOperationForRelease(component, deployedRelease)
+			}
 		}
 	}
-
-	logger.Info("==== getChangeOperation exit")
 
 	return Ignore, nil
 }
 
-func getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release) (operation, error) {
-	logger := log.FromContext(ctx)
+func getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
 		return "", fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
 	}
-
-	logger.Info("Found deployed app version", "appversion", deployedAppVersion)
 
 	componentVersion, err := semver.NewVersion(component.Spec.Version)
 	if err != nil {
@@ -285,16 +277,12 @@ func getChangeOperationForRelease(ctx context.Context, component *k8sv1.Componen
 	}
 
 	if deployedAppVersion.LessThan(componentVersion) {
-		logger.Info("Yay deployed is greater than component: up", "appversion", deployedAppVersion, "componentversion", componentVersion)
 		return Upgrade, nil
 	}
 
 	if deployedAppVersion.GreaterThan(componentVersion) {
-		logger.Info("oops deployed is less than component: down", "appversion", deployedAppVersion, "componentversion", componentVersion)
 		return Downgrade, nil
 	}
-
-	logger.Info("oh noez  deployed is ??? than component: ignore", "appversion", deployedAppVersion, "componentversion", componentVersion)
 
 	return Ignore, nil
 }
