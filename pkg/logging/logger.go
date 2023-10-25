@@ -25,7 +25,10 @@ const (
 
 // CurrentLogLevel is the currently configured logLevel
 // The default logLevel is "ERROR"
-var CurrentLogLevel = logrus.ErrorLevel
+var (
+	defaultLogLevel = logrus.InfoLevel
+	CurrentLogLevel = defaultLogLevel
+)
 
 type libraryLogger struct {
 	logger logr.LogSink
@@ -83,12 +86,12 @@ func (ll *libraryLogger) Errorf(format string, args ...interface{}) {
 func getLogLevelFromEnv() (logrus.Level, error) {
 	logLevel, found := os.LookupEnv(logLevelEnvVar)
 	if !found || strings.TrimSpace(logLevel) == "" {
-		return logrus.ErrorLevel, nil
+		return defaultLogLevel, nil
 	}
 
 	level, err := logrus.ParseLevel(logLevel)
 	if err != nil {
-		return logrus.ErrorLevel, fmt.Errorf("value of log environment variable [%s] is not a valid log level: %w", logLevelEnvVar, err)
+		return defaultLogLevel, fmt.Errorf("value of log environment variable [%s] is not a valid log level: %w", logLevelEnvVar, err)
 	}
 
 	return level, nil
