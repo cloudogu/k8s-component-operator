@@ -362,7 +362,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		}
 
 		// when
-		_, err := sut.getChangeOperation(component)
+		_, err := sut.getChangeOperation(testCtx, component)
 
 		// then
 		require.Error(t, err)
@@ -382,7 +382,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		}
 
 		// when
-		_, err := sut.getChangeOperation(component)
+		_, err := sut.getChangeOperation(testCtx, component)
 
 		// then
 		require.Error(t, err)
@@ -401,7 +401,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		}
 
 		// when
-		op, err := sut.getChangeOperation(component)
+		op, err := sut.getChangeOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
@@ -420,7 +420,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		}
 
 		// when
-		op, err := sut.getChangeOperation(component)
+		op, err := sut.getChangeOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
@@ -439,7 +439,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		}
 
 		// when
-		op, err := sut.getChangeOperation(component)
+		op, err := sut.getChangeOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
@@ -458,7 +458,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		}
 
 		// when
-		op, err := sut.getChangeOperation(component)
+		op, err := sut.getChangeOperation(testCtx, component)
 
 		// then
 		require.NoError(t, err)
