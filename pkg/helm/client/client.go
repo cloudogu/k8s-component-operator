@@ -69,22 +69,7 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 		return nil, err
 	}
 
-	clientOpts := []registry.ClientOption{
-		registry.ClientOptDebug(settings.Debug),
-		registry.ClientOptCredentialsFile(settings.RegistryConfig),
-	}
-
-	if options.PlainHttp {
-		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
-	}
-
-	if !options.PlainHttp && options.InsecureTls {
-		insecureHttpsClient := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
-		httpClientOpt := registry.ClientOptHTTPClient(insecureHttpsClient)
-		clientOpts = append(clientOpts, httpClientOpt)
-	}
-
-	registryClient, err := registry.NewClient(clientOpts...)
+	registryClient, err := createRegistryClient(options, settings)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +88,24 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 		DebugLog:    debugLog,
 		output:      options.Output,
 	}, nil
+}
+
+func createRegistryClient(options *Options, settings *cli.EnvSettings) (*registry.Client, error) {
+	clientOpts := []registry.ClientOption{
+		registry.ClientOptDebug(settings.Debug),
+		registry.ClientOptCredentialsFile(settings.RegistryConfig),
+	}
+
+	if options.PlainHttp {
+		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
+	}
+
+	if !options.PlainHttp && options.InsecureTls {
+		insecureHttpsClient := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		httpClientOpt := registry.ClientOptHTTPClient(insecureHttpsClient)
+		clientOpts = append(clientOpts, httpClientOpt)
+	}
+	return registry.NewClient(clientOpts...)
 }
 
 // setEnvSettings sets the client's environment settings based on the provided client configuration.
