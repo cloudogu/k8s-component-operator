@@ -48,9 +48,10 @@ func TestGetHelmRepositoryData(t *testing.T) {
 		t.Setenv("RUNTIME", "local")
 		devHelmRepoDataPath = "testdata/helm-repository.yaml"
 		expected := &HelmRepositoryData{
-			Endpoint:  "192.168.56.3:30100",
-			Schema:    EndpointSchemaOCI,
-			PlainHttp: true,
+			Endpoint:    "192.168.56.3:30100",
+			Schema:      EndpointSchemaOCI,
+			PlainHttp:   true,
+			InsecureTLS: true,
 		}
 
 		// when
@@ -66,13 +67,14 @@ func TestGetHelmRepositoryData(t *testing.T) {
 		mockConfigMapInterface := newMockConfigMapInterface(t)
 		configMap := &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{Name: "component-operator-helm-repository"},
-			Data:       map[string]string{"endpoint": "endpoint", "schema": "oci", "plainHttp": "false"},
+			Data:       map[string]string{"endpoint": "endpoint", "schema": "oci", "plainHttp": "false", "insecureTls": "true"},
 		}
 		mockConfigMapInterface.On("Get", mock.Anything, "component-operator-helm-repository", mock.Anything).Return(configMap, nil)
 		expected := &HelmRepositoryData{
-			Endpoint:  "endpoint",
-			Schema:    EndpointSchemaOCI,
-			PlainHttp: false,
+			Endpoint:    "endpoint",
+			Schema:      EndpointSchemaOCI,
+			PlainHttp:   false,
+			InsecureTLS: true,
 		}
 
 		// when
@@ -111,6 +113,19 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "failed to parse field plainHttp from configMap component-operator-helm-repository")
+	})
+	t.Run("should fail to parse insecureTls", func(t *testing.T) {
+		// given
+		configMap := &v1.ConfigMap{Data: map[string]string{"insecureTls": "invalid"}}
+		configMapClient := newMockConfigMapInterface(t)
+		configMapClient.EXPECT().Get(testCtx, "component-operator-helm-repository", getOpts).Return(configMap, nil)
+
+		// when
+		_, err := NewHelmRepoDataFromCluster(testCtx, configMapClient)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "failed to parse field insecureTls from configMap component-operator-helm-repository")
 	})
 	t.Run("should fail because endpoint has empty URL", func(t *testing.T) {
 		// given
@@ -151,9 +166,9 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "config map 'component-operator-helm-repository' failed validation: endpoint uses an unsupported schema 'https': valid schemas are: oci")
 	})
-	t.Run("should succeed to parse plainHttp and validate endpoint", func(t *testing.T) {
+	t.Run("should succeed to parse plainHttp and insecureTls and validate endpoint", func(t *testing.T) {
 		// given
-		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "myEndpoint", "schema": "oci", "plainHttp": "true"}}
+		configMap := &v1.ConfigMap{Data: map[string]string{"endpoint": "myEndpoint", "schema": "oci", "plainHttp": "true", "insecureTls": "true"}}
 		configMapClient := newMockConfigMapInterface(t)
 		configMapClient.EXPECT().Get(testCtx, "component-operator-helm-repository", getOpts).Return(configMap, nil)
 
@@ -162,9 +177,10 @@ func TestNewHelmRepoDataFromCluster(t *testing.T) {
 
 		// then
 		expected := &HelmRepositoryData{
-			Endpoint:  "myEndpoint",
-			Schema:    EndpointSchemaOCI,
-			PlainHttp: true,
+			Endpoint:    "myEndpoint",
+			Schema:      EndpointSchemaOCI,
+			PlainHttp:   true,
+			InsecureTLS: true,
 		}
 		require.NoError(t, err)
 		assert.Equal(t, expected, actual)
@@ -199,9 +215,10 @@ func TestNewHelmRepoDataFromFile(t *testing.T) {
 			name:     "should succeed",
 			filepath: "testdata/helm-repository.yaml",
 			want: &HelmRepositoryData{
-				Endpoint:  "192.168.56.3:30100",
-				Schema:    EndpointSchemaOCI,
-				PlainHttp: true,
+				Endpoint:    "192.168.56.3:30100",
+				Schema:      EndpointSchemaOCI,
+				PlainHttp:   true,
+				InsecureTLS: true,
 			},
 			wantErr: assert.NoError,
 		},

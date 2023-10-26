@@ -11,6 +11,7 @@ func Test_provider_newInstall(t *testing.T) {
 	sut := &provider{
 		Configuration: &action.Configuration{},
 		plainHttp:     true,
+		insecureTls:   true,
 	}
 
 	// when
@@ -19,9 +20,39 @@ func Test_provider_newInstall(t *testing.T) {
 	// then
 	assert.NotEmpty(t, result.raw())
 	assert.True(t, result.raw().PlainHTTP)
+	assert.True(t, result.raw().InsecureSkipTLSverify)
+}
+
+func Test_provider_newInstall_providerOptionsNotSet(t *testing.T) {
+	// given
+	sut := &provider{Configuration: &action.Configuration{}}
+
+	// when
+	result := sut.newInstall()
+
+	// then
+	assert.NotEmpty(t, result.raw())
+	assert.False(t, result.raw().PlainHTTP)
+	assert.False(t, result.raw().InsecureSkipTLSverify)
 }
 
 func Test_provider_newUpgrade(t *testing.T) {
+	// given
+	sut := &provider{
+		Configuration: &action.Configuration{},
+		plainHttp:     true,
+		insecureTls:   true,
+	}
+
+	// when
+	result := sut.newUpgrade()
+
+	// then
+	assert.NotEmpty(t, result.raw())
+	assert.True(t, result.raw().PlainHTTP)
+	assert.True(t, result.raw().InsecureSkipTLSverify)
+}
+func Test_provider_newUpgrade_providerOptionsNotSet(t *testing.T) {
 	// given
 	sut := &provider{Configuration: &action.Configuration{}}
 
@@ -31,6 +62,7 @@ func Test_provider_newUpgrade(t *testing.T) {
 	// then
 	assert.NotEmpty(t, result.raw())
 	assert.False(t, result.raw().PlainHTTP)
+	assert.False(t, result.raw().InsecureSkipTLSverify)
 }
 
 func Test_provider_newUninstall(t *testing.T) {
