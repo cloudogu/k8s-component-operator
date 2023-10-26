@@ -56,19 +56,46 @@ func TestNewClientFromRestConf(t *testing.T) {
 }
 
 func Test_setEnvSettings(t *testing.T) {
-	// given
-	settings := &cli.EnvSettings{}
-	options := new(*Options)
+	t.Run("should lazy initialize options object with two field", func(t *testing.T) {
+		// given
+		settings := &cli.EnvSettings{}
+		options := new(Options)
 
-	// when
-	err := setEnvSettings(options, settings)
+		// when
+		err := setEnvSettings(options, settings)
 
-	// then
-	require.NoError(t, err)
-	assert.Equal(t, defaultRepositoryConfigPath, settings.RepositoryConfig)
-	assert.Equal(t, defaultCachePath, settings.RepositoryCache)
-	assert.Equal(t, defaultRepositoryConfigPath, (*options).RepositoryConfig)
-	assert.Equal(t, defaultCachePath, (*options).RepositoryCache)
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, defaultRepositoryConfigPath, settings.RepositoryConfig)
+		assert.Equal(t, defaultCachePath, settings.RepositoryCache)
+		assert.Equal(t, defaultRepositoryConfigPath, (*options).RepositoryConfig)
+		assert.Equal(t, defaultCachePath, (*options).RepositoryCache)
+	})
+	t.Run("should not initialize existing options object", func(t *testing.T) {
+		// given
+		settings := &cli.EnvSettings{}
+		options := &Options{
+			Namespace:        "asdf",
+			RepositoryConfig: "asdf",
+			RepositoryCache:  "asdf",
+			Debug:            true,
+			DebugLog:         func(format string, v ...interface{}) {},
+			RegistryConfig:   "asdf",
+			Output:           nil,
+			PlainHttp:        true,
+			InsecureTls:      true,
+		}
+
+		// when
+		err := setEnvSettings(options, settings)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, "asdf", settings.RepositoryConfig)
+		assert.Equal(t, "asdf", settings.RepositoryCache)
+		assert.Equal(t, true, settings.Debug)
+		assert.Equal(t, "asdf", settings.RegistryConfig)
+	})
 }
 
 func TestHelmClient_UninstallReleaseByName(t *testing.T) {
