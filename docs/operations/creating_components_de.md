@@ -73,8 +73,21 @@ Hier am Beispiel für `promtail` beschrieben:
 
 
 ## Component-Dependencies
+K8s-CES-Komponenten können abhängig von anderen K8s-CES-Komponenten sein.
+Damit der Komponenten-Operator diese Abhängigkeiten bei der Installation oder dem Upgrade von Komponenten überprüfen kann, müssen diese im Helm-Chart als `anntotaion` angegeben sein.
 
-> TODO
+Der Key der `annotataion` einer Component-Dependency muss immer in der Form `k8s.cloudogu.com/ces-dependency/<dependecy-name>` angeben sein.
+Der `<dependency-name>` ist der Name der K8s-CES-Komponenten, auf die die Abhängigkeit besteht.
+
+Der Value der `annotataion` einer Component-Dependency enthält die Version, in der die abhängige Komponente benötigt wird.
+Hierbei wird [Semantic Versioning](https://semver.org/) verwendet, sodass auch Versionsbereiche angegeben werden können. 
+
+### Beispiel Component-Dependency in der `Chart.yaml`
+```yaml
+annotations:
+  # Dependency for the Component-CRD.
+  "k8s.cloudogu.com/ces-dependency/k8s-component-operator-crd": "1.x.x-0"
+```
 
 ## Component-Patch-Template
 Damit eine K8s-CES-Komponente mit einer Cloudogu-eigenen Applikation in abgeschottete Umgebungen importiert werden kann, muss sie ein `Component-Patch-Template`enthalten.
