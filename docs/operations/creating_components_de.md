@@ -72,11 +72,11 @@ Hier am Beispiel für `promtail` beschrieben:
   ```
 
 
-### Component-Dependencies
+## Component-Dependencies
 
 > TODO
 
-### Component-Patch-Template
+## Component-Patch-Template
 Damit eine K8s-CES-Komponente mit einer Cloudogu-eigenen Applikation in abgeschottete Umgebungen importiert werden kann, muss sie ein `Component-Patch-Template`enthalten.
 Diese muss in einer Datei mit dem Namen `component-patch-tpl.yaml` im Root-Verzeichnis eines Helm-Charts abgelegt werden.
 Das `Component-Patch-Template` enthält eine Liste aller nötigen Container-Images und Template-Anweisungen, um Image-Referenzen in Helm-Values-Dateien während der Spiegelung umzuschreiben.
@@ -99,23 +99,29 @@ patches:
         tag: "{{ tagFrom .images.imageKey1 }}"
 ```
 
-#### apiVersion
+### apiVersion
 Die `apiVersion` gibt die im Template verwendete Version der Patch-API an.
-Derzeit wird von `ces-mirror` die Version `v1` unterstützt. 
+Derzeit wird die Version `v1` unterstützt. 
 Die zugehörigen Template-Funktionen werden unter [patches](#patches) beschrieben. 
 
-#### values
+### values
 `values` enthält eine Map von beliebigen Werten, die für das Templating der in den [patches](#patches) angegebenen Dateien verwendet werden können.
 Die `values` müssen mindestens eine Map `images` enthalten, die alle zu spiegelnden Container-Images enthält.
 Der Key eines Eintrags in der `images`-Map kann beliebig gewählt werden.
 Der Value eines Eintrags in der `images`-Map entspricht einer Container-Image-Referenz (z.B. `registry.cloudogu.com/k8s/k8s-dogu-operator:0.35.1`).
 
-#### patches
+> **Wichtig:** 
+>  - Der Key eines Eintrags in der `images`-Map darf keine Bindestriche "-" enthalten, damit die Verarbeitung in [Go-Templates](https://pkg.go.dev/text/template) möglich ist.
+>  - Der Value eines Eintrags in der `images`-Map sollte immer als String in doppelten Anführungsstrichen angegeben werden, um Probleme beim Parsen als YAML zu vermeiden. 
+
+### patches
 `patches` enthalten einzelne Templates für beliebige YAML-Dateien des Helm-Charts (z.B. die `values.yaml`).
 Jedes Template ist unter dem Dateinamen der zu patchenden Datei abgelegt.
 Ein Template kann eine beliebige YAML-Struktur enthalten.  
 Es wird die [Go template language](https://godoc.org/text/template) verwendet. 
 Die [`values`-map](#values) ist als Daten im Templating verfügbar.
+
+> **Wichtig:** Die Angaben der Go-Template-Functions (z.B. "{{ .Foo }}") muss als String in doppelten Anführungsstrichen, um Probleme beim Parsen als YAML zu verhindern.
 
 Zusätzlich stehen folgende Template-Funktionen zum Parsen von Container-Image-Referenzen bereit. Dabei sollten die [Schlüssel](#values) für Container-Images verwendet werden, die bereits unter `.values.images` aufgeführt wurden, z. B. in Form `.images.yourContainerImageKey`:
 
@@ -127,16 +133,16 @@ Nachdem ein Template gerendert wurde, wird es in die "originale" YAML-Datei des 
 So bleiben Werte in der "originalen" YAML-Datei erhalten, die _nicht_ im Template enthalten sind.
 Bereits vorhandene Werte werden vom gerenderten Template überschrieben.
 
-##### Beispiel `component-patch-tpl.yaml`
+#### Beispiel `component-patch-tpl.yaml`
 
 ```yaml
 apiVersion: v1
 
 values:
   images:
-    engine: longhornio/longhorn-engine:v1.5.1
-    manager: longhornio/longhorn-manager:v1.5.1
-    ui: longhornio/longhorn-ui:v1.5.1
+    engine: "longhornio/longhorn-engine:v1.5.1"
+    manager: "longhornio/longhorn-manager:v1.5.1"
+    ui: "longhornio/longhorn-ui:v1.5.1"
 
 patches:
   values.yaml:
