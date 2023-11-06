@@ -5,23 +5,19 @@ K8s-CES-Komponenten stellen erforderliche Dienste für das Cloudogu EcoSystem (C
 ## Eine neue Komponente erstellen
 Die folgenden Schritte beschreiben die Erstellung einer allgemeinen K8s-CES-Komponente, die im Cloudogu EcoSystem betrieben werden kann:
 
-- neues Github-Repo anlegen
+- neues Repo anlegen
    - Schema `k8s-NAME`
-   - Readme kann mit angelegt werden, alles andere machen wir händisch danach
-- "develop"-Branch anlegen und zum Default machen (in den Github-Einstellungen des Repos)
-- Vom develop einen neuen Branch für den initialen Sourcecode abzweigen
 - Grundsätzliche Dateien importieren bzw. erstellen
    - README.md
    - Jenkinsfile
    - LICENSE
    - CHANGELOG.md
-   - Makefiles
+   - [Makefiles](https://github.com/cloudogu/makefiles)
    - .gitignore
 - Die K8s-Ressourcen der Komponente bestimmen:
-  - K8s-Controller: Einbindung des `k8s-controller.mk` Makefiles zur Generierung der K8s-Ressourcen
-  - Das Make-Target `k8s-create-temporary-resource` erstellen, das für die Erstellung der K8s-Ressourcen zuständig ist
-- Im `k8s`-Ordner Helm-Chart `helm/Chart.yaml` erzeugen
-   - mit "make helm-init-chart" erzeugen
+  - Als K8s-Controller: Einbindung des `k8s-controller.mk` Makefiles zur Generierung der K8s-Ressourcen
+  - Andernfalls: Das Make-Target `k8s-create-temporary-resource` erstellen, das für die Erstellung der K8s-Ressourcen zuständig ist
+- Helm-Chart `Chart.yaml` in `k8s/helm/` mit `make helm-init-chart` erzeugen
 - Ggf. [Component Dependencies](#component-dependencies) in der `Chart.yaml` eintragen
 - Ein [Component Patch Template](#component-patch-template) erstellen
 
@@ -32,38 +28,41 @@ Anschließend können die folgenden Make-Targets eingesetzt werden:
    - `helm-package-release`: Baut und packt das Helm-Chart als `.tgz` um es in ein Helm-Repository zu releasen
 
 
-### Komponente für Fremd-Anwendungen erstellen
-Um Fremd-Anwendungen als K8s-CES-Komponente zu erstellen sind einige extra Schritte nötig.
+### Komponente für Fremdanwendungen erstellen
+Um fremde Helm-Chart als K8s-CES-Komponente zu erstellen, sind zusätzliche Schritte nötig.
 Hier am Beispiel für `promtail` beschrieben:
 
+- Offizielles Chart des Produkts (bspw. promtail) suchen und in eigenes `Chart.yaml` als `dependency` einfügen
+  ```yaml
+  name: k8s-promtail
+  ...
+  dependencies:
+    - name: promtail
+      version: 6.15.2
+      repository: https://grafana.github.io/helm-charts
+  ```
+- Make-Target schreiben, das den `k8s/helm/charts`-Ordner aus dem `dependencies`-Eintrag erzeugt
+  ```makefile
+  .PHONY: ${K8S_HELM_RESSOURCES}/charts
+  ${K8S_HELM_RESSOURCES}/charts: ${BINARY_HELM}
+  @cd ${K8S_HELM_RESSOURCES} && ${BINARY_HELM} repo add grafana https://grafana.github.io/helm-charts && ${BINARY_HELM} dependency build
+  ```
 - "manifests"-Ordner mit dummy-yaml anlegen
+  - Wird benötigt, da die Makefiles derzeit K8s-Ressourcen (yaml) benötigen um das Helm-chart zu erstellen
   - bspw. "promtail.yaml"
   ```yaml
-  # This is a dummy file, required for the makefile's yaml file generation process for the dogu-controller.
+  # This is a dummy file, required for the makefile's yaml file generation process.
   apiVersion: v1
   kind: ConfigMap
   metadata:
     name: promtail-dummy
   data: {}
   ```
-- Offizielles Chart des Produkts (bspw. promtail) suchen und in `Chart.yaml` einfügen
-  ```yaml
-  dependencies:
-    - name: promtail
-      version: 6.15.2
-      repository: https://grafana.github.io/helm-charts
-  ```
-- Make-Target schreiben, was den `k8s/helm/charts`-Ordner aus dem `dependencies`-Eintrag erzeugt
-  ```makefile
-  .PHONY: ${K8S_HELM_RESSOURCES}/charts
-  ${K8S_HELM_RESSOURCES}/charts: ${BINARY_HELM}
-  @cd ${K8S_HELM_RESSOURCES} && ${BINARY_HELM} repo add grafana https://grafana.github.io/helm-charts && ${BINARY_HELM} dependency build
-  ```
-- `K8S_PRE_GENERATE_TARGETS`-Target in Makefile mit eigenem Target überschreiben
+- `K8S_PRE_GENERATE_TARGETS`-Target im Makefile mit eigenem Target überschreiben
   - Bspw. `K8S_PRE_GENERATE_TARGETS=generate-release-resource`
   - In diesem Target die dummy-yaml nach `K8S_RESOURCE_TEMP_YAML` verschieben
 - Eigenes Target `helm-NAME-apply` (bspw. `helm-promtail-apply`) im Makefile erstellen
-  - Funktioniert analog zu "k8s-apply" aus k8s.mk, aber ohne das "image-import"-Target
+  - Funktioniert analog zu "k8s-apply" aus `k8s.mk`, aber ohne das "image-import"-Target
   ```makefile
   .PHONY: helm-promtail-apply
   helm-promtail-apply: ${BINARY_HELM} ${K8S_HELM_RESSOURCES}/charts helm-generate $(K8S_POST_GENERATE_TARGETS) ## Generates and installs the helm chart.
@@ -74,12 +73,13 @@ Hier am Beispiel für `promtail` beschrieben:
 
 ## Component-Dependencies
 K8s-CES-Komponenten können abhängig von anderen K8s-CES-Komponenten sein.
-Damit der Komponenten-Operator diese Abhängigkeiten bei der Installation oder dem Upgrade von Komponenten überprüfen kann, müssen diese im Helm-Chart als `anntotaion` angegeben sein.
+Damit der Komponenten-Operator diese Abhängigkeiten bei der Installation oder dem Upgrade von Komponenten überprüfen kann, müssen diese im Helm-Chart als `annotation` angegeben sein.
+Es können mehrere Abhängigkeiten angegeben werden.  
 
-Der Key der `annotataion` einer Component-Dependency muss immer in der Form `k8s.cloudogu.com/ces-dependency/<dependecy-name>` angeben sein.
-Der `<dependency-name>` ist der Name der K8s-CES-Komponenten, auf die die Abhängigkeit besteht.
+Der Key der `annotation` einer Component-Dependency muss immer in der Form `k8s.cloudogu.com/ces-dependency/<dependecy-name>` angeben sein.
+Der `<dependency-name>` ist der Name der K8s-CES-Komponente, auf die die Abhängigkeit besteht.
 
-Der Value der `annotataion` einer Component-Dependency enthält die Version, in der die abhängige Komponente benötigt wird.
+Der Value der `annotation` einer Component-Dependency enthält die Version der abhängigen Komponente.
 Hierbei wird [Semantic Versioning](https://semver.org/) verwendet, sodass auch Versionsbereiche angegeben werden können. 
 
 ### Beispiel Component-Dependency in der `Chart.yaml`
@@ -134,7 +134,8 @@ Ein Template kann eine beliebige YAML-Struktur enthalten.
 Es wird die [Go template language](https://godoc.org/text/template) verwendet. 
 Die [`values`-map](#values) ist als Daten im Templating verfügbar.
 
-> **Wichtig:** Die Angaben der Go-Template-Functions (z.B. "{{ .Foo }}") muss als String in doppelten Anführungsstrichen, um Probleme beim Parsen als YAML zu verhindern.
+> **Wichtig:** 
+>  - Go-Template-Functions (z. B. "{{ .Foo }}") müssen als String in doppelten Anführungsstrichen angegeben werden, um Probleme beim Parsen als YAML zu verhindern.
 
 Zusätzlich stehen folgende Template-Funktionen zum Parsen von Container-Image-Referenzen bereit. Dabei sollten die [Schlüssel](#values) für Container-Images verwendet werden, die bereits unter `.values.images` aufgeführt wurden, z. B. in Form `.images.yourContainerImageKey`:
 
