@@ -75,12 +75,12 @@ func Test_setEnvSettings(t *testing.T) {
 		// given
 		settings := &cli.EnvSettings{}
 		options := &Options{
-			Namespace:        "asdf",
-			RepositoryConfig: "asdf",
-			RepositoryCache:  "asdf",
+			Namespace:        "anamespace",
+			RepositoryConfig: "arepoconfig",
+			RepositoryCache:  "arepocache",
 			Debug:            true,
 			DebugLog:         func(format string, v ...interface{}) {},
-			RegistryConfig:   "asdf",
+			RegistryConfig:   "aregconfig",
 			Output:           nil,
 			PlainHttp:        true,
 			InsecureTls:      true,
@@ -91,10 +91,10 @@ func Test_setEnvSettings(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, "asdf", settings.RepositoryConfig)
-		assert.Equal(t, "asdf", settings.RepositoryCache)
+		assert.Equal(t, "arepoconfig", settings.RepositoryConfig)
+		assert.Equal(t, "arepocache", settings.RepositoryCache)
 		assert.Equal(t, true, settings.Debug)
-		assert.Equal(t, "asdf", settings.RegistryConfig)
+		assert.Equal(t, "aregconfig", settings.RegistryConfig)
 	})
 }
 
