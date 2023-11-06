@@ -4,50 +4,74 @@ K8s-CES-Komponenten stellen erforderliche Dienste für das Cloudogu EcoSystem be
 Dabei handelt es sich um Helm-Charts, die in einer OCI-Registry verfügbar sind.
 
 ## Eine neue Komponente erstellen
+Die folgenden Schritte beschreiben die Erstellung einer allgemeinen K8s-CES-Komponente, die im Cloudogu EcoSystem betrieben werden kann:
 
 - neues Github-Repo anlegen
    - Schema `k8s-NAME`
    - Readme kann mit angelegt werden, alles andere machen wir händisch danach
 - "develop"-Branch anlegen und zum Default machen (in den Github-Einstellungen des Repos)
-- Vom develop einen neuen Branch abzweigen, auf dem gleich der ganze initiale code landen wird
-- Grundsätzliche Dateien importieren bzw. an anderen Komponenten (bspw. k8s-velero oder k8s-etcd) orientieren:
+- Vom develop einen neuen Branch für den initialen Sourcecode abzweigen
+- Grundsätzliche Dateien importieren bzw. erstellen
    - README.md
    - Jenkinsfile
    - LICENSE
    - CHANGELOG.md
    - Makefiles
    - .gitignore
-- "manifests"-Ordner mit dummy-yaml anlegen
-   - bspw. "promtail.yaml"; Inhalt siehe promtail-Repo
-   - Wird nur noch so lange benötigt, bis der Chart-Generierungsprozess in den Makefiles komplett umgestellt ist (?)
-- K8S_PRE_GENERATE_TARGETS-Target in Makefile mit eigenem Target überschreiben
-   - Bspw. "K8S_PRE_GENERATE_TARGETS=generate-release-resource"
-   - In diesem Target die dummy-yaml nach "K8S_RESOURCE_TEMP_YAML" verschieben
-- k8s-ordner: helm/Chart.yaml erzeugen
+- Die K8s-Ressourcen der Komponente bestimmen:
+  - K8s-Controller: Einbindung des `k8s-controller.mk` Makefiles zur Generierung der K8s-Ressourcen
+  - Das Make-Target `k8s-create-temporary-resource` erstellen, das für die Erstellung der K8s-Ressourcen zuständig ist
+- Im `k8s`-Ordner Helm-Chart `helm/Chart.yaml` erzeugen
    - mit "make helm-init-chart" erzeugen
-- Eigenes Target "helm-NAME-apply" (bspw. "helm-promtail-apply") im Makefile erstellen
-   - bspw. aus k8s-etcd kopieren und anpassen
-   - `${K8S_HELM_RESSOURCES}/charts` als Voraussetzung (s.u.)
-   - Funktioniert analog zu "k8s-apply" aus k8s.mk, aber ohne das "image-import"-Target
+- Ggf. [Component Dependencies](#component-dependencies) in der `Chart.yaml` eintragen
+- Ein [Component Patch Template](#component-patch-template) erstellen
+
+Anschließend können die folgenden Make-Targets eingesetzt werden:
+   - `helm-generate`: Baut im target-Ordner das fertige Helm-Chart aus den Ressourcen unter k8s/helm und den generierten K8s-Ressourcen zusammen
+   - `helm-apply`: Anwenden des Charts im lokalen DEV-Cluster
+   - `component-apply`: Anwenden des Charts im lokalen DEV-Cluster als Installation/Upgrade über den Komponenten-Operator
+   - `helm-package-release`: Baut und packt das Helm-Chart als `.tgz` um es in ein Helm-Repository zu releasen
+
+
+### Komponente für Fremd-Anwendungen erstellen
+Um Fremd-Anwendungen als K8s-CES-Komponente zu erstellen sind einige extra Schritte nötig.
+Hier am Beispiel für `promtail` beschrieben:
+
+- "manifests"-Ordner mit dummy-yaml anlegen
+  - bspw. "promtail.yaml"
+  ```yaml
+  # This is a dummy file, required for the makefile's yaml file generation process for the dogu-controller.
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: promtail-dummy
+  data: {}
+  ```
 - Offizielles Chart des Produkts (bspw. promtail) suchen und in `Chart.yaml` einfügen
-```yaml
-dependencies:
-  - name: promtail
-    version: 6.15.2
-    repository: https://grafana.github.io/helm-charts
-```
+  ```yaml
+  dependencies:
+    - name: promtail
+      version: 6.15.2
+      repository: https://grafana.github.io/helm-charts
+  ```
 - Make-Target schreiben, was den `k8s/helm/charts`-Ordner aus dem `dependencies`-Eintrag erzeugt
-```make
-.PHONY: ${K8S_HELM_RESSOURCES}/charts
-${K8S_HELM_RESSOURCES}/charts: ${BINARY_HELM}
-	@cd ${K8S_HELM_RESSOURCES} && ${BINARY_HELM} repo add grafana https://grafana.github.io/helm-charts && ${BINARY_HELM} dependency build
-```
-- Danach können folgende Make-Targets eingesetzt werden:
-   - helm-generate: Baut im targets-Ordner das fertige Helm-Chart aus den Ressourcen unter k8s/helm und der dummy-yaml zusammen
-   - helm-NAME-apply (bspw. "helm-promtail-apply"): Anwenden des Charts im Cluster
-- Falls man das Helm-Chart später über den Komponenten-Operator installieren will:
-   - eigenes target helm-NAME-chart-import-Target schreiben (wie production-Fall im "helm-chart-import"-Target aus k8s-component.mk, aber ohne image-import, aber mit `${K8S_HELM_RESSOURCES}/charts` als Voraussetzung)
-   - "make component-apply"
+  ```makefile
+  .PHONY: ${K8S_HELM_RESSOURCES}/charts
+  ${K8S_HELM_RESSOURCES}/charts: ${BINARY_HELM}
+  @cd ${K8S_HELM_RESSOURCES} && ${BINARY_HELM} repo add grafana https://grafana.github.io/helm-charts && ${BINARY_HELM} dependency build
+  ```
+- `K8S_PRE_GENERATE_TARGETS`-Target in Makefile mit eigenem Target überschreiben
+  - Bspw. `K8S_PRE_GENERATE_TARGETS=generate-release-resource`
+  - In diesem Target die dummy-yaml nach `K8S_RESOURCE_TEMP_YAML` verschieben
+- Eigenes Target `helm-NAME-apply` (bspw. `helm-promtail-apply`) im Makefile erstellen
+  - Funktioniert analog zu "k8s-apply" aus k8s.mk, aber ohne das "image-import"-Target
+  ```makefile
+  .PHONY: helm-promtail-apply
+  helm-promtail-apply: ${BINARY_HELM} ${K8S_HELM_RESSOURCES}/charts helm-generate $(K8S_POST_GENERATE_TARGETS) ## Generates and installs the helm chart.
+  @echo "Apply generated helm chart"
+  @${BINARY_HELM} upgrade -i ${ARTIFACT_ID} ${K8S_HELM_TARGET} --namespace ${NAMESPACE} 
+  ```
+
 
 ### Component-Dependencies
 
