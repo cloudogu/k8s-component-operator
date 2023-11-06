@@ -3,7 +3,7 @@
 K8s-CES-Komponenten stellen erforderliche Dienste für das Cloudogu EcoSystem (CES) bereit.
 
 ## Eine neue Komponente erstellen
-Die folgenden Schritte beschreiben die Erstellung einer allgemeinen K8s-CES-Komponente, die im Cloudogu EcoSystem betrieben werden kann:
+Die folgenden Schritte beschreiben die Erstellung einer allgemeinen K8s-CES-Komponente, die im Multinode CES betrieben werden kann:
 
 - neues Repo anlegen
    - Schema `k8s-NAME`
@@ -29,8 +29,7 @@ Anschließend können die folgenden Make-Targets eingesetzt werden:
 
 
 ### Komponente für Fremdanwendungen erstellen
-Um fremde Helm-Chart als K8s-CES-Komponente zu erstellen, sind zusätzliche Schritte nötig.
-Hier am Beispiel für `promtail` beschrieben:
+Um fremde Helm-Chart als K8s-CES-Komponente zu erstellen, sind zusätzliche Schritte nötig, hier am Beispiel für `promtail` beschrieben:
 
 - Offizielles Chart des Produkts (bspw. promtail) suchen und in eigenes `Chart.yaml` als `dependency` einfügen
   ```yaml
@@ -90,7 +89,7 @@ annotations:
 ```
 
 ## Component-Patch-Template
-Damit eine K8s-CES-Komponente mit einer Cloudogu-eigenen Applikation in abgeschottete Umgebungen importiert werden kann, muss sie ein `Component-Patch-Template`enthalten.
+Damit eine K8s-CES-Komponente mit einer Cloudogu-eigenen Applikation in abgeschottete Umgebungen gespiegelt werden kann, muss sie ein `Component-Patch-Template`enthalten.
 Diese muss in einer Datei mit dem Namen `component-patch-tpl.yaml` im Root-Verzeichnis eines Helm-Charts abgelegt werden.
 Das `Component-Patch-Template` enthält eine Liste aller nötigen Container-Images und Template-Anweisungen, um Image-Referenzen in Helm-Values-Dateien während der Spiegelung umzuschreiben.
 

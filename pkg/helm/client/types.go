@@ -37,8 +37,10 @@ type Options struct {
 	DebugLog         action.DebugLog
 	RegistryConfig   string
 	Output           io.Writer
-	// PlainHttp forces the registry client to establish plain http connections.
+	// PlainHttp forces the registry client to establish plain http connections. This option will override by InsecureTls by using HTTP traffic.
 	PlainHttp bool
+	// InsecureTls allows invalid or selfsigned certificates to be used. This option may be overridden by PlainHttp which forces HTTP traffic.
+	InsecureTls bool
 }
 
 // RESTClientOption is a function that can be used to set the RESTClientOptions of a HelmClient.

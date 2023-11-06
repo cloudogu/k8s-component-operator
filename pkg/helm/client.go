@@ -48,6 +48,7 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 			Debug:            debug,
 			DebugLog:         debugLog,
 			PlainHttp:        helmRepoData.PlainHttp,
+			InsecureTls:      helmRepoData.InsecureTLS,
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
@@ -119,7 +120,8 @@ func (c *Client) getChart(ctx context.Context, chartSpec *client.ChartSpec) (*ch
 	logger.Info("Trying to get chart with options",
 		"chart", chartSpec.ChartName,
 		"version", chartSpec.Version,
-		"plain http", c.helmRepoData.PlainHttp)
+		"plainHTTP", c.helmRepoData.PlainHttp,
+		"insecureTLS", c.helmRepoData.InsecureTLS)
 
 	componentChart, _, err := c.helmClient.GetChart(chartSpec)
 	if err != nil {

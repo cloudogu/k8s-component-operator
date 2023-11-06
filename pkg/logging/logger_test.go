@@ -24,7 +24,7 @@ func TestConfigureLogger(t *testing.T) {
 		// then
 		assert.NoError(t, err)
 	})
-	t.Run("should not fail with empty string log level and return error level", func(t *testing.T) {
+	t.Run("should not fail with empty string log level and return info level", func(t *testing.T) {
 		// given
 		t.Setenv(logLevelEnvVar, "")
 
@@ -33,7 +33,7 @@ func TestConfigureLogger(t *testing.T) {
 
 		// then
 		assert.NoError(t, err)
-		assert.Equal(t, logrus.ErrorLevel, CurrentLogLevel)
+		assert.Equal(t, logrus.InfoLevel, CurrentLogLevel)
 	})
 
 	t.Run("create logger with invalid log level TEST_LEVEL", func(t *testing.T) {

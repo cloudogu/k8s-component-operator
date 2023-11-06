@@ -347,9 +347,10 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 	t.Run("should succeed", func(t *testing.T) {
 		// given
 		repoConfigData := &config.HelmRepositoryData{
-			Endpoint:  "some.where/testing",
-			Schema:    config.EndpointSchemaOCI,
-			PlainHttp: true,
+			Endpoint:    "some.where/testing",
+			Schema:      config.EndpointSchemaOCI,
+			PlainHttp:   true,
+			InsecureTLS: true,
 		}
 
 		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}

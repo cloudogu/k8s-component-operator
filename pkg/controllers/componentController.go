@@ -215,7 +215,7 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	case k8sv1.ComponentStatusNotInstalled:
 		return Install, nil
 	case k8sv1.ComponentStatusInstalled:
-		operation, err := r.getChangeOperation(component)
+		operation, err := r.getChangeOperation(ctx, component)
 		if err != nil {
 			return "", err
 		}
@@ -233,16 +233,31 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	}
 }
 
-func (r *componentReconciler) getChangeOperation(component *k8sv1.Component) (operation, error) {
+func (r *componentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
+	logger := log.FromContext(ctx)
+
 	deployedReleases, err := r.helmClient.ListDeployedReleases()
 	if err != nil {
 		return "", fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
 
 	for _, deployedRelease := range deployedReleases {
-		// This will allow a namespace switch e. g. k8s/dogu-operator -> k8s-testing/dogu-operator.
-		if deployedRelease.Name == component.Spec.Name && deployedRelease.Namespace == component.Namespace {
-			return getChangeOperationForRelease(component, deployedRelease)
+
+		isComponentToBeChanged := deployedRelease.Name == component.Spec.Name
+		targetNamespace := component.Spec.DeployNamespace
+
+		if targetNamespace == "" {
+			targetNamespace = component.Namespace
+		}
+
+		existsReleaseInTargetNamespace := deployedRelease.Namespace == targetNamespace
+
+		if isComponentToBeChanged {
+			logger.Info("Found existing release for reconciled component",
+				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
+			if existsReleaseInTargetNamespace {
+				return getChangeOperationForRelease(component, deployedRelease)
+			}
 		}
 	}
 
