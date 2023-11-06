@@ -62,6 +62,7 @@ type HelmRepositoryData struct {
 	Schema EndpointSchema `json:"schema" yaml:"schema"`
 	// PlainHttp indicates that the repository endpoint should be accessed using plain http
 	PlainHttp   bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
+        // InsecureTls allows invalid or selfsigned certificates to be used. This option may be overridden by PlainHttp which forces HTTP traffic.
 	InsecureTLS bool `json:"insecureTls" yaml:"insecureTls"`
 }
 
