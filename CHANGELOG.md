@@ -6,7 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- [#38] Add documentation for creating components and component-patch-templates
+- [#38] Add [documentation](docs/operations/creating_components_en.md) for creating components and component-patch-templates
+
+### Changed
+- [#36] Allow insecure TLS certificates with configuration options
 
 ## [v0.5.1] - 2023-10-11
 ### Changed
