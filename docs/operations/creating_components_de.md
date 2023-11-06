@@ -1,7 +1,6 @@
-# Erstellung von K8s-CES-Komponenten
+# Erstellung von K8s-Komponenten
 
-K8s-CES-Komponenten stellen erforderliche Dienste für das Cloudogu EcoSystem bereit.
-Dabei handelt es sich um Helm-Charts, die in einer OCI-Registry verfügbar sind.
+K8s-CES-Komponenten stellen erforderliche Dienste für das Cloudogu EcoSystem (CES) bereit.
 
 ## Eine neue Komponente erstellen
 Die folgenden Schritte beschreiben die Erstellung einer allgemeinen K8s-CES-Komponente, die im Cloudogu EcoSystem betrieben werden kann:
@@ -78,7 +77,7 @@ Hier am Beispiel für `promtail` beschrieben:
 > TODO
 
 ### Component-Patch-Template
-Damit eine K8s-CES-Komponente von `ces-mirror` gespiegelt werden kann, muss sie ein `Component-Patch-Template`enthalten.
+Damit eine K8s-CES-Komponente mit einer Cloudogu-eigenen Applikation in abgeschottete Umgebungen importiert werden kann, muss sie ein `Component-Patch-Template`enthalten.
 Diese muss in einer Datei mit dem Namen `component-patch-tpl.yaml` im Root-Verzeichnis eines Helm-Charts abgelegt werden.
 Das `Component-Patch-Template` enthält eine Liste aller nötigen Container-Images und Template-Anweisungen, um Image-Referenzen in Helm-Values-Dateien während der Spiegelung umzuschreiben.
 
@@ -118,14 +117,15 @@ Ein Template kann eine beliebige YAML-Struktur enthalten.
 Es wird die [Go template language](https://godoc.org/text/template) verwendet. 
 Die [`values`-map](#values) ist als Daten im Templating verfügbar.
 
-Zusätzlich stehe folgende Template-Funktionen zum Parsen von Container-Image-Referenzen bereit:
-  - **registryFrom <string>**: liefert die Registry einer Container-Image-Referenz (z.B. `registry.cloudogu.com`)
-  - **repositoryFrom <string>**: liefert das Repository einer Container-Image-Referenz (z.B. `k8s/k8s-dogu-operator`)
-  - **tagFrom <string>**: liefert den Tag einer Container-Image-Referenz (z.B. `0.35.1`)
+Zusätzlich stehen folgende Template-Funktionen zum Parsen von Container-Image-Referenzen bereit. Dabei sollten die [Schlüssel](#values) für Container-Images verwendet werden, die bereits unter `.values.images` aufgeführt wurden, z. B. in Form `.images.yourContainerImageKey`:
+
+- **registryFrom <string>**: liefert die Registry einer Container-Image-Referenz (z. B. `registry.cloudogu.com`)
+- **repositoryFrom <string>**: liefert das Repository einer Container-Image-Referenz (z. B. `k8s/k8s-dogu-operator`)
+- **tagFrom <string>**: liefert den Tag einer Container-Image-Referenz (z. B. `0.35.1`)
 
 Nachdem ein Template gerendert wurde, wird es in die "originale" YAML-Datei des Helm-Charts gemerged. 
 So bleiben Werte in der "originalen" YAML-Datei erhalten, die _nicht_ im Template enthalten sind.
-Bereit vorhandene Werte werden vom gerenderten Template überschrieben.
+Bereits vorhandene Werte werden vom gerenderten Template überschrieben.
 
 ##### Beispiel `component-patch-tpl.yaml`
 
