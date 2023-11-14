@@ -197,7 +197,7 @@ func (c *HelmClient) GetChartSpecValues(spec *ChartSpec) (map[string]interface{}
 	p := getter.All(c.Settings)
 	additionalValuesYaml, err := spec.GetValuesMap(p)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get additional values.yaml-values from  %s: %w", spec.ChartName, err)
+		return nil, fmt.Errorf("failed to get additional values.yaml-values from %s: %w", spec.ChartName, err)
 	}
 
 	return additionalValuesYaml, nil

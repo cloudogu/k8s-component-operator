@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
 	"log"
@@ -335,6 +336,168 @@ func TestHelmClient_GetReleaseValues(t *testing.T) {
 
 		assert.Equal(t, expectedValues, actual)
 		assert.False(t, getValuesAction.AllValues)
+	})
+}
+
+func TestHelmClient_GetChartSpecValues(t *testing.T) {
+	t.Run("should use ValuesYaml when no ValuesOptions are set", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ReleaseName: "test-release",
+			ChartName:   "test-chart",
+			ValuesYaml: `
+testYaml:
+  key1: val1
+  key2: val2
+`,
+		}
+
+		sut := &HelmClient{
+			Settings: &cli.EnvSettings{},
+		}
+
+		// when
+		actual, err := sut.GetChartSpecValues(spec)
+
+		// then
+		expected := map[string]interface{}{
+			"testYaml": map[string]interface{}{
+				"key1": "val1",
+				"key2": "val2",
+			},
+		}
+		require.NoError(t, err)
+		assert.Equal(t, actual, expected)
+	})
+
+	t.Run("should use ValuesOptions when no ValuesYaml are set", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ReleaseName: "test-release",
+			ChartName:   "test-chart",
+			ValuesOptions: values.Options{
+				StringValues: []string{"testYaml.key3=val3", "testYaml.key4=val4"},
+			},
+		}
+
+		sut := &HelmClient{
+			Settings: &cli.EnvSettings{},
+		}
+
+		// when
+		actual, err := sut.GetChartSpecValues(spec)
+
+		// then
+		expected := map[string]interface{}{
+			"testYaml": map[string]interface{}{
+				"key3": "val3",
+				"key4": "val4",
+			},
+		}
+		require.NoError(t, err)
+		assert.Equal(t, actual, expected)
+	})
+
+	t.Run("should merge ValuesOptions and ValuesYaml when both are set with Options having priority", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ReleaseName: "test-release",
+			ChartName:   "test-chart",
+			ValuesOptions: values.Options{
+				StringValues: []string{"testYaml.key2=val3", "testYaml.key3=val4"},
+			},
+			ValuesYaml: `
+testYaml:
+  key1: val1
+  key2: val2
+`,
+		}
+
+		sut := &HelmClient{
+			Settings: &cli.EnvSettings{},
+		}
+
+		// when
+		actual, err := sut.GetChartSpecValues(spec)
+
+		// then
+		expected := map[string]interface{}{
+			"testYaml": map[string]interface{}{
+				"key1": "val1",
+				"key2": "val3",
+				"key3": "val4",
+			},
+		}
+		require.NoError(t, err)
+		assert.Equal(t, actual, expected)
+	})
+
+	t.Run("should return empty map when nothing set", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ReleaseName: "test-release",
+			ChartName:   "test-chart",
+		}
+
+		sut := &HelmClient{
+			Settings: &cli.EnvSettings{},
+		}
+
+		// when
+		actual, err := sut.GetChartSpecValues(spec)
+
+		// then
+		expected := map[string]interface{}{}
+		require.NoError(t, err)
+		assert.Equal(t, actual, expected)
+	})
+
+	t.Run("should fail if yaml is not parsable", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ReleaseName: "test-release",
+			ChartName:   "test-chart",
+			ValuesYaml: `
+NoYaml{}
+`,
+		}
+
+		sut := &HelmClient{
+			Settings: &cli.EnvSettings{},
+		}
+
+		// when
+		actual, err := sut.GetChartSpecValues(spec)
+
+		// then
+		require.Error(t, err)
+		assert.Nil(t, actual)
+		assert.ErrorContains(t, err, "Failed to Parse ValuesYaml")
+		assert.ErrorContains(t, err, "failed to get additional values.yaml-values from")
+	})
+
+	t.Run("should fail if values options are not parsable", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ReleaseName: "test-release",
+			ChartName:   "test-chart",
+			ValuesOptions: values.Options{
+				StringValues: []string{"noKeyValue{}"},
+			},
+		}
+
+		sut := &HelmClient{
+			Settings: &cli.EnvSettings{},
+		}
+
+		// when
+		actual, err := sut.GetChartSpecValues(spec)
+
+		// then
+		require.Error(t, err)
+		assert.Nil(t, actual)
+		assert.ErrorContains(t, err, "Failed to Parse ValuesOptions")
+		assert.ErrorContains(t, err, "failed to get additional values.yaml-values from")
 	})
 }
 
