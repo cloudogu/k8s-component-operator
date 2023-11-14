@@ -215,6 +215,8 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		helmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		helmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
+		helmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{}, nil)
 
 		sut := componentReconciler{
 			clientSet:        clientSetMock,
@@ -471,6 +473,8 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{}, nil)
 
 		sut := componentReconciler{
 			helmClient: mockHelmClient,
