@@ -391,6 +391,51 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to parse component version")
 	})
 
+	t.Run("should fail on error getting release values", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.1")
+		mockHelmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(nil, assert.AnError)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		_, err := sut.getChangeOperation(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to compare Values.yaml files of component")
+		assert.ErrorContains(t, err, "failed to get values.yaml from release")
+	})
+
+	t.Run("should fail on error getting component values", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.1")
+		mockHelmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(nil, assert.AnError)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		_, err := sut.getChangeOperation(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to compare Values.yaml files of component")
+		assert.ErrorContains(t, err, "failed to get values.yaml from component")
+	})
+
 	t.Run("should return downgrade-operation on downgrade", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
@@ -465,6 +510,69 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, Upgrade, op)
+	})
+
+	t.Run("should return upgrade-operation on same version, but values-yaml difference", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.2")
+		mockHelmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		op, err := sut.getChangeOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Upgrade, op)
+	})
+
+	t.Run("should return ignore-operation on same version and same values-yaml values", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.2")
+		mockHelmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		op, err := sut.getChangeOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Ignore, op)
+	})
+
+	t.Run("should return ignore-operation on same version and different zero-length maps", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.2")
+		mockHelmClient := newMockHelmClient(t)
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
+		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}(nil), nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{}, nil)
+
+		sut := componentReconciler{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		op, err := sut.getChangeOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Ignore, op)
 	})
 
 	t.Run("should return ignore-operation on same version", func(t *testing.T) {

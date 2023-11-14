@@ -273,7 +273,7 @@ func (r *componentReconciler) isValuesChanged(deployedRelease *release.Release, 
 
 	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpec())
 	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from chart spec %s: %w", component.GetHelmChartSpec().ChartName, err)
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpec().ChartName, err)
 	}
 
 	// if no additional values are set, the maps will look like this:
