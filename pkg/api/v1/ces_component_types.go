@@ -46,6 +46,10 @@ type ComponentSpec struct {
 	// DeployNamespace is the namespace where the helm chart should be deployed in.
 	// This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
 	DeployNamespace string `json:"deployNamespace,omitempty"`
+	// ValuesYamlOverwrite is a multiline-yaml string that is applied alongside the original values.yaml-file of the component.
+	// It can be used to overwrite specific configurations. Lists are overwritten, maps are merged.
+	// +optional
+	ValuesYamlOverwrite string `json:"valuesYamlOverwrite,omitempty"`
 }
 
 // ComponentStatus defines the observed state of a Component.
@@ -89,6 +93,7 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		ChartName:   fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name),
 		Namespace:   deployNamespace,
 		Version:     c.Spec.Version,
+		ValuesYaml:  c.Spec.ValuesYamlOverwrite,
 		// Rollback to previous release on failure.
 		Atomic: true,
 		// This timeout prevents context exceeded errors from the used k8s client from the helm library.

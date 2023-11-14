@@ -4,11 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/spf13/pflag"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/spf13/pflag"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -191,6 +190,17 @@ func (c *HelmClient) ListReleasesByStateMask(states action.ListStates) ([]*relea
 // GetReleaseValues returns the (optionally, all computed) values for the specified release.
 func (c *HelmClient) GetReleaseValues(name string, allValues bool) (map[string]interface{}, error) {
 	return c.getReleaseValues(name, allValues)
+}
+
+// GetChartSpecValues returns the additional values for the specified ChartSpec.
+func (c *HelmClient) GetChartSpecValues(spec *ChartSpec) (map[string]interface{}, error) {
+	p := getter.All(c.Settings)
+	additionalValuesYaml, err := spec.GetValuesMap(p)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get additional values.yaml-values from  %s: %w", spec.ChartName, err)
+	}
+
+	return additionalValuesYaml, nil
 }
 
 // GetRelease returns a release specified by name.

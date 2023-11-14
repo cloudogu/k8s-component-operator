@@ -21,6 +21,7 @@ type Client interface {
 	// RollBack is an interface to abstract a rollback action.
 	RollBack
 	GetReleaseValues(name string, allValues bool) (map[string]interface{}, error)
+	GetChartSpecValues(spec *ChartSpec) (map[string]interface{}, error)
 	UninstallRelease(spec *ChartSpec) error
 	UninstallReleaseByName(name string) error
 	GetChart(spec *ChartSpec) (*chart.Chart, string, error)
