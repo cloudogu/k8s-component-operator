@@ -24,7 +24,6 @@ const (
 )
 
 // CurrentLogLevel is the currently configured logLevel
-// The default logLevel is "ERROR"
 var (
 	defaultLogLevel = logrus.InfoLevel
 	CurrentLogLevel = defaultLogLevel

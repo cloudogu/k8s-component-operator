@@ -43,7 +43,7 @@ func NewClientFromRestConf(options *RestConfClientOptions) (Client, error) {
 // newClient is used by both NewClientFromKubeConf and NewClientFromRestConf
 // and returns a new Helm client via the provided options and REST config.
 func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter, settings *cli.EnvSettings) (Client, error) {
-	err := setEnvSettings(&options, settings)
+	err := setEnvSettings(options, settings)
 	if err != nil {
 		return nil, err
 	}
@@ -108,15 +108,13 @@ func createRegistryClient(options *Options, settings *cli.EnvSettings) (*registr
 }
 
 // setEnvSettings sets the client's environment settings based on the provided client configuration.
-func setEnvSettings(ppOptions **Options, settings *cli.EnvSettings) error {
-	if *ppOptions == nil {
-		*ppOptions = &Options{
+func setEnvSettings(options *Options, settings *cli.EnvSettings) error {
+	if options == nil {
+		options = &Options{
 			RepositoryConfig: defaultRepositoryConfigPath,
 			RepositoryCache:  defaultCachePath,
 		}
 	}
-
-	options := *ppOptions
 
 	// set the namespace with this ugly workaround because cli.EnvSettings.namespace is private
 	// thank you helm!
