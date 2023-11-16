@@ -2,11 +2,12 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
-	"log"
-	"os"
-
 	"github.com/spf13/pflag"
+	"log"
+	"net/http"
+	"os"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -42,7 +43,7 @@ func NewClientFromRestConf(options *RestConfClientOptions) (Client, error) {
 // newClient is used by both NewClientFromKubeConf and NewClientFromRestConf
 // and returns a new Helm client via the provided options and REST config.
 func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter, settings *cli.EnvSettings) (Client, error) {
-	err := setEnvSettings(&options, settings)
+	err := setEnvSettings(options, settings)
 	if err != nil {
 		return nil, err
 	}
@@ -67,16 +68,7 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 		return nil, err
 	}
 
-	clientOpts := []registry.ClientOption{
-		registry.ClientOptDebug(settings.Debug),
-		registry.ClientOptCredentialsFile(settings.RegistryConfig),
-	}
-
-	if options.PlainHttp {
-		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
-	}
-
-	registryClient, err := registry.NewClient(clientOpts...)
+	registryClient, err := createRegistryClient(options, settings)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +77,7 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 	actionProvider := &provider{
 		Configuration: actionConfig,
 		plainHttp:     options.PlainHttp,
+		insecureTls:   options.InsecureTls,
 	}
 
 	return &HelmClient{
@@ -96,16 +89,32 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 	}, nil
 }
 
+func createRegistryClient(options *Options, settings *cli.EnvSettings) (*registry.Client, error) {
+	clientOpts := []registry.ClientOption{
+		registry.ClientOptDebug(settings.Debug),
+		registry.ClientOptCredentialsFile(settings.RegistryConfig),
+	}
+
+	if options.PlainHttp {
+		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
+	}
+
+	if !options.PlainHttp && options.InsecureTls {
+		insecureHttpsClient := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+		httpClientOpt := registry.ClientOptHTTPClient(insecureHttpsClient)
+		clientOpts = append(clientOpts, httpClientOpt)
+	}
+	return registry.NewClient(clientOpts...)
+}
+
 // setEnvSettings sets the client's environment settings based on the provided client configuration.
-func setEnvSettings(ppOptions **Options, settings *cli.EnvSettings) error {
-	if *ppOptions == nil {
-		*ppOptions = &Options{
+func setEnvSettings(options *Options, settings *cli.EnvSettings) error {
+	if options == nil {
+		options = &Options{
 			RepositoryConfig: defaultRepositoryConfigPath,
 			RepositoryCache:  defaultCachePath,
 		}
 	}
-
-	options := *ppOptions
 
 	// set the namespace with this ugly workaround because cli.EnvSettings.namespace is private
 	// thank you helm!
@@ -179,6 +188,17 @@ func (c *HelmClient) ListReleasesByStateMask(states action.ListStates) ([]*relea
 // GetReleaseValues returns the (optionally, all computed) values for the specified release.
 func (c *HelmClient) GetReleaseValues(name string, allValues bool) (map[string]interface{}, error) {
 	return c.getReleaseValues(name, allValues)
+}
+
+// GetChartSpecValues returns the additional values for the specified ChartSpec.
+func (c *HelmClient) GetChartSpecValues(spec *ChartSpec) (map[string]interface{}, error) {
+	p := getter.All(c.Settings)
+	additionalValuesYaml, err := spec.GetValuesMap(p)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get additional values.yaml-values from %s: %w", spec.ChartName, err)
+	}
+
+	return additionalValuesYaml, nil
 }
 
 // GetRelease returns a release specified by name.

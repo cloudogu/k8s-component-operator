@@ -347,9 +347,10 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 	t.Run("should succeed", func(t *testing.T) {
 		// given
 		repoConfigData := &config.HelmRepositoryData{
-			Endpoint:  "some.where/testing",
-			Schema:    config.EndpointSchemaOCI,
-			PlainHttp: true,
+			Endpoint:    "some.where/testing",
+			Schema:      config.EndpointSchemaOCI,
+			PlainHttp:   true,
+			InsecureTLS: true,
 		}
 
 		dependencies := []Dependency{createDependency("k8s-etcd", "3.2.1")}
@@ -581,4 +582,49 @@ func Test_sortByVersionDescending(t *testing.T) {
 			assert.Equal(t, tt.expected, sorted)
 		})
 	}
+}
+
+func TestClient_GetChartSpecValues(t *testing.T) {
+	t.Run("should call HelmClient", func(t *testing.T) {
+		// given
+		chartSpec := &client.ChartSpec{
+			ReleaseName: "k8s-etcd",
+			ChartName:   "oci://some.endpoint/testing/myChart",
+		}
+
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().GetChartSpecValues(chartSpec).Return(map[string]interface{}{"key": "val"}, assert.AnError)
+
+		sut := &Client{
+			helmClient: mockedHelmClient,
+		}
+
+		// when
+		values, err := sut.GetChartSpecValues(chartSpec)
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Equal(t, 1, len(values))
+		assert.Equal(t, "val", values["key"])
+	})
+}
+
+func TestClient_GetReleaseValues(t *testing.T) {
+	t.Run("should call HelmClient", func(t *testing.T) {
+		// given
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().GetReleaseValues("name", false).Return(map[string]interface{}{"key": "val"}, assert.AnError)
+
+		sut := &Client{
+			helmClient: mockedHelmClient,
+		}
+
+		// when
+		values, err := sut.GetReleaseValues("name", false)
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Equal(t, 1, len(values))
+		assert.Equal(t, "val", values["key"])
+	})
 }

@@ -48,6 +48,7 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 			Debug:            debug,
 			DebugLog:         debugLog,
 			PlainHttp:        helmRepoData.PlainHttp,
+			InsecureTls:      helmRepoData.InsecureTLS,
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
 	}
@@ -119,7 +120,8 @@ func (c *Client) getChart(ctx context.Context, chartSpec *client.ChartSpec) (*ch
 	logger.Info("Trying to get chart with options",
 		"chart", chartSpec.ChartName,
 		"version", chartSpec.Version,
-		"plain http", c.helmRepoData.PlainHttp)
+		"plainHTTP", c.helmRepoData.PlainHttp,
+		"insecureTLS", c.helmRepoData.InsecureTLS)
 
 	componentChart, _, err := c.helmClient.GetChart(chartSpec)
 	if err != nil {
@@ -140,6 +142,16 @@ func (c *Client) Uninstall(releaseName string) error {
 // ListDeployedReleases returns all deployed helm releases
 func (c *Client) ListDeployedReleases() ([]*release.Release, error) {
 	return c.helmClient.ListDeployedReleases()
+}
+
+// GetReleaseValues returns the (optionally, all computed) values for the specified release.
+func (c *Client) GetReleaseValues(name string, allValues bool) (map[string]interface{}, error) {
+	return c.helmClient.GetReleaseValues(name, allValues)
+}
+
+// GetChartSpecValues returns the additional values for the specified ChartSpec.
+func (c *Client) GetChartSpecValues(spec *client.ChartSpec) (map[string]interface{}, error) {
+	return c.helmClient.GetChartSpecValues(spec)
 }
 
 func (c *Client) patchOciEndpoint(chart *client.ChartSpec) {

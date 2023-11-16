@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -215,7 +216,7 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	case k8sv1.ComponentStatusNotInstalled:
 		return Install, nil
 	case k8sv1.ComponentStatusInstalled:
-		operation, err := r.getChangeOperation(component)
+		operation, err := r.getChangeOperation(ctx, component)
 		if err != nil {
 			return "", err
 		}
@@ -233,23 +234,60 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	}
 }
 
-func (r *componentReconciler) getChangeOperation(component *k8sv1.Component) (operation, error) {
+func (r *componentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
+	logger := log.FromContext(ctx)
+
 	deployedReleases, err := r.helmClient.ListDeployedReleases()
 	if err != nil {
 		return "", fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
 
 	for _, deployedRelease := range deployedReleases {
-		// This will allow a namespace switch e. g. k8s/dogu-operator -> k8s-testing/dogu-operator.
-		if deployedRelease.Name == component.Spec.Name && deployedRelease.Namespace == component.Namespace {
-			return getChangeOperationForRelease(component, deployedRelease)
+
+		isComponentToBeChanged := deployedRelease.Name == component.Spec.Name
+		targetNamespace := component.Spec.DeployNamespace
+
+		if targetNamespace == "" {
+			targetNamespace = component.Namespace
+		}
+
+		existsReleaseInTargetNamespace := deployedRelease.Namespace == targetNamespace
+
+		if isComponentToBeChanged {
+			logger.Info("Found existing release for reconciled component",
+				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
+			if existsReleaseInTargetNamespace {
+				return r.getChangeOperationForRelease(component, deployedRelease)
+			}
 		}
 	}
 
 	return Ignore, nil
 }
 
-func getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
+func (r *componentReconciler) isValuesChanged(deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
+	deployedValues, err := r.helmClient.GetReleaseValues(deployedRelease.Name, false)
+	if err != nil {
+		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
+	}
+
+	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpec())
+	if err != nil {
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpec().ChartName, err)
+	}
+
+	// if no additional values are set, the maps will look like this:
+	// deployedValues=map[string]interface {}(nil)                                                                                                                                        │
+	// chartSpecValues=map[string]interface {}{}
+	// this is treated as a difference by DeepEqual, so we have to handle this edge case manually
+	if len(deployedValues) == 0 && len(chartSpecValues) == 0 {
+		return false, nil
+	}
+
+	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
+}
+
+func (r *componentReconciler) getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
@@ -267,6 +305,14 @@ func getChangeOperationForRelease(component *k8sv1.Component, release *release.R
 
 	if deployedAppVersion.GreaterThan(componentVersion) {
 		return Downgrade, nil
+	}
+
+	isValuesChanged, err := r.isValuesChanged(release, component)
+	if err != nil {
+		return "", fmt.Errorf("failed to compare Values.yaml files of component %s: %w", component.Name, err)
+	}
+	if isValuesChanged {
+		return Upgrade, nil
 	}
 
 	return Ignore, nil

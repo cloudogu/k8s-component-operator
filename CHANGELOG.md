@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.6.0] - 2023-11-16
+### Added
+- [#40] Components default values.yaml can be overwritten (with the field valuesYamlOverwrite)
+- [#38] Add [documentation](docs/operations/creating_components_en.md) for creating components and component-patch-templates
+
+### Changed
+- [#36] Allow insecure TLS certificates with configuration options
+
 ## [v0.5.1] - 2023-10-11
 ### Changed
 - [#33] Replace mittwald-go-helm-client with a reduced implementation fitted to our needs

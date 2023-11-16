@@ -21,7 +21,7 @@ func TestNewComponentManager(t *testing.T) {
 func Test_componentManager_Install(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
-		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
 		installManagerMock := newMockInstallManager(t)
 		installManagerMock.EXPECT().Install(context.TODO(), component).Return(nil)
 		eventRecorderMock := newMockEventRecorder(t)
@@ -43,7 +43,7 @@ func Test_componentManager_Install(t *testing.T) {
 func Test_componentManager_Upgrade(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
-		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
 		upgradeManagerMock := newMockUpgradeManager(t)
 		upgradeManagerMock.EXPECT().Upgrade(context.TODO(), component).Return(nil)
 		eventRecorderMock := newMockEventRecorder(t)
@@ -64,7 +64,7 @@ func Test_componentManager_Upgrade(t *testing.T) {
 func Test_componentManager_Delete(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
-		component := getComponent("ecosystem", "k8s", "dogu-op", "0.1.0")
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
 		deleteManagerMock := newMockDeleteManager(t)
 		deleteManagerMock.EXPECT().Delete(context.TODO(), component).Return(nil)
 		eventRecorderMock := newMockEventRecorder(t)
@@ -82,12 +82,13 @@ func Test_componentManager_Delete(t *testing.T) {
 	})
 }
 
-func getComponent(namespace string, helmNamespace string, name string, version string) *v1.Component {
+func getComponent(namespace string, helmNamespace string, deployNamespace string, name string, version string) *v1.Component {
 	return &v1.Component{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: v1.ComponentSpec{
-			Namespace: helmNamespace,
-			Name:      name,
-			Version:   version,
+			Namespace:       helmNamespace,
+			DeployNamespace: deployNamespace,
+			Name:            name,
+			Version:         version,
 		}}
 }
