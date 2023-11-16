@@ -91,7 +91,7 @@ A component CR consists of various fields. This section describes these:
   - This is _not_ the cluster namespace.
 - `.spec.version`: The version of the component in the helm registry.
 - `.spec.deployNamespace`: (optional) The k8s-namespace, where all resources of the component should be deployed. If this is empty the namespace of the component-operator will be used.
-- `.spec.valuesYamlOverwrite`: (optional) Helm-Values to overwrite configurations of the default values.yaml file. Should be writte as a [multiline-yaml](https://yaml-multiline.info/) string for readability.
+- `.spec.valuesYamlOverwrite`: (optional) Helm-Values to overwrite configurations of the default values.yaml file. Should be written as a [multiline-yaml](https://yaml-multiline.info/) string for readability.
 
 ## Uninstall components
 
