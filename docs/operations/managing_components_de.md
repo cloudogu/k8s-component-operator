@@ -48,17 +48,22 @@ $ helm uninstall -n ecosystem k8s-component-operator
 
 Um Komponenten zu installieren oder zu aktualisieren, muss jeweils eine _Custom Resource_ (CR) für die gewünschte Komponente auf den Cluster im korrekten Cluster-Namespace angewendet werden.
 
-Beispiel einer Komponenten-Ressource (z. B. als `k8s-dogu-operator.yaml` und aus dem Helm-Registry-Namespace `k8s`):
+Beispiel einer Komponenten-Ressource (z. B. als `k8s-longhorn.yaml` und aus dem Helm-Registry-Namespace `k8s`):
 
 ```yaml
 apiVersion: k8s.cloudogu.com/v1
 kind: Component
 metadata:
-  name: k8s-dogu-operator
+  name: k8s-longhorn
 spec:
-  name: k8s-dogu-operator
+  name: k8s-longhorn
   namespace: k8s
-  version: 0.35.0
+  version: 1.5.1-1
+  deployNamespace: longhorn-system
+  valuesYamlOverwrite: |
+    longhorn:
+      defaultSettings:
+        backupTargetCredentialSecret: my-longhorn-backup-target
 ```
 
 > [!IMPORTANT]
@@ -68,7 +73,7 @@ spec:
 Diese CR kann dann auf den Cluster angewendet werden:
 
 ```bash
-kubectl -n ecosystem apply -f k8s-dogu-operator.yaml
+kubectl -n ecosystem apply -f k8s-longhorn.yaml
 ```
 
 Der Komponenten-Operator beginnt nun mit der Installation der Komponente. Abhängigkeiten zu anderen k8s-CES-Komponenten und deren Versionen müssen erfüllt sein (dies überprüft der Komponenten-Operator). Weitere Informationen zu diesem Thema befinden sich im Abschnitt [Abhängigkeiten zu anderen Komponenten](#Abhängigkeiten-zu-anderen-Komponenten).
@@ -85,6 +90,8 @@ Ein Komponenten-CR besteht aus unterschiedlichen Feldern. Dieser Abschnitt erlä
   - Mittels unterschiedlicher Komponenten-Namespaces können unterschiedliche Versionen ausgebracht werden (z. B. zu Debugging-Zwecken). 
   - Es handelt sich hierbei _nicht_ um den Cluster-Namespace.
 - `.spec.version`: Die Version der Komponente in der Helm-Registry.
+- `.spec.deployNamespace`: (optional) Der k8s-Namespace, in dem alle Ressourcen der Komponente deployed werden sollen. Wenn dieser leer ist, wird der Namespace des Komponenten-Operators verwendet.
+- `.spec.valuesYamlOverwrite`: (optional) Helm-Werte zum Überschreiben von Konfigurationen aus der Helm-Datei values.yaml. Sollte aus Gründen der Lesbarkeit als [multiline-yaml](https://yaml-multiline.info/) geschrieben werden.
 
 ## Komponenten deinstallieren
 
