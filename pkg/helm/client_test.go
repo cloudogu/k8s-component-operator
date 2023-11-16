@@ -583,3 +583,48 @@ func Test_sortByVersionDescending(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_GetChartSpecValues(t *testing.T) {
+	t.Run("should call HelmClient", func(t *testing.T) {
+		// given
+		chartSpec := &client.ChartSpec{
+			ReleaseName: "k8s-etcd",
+			ChartName:   "oci://some.endpoint/testing/myChart",
+		}
+
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().GetChartSpecValues(chartSpec).Return(map[string]interface{}{"key": "val"}, assert.AnError)
+
+		sut := &Client{
+			helmClient: mockedHelmClient,
+		}
+
+		// when
+		values, err := sut.GetChartSpecValues(chartSpec)
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Equal(t, 1, len(values))
+		assert.Equal(t, "val", values["key"])
+	})
+}
+
+func TestClient_GetReleaseValues(t *testing.T) {
+	t.Run("should call HelmClient", func(t *testing.T) {
+		// given
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().GetReleaseValues("name", false).Return(map[string]interface{}{"key": "val"}, assert.AnError)
+
+		sut := &Client{
+			helmClient: mockedHelmClient,
+		}
+
+		// when
+		values, err := sut.GetReleaseValues("name", false)
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Equal(t, 1, len(values))
+		assert.Equal(t, "val", values["key"])
+	})
+}

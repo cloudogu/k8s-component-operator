@@ -48,17 +48,22 @@ $ helm uninstall -n ecosystem k8s-component-operator
 
 To install or upgrade components, a _Custom Resource_ (CR) for each desired component must be applied to the cluster in the correct cluster namespace.
 
-Example of a component resource (e.g. as `k8s-dogu-operator.yaml` and from the Helm registry namespace `k8s`):
+Example of a component resource (e.g. as `k8s-longhorn.yaml` and from the Helm registry namespace `k8s`):
 
 ```yaml
 apiVersion: k8s.cloudogu.com/v1
 kind: Component
 metadata:
-  name: k8s-dogu-operator
+  name: k8s-longhorn
 spec:
-  name: k8s-dogu-operator
+  name: k8s-longhorn
   namespace: k8s
-  version: 0.35.0
+  version: 1.5.1-1
+  deployNamespace: longhorn-system
+  valuesYamlOverwrite: |
+    longhorn:
+      defaultSettings:
+        backupTargetCredentialSecret: my-longhorn-backup-target
 ```
 
 > [!IMPORTANT]
@@ -68,7 +73,7 @@ spec:
 CRs like this can then be applied to the cluster:
 
 ```bash
-kubectl -n ecosystem apply -f k8s-dogu-operator.yaml
+kubectl -n ecosystem apply -f k8s-longhorn.yaml
 ```
 
 The component operator now starts installing the component. Dependencies to other k8s-CES components and their versions must be fulfilled (this is checked by the component operator). For more information on this topic can be found in the section [Dependencies to other components](#Dependencies-to-other-components).
@@ -85,6 +90,8 @@ A component CR consists of various fields. This section describes these:
   - Using different component namespaces, different versions could be deployed (e.g. for debugging purposes).
   - This is _not_ the cluster namespace.
 - `.spec.version`: The version of the component in the helm registry.
+- `.spec.deployNamespace`: (optional) The k8s-namespace, where all resources of the component should be deployed. If this is empty the namespace of the component-operator will be used.
+- `.spec.valuesYamlOverwrite`: (optional) Helm-Values to overwrite configurations of the default values.yaml file. Should be written as a [multiline-yaml](https://yaml-multiline.info/) string for readability.
 
 ## Uninstall components
 

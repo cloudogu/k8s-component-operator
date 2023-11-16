@@ -25,6 +25,115 @@ func (_m *mockHelmClient) EXPECT() *mockHelmClient_Expecter {
 	return &mockHelmClient_Expecter{mock: &_m.Mock}
 }
 
+// GetChartSpecValues provides a mock function with given fields: chart
+func (_m *mockHelmClient) GetChartSpecValues(chart *client.ChartSpec) (map[string]interface{}, error) {
+	ret := _m.Called(chart)
+
+	var r0 map[string]interface{}
+	var r1 error
+	if rf, ok := ret.Get(0).(func(*client.ChartSpec) (map[string]interface{}, error)); ok {
+		return rf(chart)
+	}
+	if rf, ok := ret.Get(0).(func(*client.ChartSpec) map[string]interface{}); ok {
+		r0 = rf(chart)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(*client.ChartSpec) error); ok {
+		r1 = rf(chart)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockHelmClient_GetChartSpecValues_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChartSpecValues'
+type mockHelmClient_GetChartSpecValues_Call struct {
+	*mock.Call
+}
+
+// GetChartSpecValues is a helper method to define mock.On call
+//   - chart *client.ChartSpec
+func (_e *mockHelmClient_Expecter) GetChartSpecValues(chart interface{}) *mockHelmClient_GetChartSpecValues_Call {
+	return &mockHelmClient_GetChartSpecValues_Call{Call: _e.mock.On("GetChartSpecValues", chart)}
+}
+
+func (_c *mockHelmClient_GetChartSpecValues_Call) Run(run func(chart *client.ChartSpec)) *mockHelmClient_GetChartSpecValues_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(*client.ChartSpec))
+	})
+	return _c
+}
+
+func (_c *mockHelmClient_GetChartSpecValues_Call) Return(_a0 map[string]interface{}, _a1 error) *mockHelmClient_GetChartSpecValues_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockHelmClient_GetChartSpecValues_Call) RunAndReturn(run func(*client.ChartSpec) (map[string]interface{}, error)) *mockHelmClient_GetChartSpecValues_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetReleaseValues provides a mock function with given fields: name, allValues
+func (_m *mockHelmClient) GetReleaseValues(name string, allValues bool) (map[string]interface{}, error) {
+	ret := _m.Called(name, allValues)
+
+	var r0 map[string]interface{}
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, bool) (map[string]interface{}, error)); ok {
+		return rf(name, allValues)
+	}
+	if rf, ok := ret.Get(0).(func(string, bool) map[string]interface{}); ok {
+		r0 = rf(name, allValues)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]interface{})
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, bool) error); ok {
+		r1 = rf(name, allValues)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockHelmClient_GetReleaseValues_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetReleaseValues'
+type mockHelmClient_GetReleaseValues_Call struct {
+	*mock.Call
+}
+
+// GetReleaseValues is a helper method to define mock.On call
+//   - name string
+//   - allValues bool
+func (_e *mockHelmClient_Expecter) GetReleaseValues(name interface{}, allValues interface{}) *mockHelmClient_GetReleaseValues_Call {
+	return &mockHelmClient_GetReleaseValues_Call{Call: _e.mock.On("GetReleaseValues", name, allValues)}
+}
+
+func (_c *mockHelmClient_GetReleaseValues_Call) Run(run func(name string, allValues bool)) *mockHelmClient_GetReleaseValues_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(bool))
+	})
+	return _c
+}
+
+func (_c *mockHelmClient_GetReleaseValues_Call) Return(_a0 map[string]interface{}, _a1 error) *mockHelmClient_GetReleaseValues_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockHelmClient_GetReleaseValues_Call) RunAndReturn(run func(string, bool) (map[string]interface{}, error)) *mockHelmClient_GetReleaseValues_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // InstallOrUpgrade provides a mock function with given fields: ctx, chart
 func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) error {
 	ret := _m.Called(ctx, chart)

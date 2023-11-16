@@ -50,6 +50,12 @@ spec:
               namespace:
                 description: Namespace of the component (e.g. k8s)
                 type: string
+              valuesYamlOverwrite:
+                description: ValuesYamlOverwrite is a multiline-yaml string that is
+                  applied alongside the original values.yaml-file of the component.
+                  It can be used to overwrite specific configurations. Lists are overwritten,
+                  maps are merged.
+                type: string
               version:
                 description: Version of the component (e.g. 2.4.48-3)
                 type: string

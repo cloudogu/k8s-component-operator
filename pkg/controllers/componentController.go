@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -256,7 +257,7 @@ func (r *componentReconciler) getChangeOperation(ctx context.Context, component 
 			logger.Info("Found existing release for reconciled component",
 				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
 			if existsReleaseInTargetNamespace {
-				return getChangeOperationForRelease(component, deployedRelease)
+				return r.getChangeOperationForRelease(component, deployedRelease)
 			}
 		}
 	}
@@ -264,7 +265,29 @@ func (r *componentReconciler) getChangeOperation(ctx context.Context, component 
 	return Ignore, nil
 }
 
-func getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
+func (r *componentReconciler) isValuesChanged(deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
+	deployedValues, err := r.helmClient.GetReleaseValues(deployedRelease.Name, false)
+	if err != nil {
+		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
+	}
+
+	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpec())
+	if err != nil {
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpec().ChartName, err)
+	}
+
+	// if no additional values are set, the maps will look like this:
+	// deployedValues=map[string]interface {}(nil)                                                                                                                                        │
+	// chartSpecValues=map[string]interface {}{}
+	// this is treated as a difference by DeepEqual, so we have to handle this edge case manually
+	if len(deployedValues) == 0 && len(chartSpecValues) == 0 {
+		return false, nil
+	}
+
+	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
+}
+
+func (r *componentReconciler) getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
@@ -282,6 +305,14 @@ func getChangeOperationForRelease(component *k8sv1.Component, release *release.R
 
 	if deployedAppVersion.GreaterThan(componentVersion) {
 		return Downgrade, nil
+	}
+
+	isValuesChanged, err := r.isValuesChanged(release, component)
+	if err != nil {
+		return "", fmt.Errorf("failed to compare Values.yaml files of component %s: %w", component.Name, err)
+	}
+	if isValuesChanged {
+		return Upgrade, nil
 	}
 
 	return Ignore, nil

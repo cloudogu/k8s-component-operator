@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- [#40] Components default values.yaml can be overwritten (with the field valuesYamlOverwrite)
 - [#38] Add [documentation](docs/operations/creating_components_en.md) for creating components and component-patch-templates
 
 ### Changed

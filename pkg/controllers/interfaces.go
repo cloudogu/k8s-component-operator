@@ -39,6 +39,10 @@ type helmClient interface {
 	Uninstall(releaseName string) error
 	// ListDeployedReleases returns all deployed helm releases
 	ListDeployedReleases() ([]*release.Release, error)
+	// GetReleaseValues returns the (optionally, all computed) values for the specified release.
+	GetReleaseValues(name string, allValues bool) (map[string]interface{}, error)
+	// GetChartSpecValues returns the additional values for the specified ChartSpec.
+	GetChartSpecValues(chart *client.ChartSpec) (map[string]interface{}, error)
 	// SatisfiesDependencies validates that all dependencies are installed in the required version. A nil error
 	// indicates that all dependencies (if any) meet the requirements, so that the client may conduct an installation or
 	// upgrade.
