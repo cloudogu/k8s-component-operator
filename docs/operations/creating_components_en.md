@@ -16,7 +16,6 @@ The following steps describe the creation of a general K8s CES component that ca
   - .gitignore
 - Determine the K8s resources of the component:
   - As K8s controller: Include the `k8s-controller.mk` Makefile to generate the K8s resources
-  - Otherwise: Create the Make target `k8s-create-temporary-resource`, which is responsible for creating the K8s resources
 - Create Helm chart `Chart.yaml` in `k8s/helm/` with `make helm-init-chart`
 - If necessary, enter [Component Dependencies](#component-dependencies) in the `Chart.yaml`.
 - Create a [Component Patch Template](#component-patch-template)
@@ -25,7 +24,7 @@ The following make targets can then be used:
 - `helm-generate`: Assembles the finished Helm chart in the target folder from the resources under k8s/helm and the generated K8s resources
 - `helm-apply`: Applies the chart in the local DEV cluster
 - `component-apply`: Applying the chart in the local DEV cluster as an installation/upgrade via the component operator
-- `helm-package-release`: Builds and packs the Helm chart as `.tgz` to release it into a Helm repository
+- `helm-package`: Builds and packs the Helm chart as `.tgz` to release it into a Helm repository
 
 
 ### Create component for third-party applications
