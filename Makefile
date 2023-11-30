@@ -15,7 +15,7 @@ HELM_PRE_APPLY_TARGETS=template-stage template-image-pull-policy template-log-le
 
 K8S_COMPONENT_SOURCE_VALUES = ${HELM_SOURCE_DIR}/values.yaml
 K8S_COMPONENT_TARGET_VALUES = ${HELM_TARGET_DIR}/values.yaml
-CRD_SOURCE = ${HELM_CRD_SOURCE_DIR}/templates/k8s.cloudogu.com_dogus.yaml
+CRD_SOURCE = ${HELM_CRD_SOURCE_DIR}/templates/k8s.cloudogu.com_components.yaml
 CRD_POST_MANIFEST_TARGETS = crd-add-labels crd-copy-for-go-embedding
 HELM_PRE_GENERATE_TARGETS = helm-values-update-image-version
 HELM_POST_GENERATE_TARGETS = helm-values-replace-image-repo
