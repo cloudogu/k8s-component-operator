@@ -6,21 +6,19 @@ manager:
   env:
     logLevel: info
     stage: production
-  resources:
-    limits:
-      cpu: 500m
-      memory: 128Mi
-    requests:
-      cpu: 10m
-      memory: 64Mi
+  resourceLimits:
+    cpu: 500m
+    memory: 128Mi
+  resourceRequests:
+    cpu: 10m
+    memory: 64Mi
 kubeRbacProxy:
   image:
     repository: gcr.io/kubebuilder/kube-rbac-proxy
     tag: v0.14.1
-  resources:
-    limits:
-      cpu: 500m
-      memory: 128Mi
-    requests:
-      cpu: 5m
-      memory: 64Mi
+  resourceLimits:
+    cpu: 500m
+    memory: 128Mi
+  resourceRequests:
+    cpu: 5m
+    memory: 64Mi
