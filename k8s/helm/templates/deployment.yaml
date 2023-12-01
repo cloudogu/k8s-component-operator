@@ -85,7 +85,7 @@ spec:
               readOnly: true
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: k8s-component-operator-controller-manager
+      serviceAccountName: {{ include "k8s-component-operator.name" . }}-controller-manager
       terminationGracePeriodSeconds: 10
       volumes:
         - name: component-operator-helm-registry
