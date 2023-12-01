@@ -37,7 +37,6 @@ import (
 )
 
 // Options captures the different ways to specify values
-// +kubebuilder:object:generate:=true
 type Options struct {
 	ValueFiles   []string // -f/--values
 	StringValues []string // --set-string
