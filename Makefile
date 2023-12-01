@@ -15,7 +15,6 @@ K8S_COMPONENT_SOURCE_VALUES = ${HELM_SOURCE_DIR}/values.yaml
 K8S_COMPONENT_TARGET_VALUES = ${HELM_TARGET_DIR}/values.yaml
 CRD_SOURCE = ${HELM_CRD_SOURCE_DIR}/templates/k8s.cloudogu.com_components.yaml
 HELM_PRE_APPLY_TARGETS = template-stage template-image-pull-policy template-log-level
-CRD_POST_MANIFEST_TARGETS = crd-add-labels crd-copy-for-go-embedding
 HELM_PRE_GENERATE_TARGETS = helm-values-update-image-version
 HELM_POST_GENERATE_TARGETS = helm-values-replace-image-repo
 IMAGE_IMPORT_TARGET=image-import
@@ -35,11 +34,6 @@ include build/make/k8s-controller.mk
 
 .PHONY: build-boot
 build-boot: crd-helm-apply helm-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.
-
-.PHONY: crd-copy-for-go-embedding
-crd-copy-for-go-embedding:
-	@echo "Copy CRD to pkg/api/v1/"
-	@cp ${CRD_SOURCE} pkg/api/v1/
 
 .PHONY: helm-values-update-image-version
 helm-values-update-image-version: $(BINARY_YQ)
