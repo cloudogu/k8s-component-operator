@@ -21,9 +21,9 @@ repositoryName = "k8s-component-operator"
 project = "github.com/${repositoryOwner}/${repositoryName}"
 registry = "registry.cloudogu.com"
 registry_namespace = "k8s"
-helmTargetDir = "target/k8s"
-helmChartDir = "${helmTargetDir}/helm"
-helmCRDChartDir = "${helmTargetDir}/helm-crd"
+k8sTargetDir = "target/k8s"
+helmChartDir = "${k8sTargetDir}/helm"
+helmCRDChartDir = "${k8sTargetDir}/helm-crd"
 
 // Configuration of branches
 productionReleaseBranch = "main"
@@ -66,13 +66,14 @@ node('docker') {
                             stage('Generate k8s Resources') {
                                 make 'crd-helm-generate'
                                 make 'helm-generate'
-                                archiveArtifacts 'target/*.yaml'
+                                archiveArtifacts "${k8sTargetDir}/**/*"
+                            }
+
+                            stage("Lint helm") {
+                                make 'crd-helm-lint'
+                                make 'helm-lint'
                             }
                         }
-
-        stage("Lint k8s Resources") {
-            stageLintK8SResources()
-        }
 
         stage('SonarQube') {
             stageStaticAnalysisSonarQube()
@@ -129,18 +130,6 @@ void gitWithCredentials(String command) {
                 returnStdout: true
         )
     }
-}
-
-void stageLintK8SResources() {
-    String kubevalImage = "cytopia/kubeval:0.13"
-    String controllerVersion = makefile.getVersion()
-
-    docker
-            .image(kubevalImage)
-            .inside("-v ${WORKSPACE}/target:/data -t --entrypoint=")
-                    {
-                        sh "kubeval /data/${repositoryName}_${controllerVersion}.yaml --ignore-missing-schemas"
-                    }
 }
 
 void stageStaticAnalysisReviewDog() {
@@ -214,6 +203,7 @@ void stageAutomaticRelease() {
                                 // Package operator-chart & crd-chart
                                 make 'helm-package'
                                 make 'crd-helm-package'
+                                archiveArtifacts "${k8sTargetDir}/**/*"
 
                                 // Push charts
                                 withCredentials([usernamePassword(credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD')]) {
