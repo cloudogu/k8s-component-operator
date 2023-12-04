@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"embed"
 	"fmt"
 	"time"
 
@@ -12,13 +11,6 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// This embed provides the crd for other applications. They can import this package and use the yaml file
-// for the CRD in e.g. integration tests. The file gets refreshed by copying from the kubebuilder config/crd/bases
-// folder by the "generate" make target.
-//
-//go:embed k8s.cloudogu.com_components.yaml
-var _ embed.FS
 
 const (
 	// ComponentStatusNotInstalled represents a status for a component that is not installed

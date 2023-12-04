@@ -1,0 +1,70 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.3
+  creationTimestamp: null
+  labels:
+    app: ces
+    app.kubernetes.io/name: k8s-component-operator
+  name: components.k8s.cloudogu.com
+spec:
+  group: k8s.cloudogu.com
+  names:
+    kind: Component
+    listKind: ComponentList
+    plural: components
+    singular: component
+  scope: Namespaced
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          description: Component is the Schema for the ces component API
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: ComponentSpec defines the desired state of a component.
+              properties:
+                deployNamespace:
+                  description: DeployNamespace is the namespace where the helm chart should be deployed in. This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
+                  type: string
+                name:
+                  description: Name of the component (e.g. k8s-dogu-operator)
+                  type: string
+                namespace:
+                  description: Namespace of the component (e.g. k8s)
+                  type: string
+                valuesYamlOverwrite:
+                  description: ValuesYamlOverwrite is a multiline-yaml string that is applied alongside the original values.yaml-file of the component. It can be used to overwrite specific configurations. Lists are overwritten, maps are merged.
+                  type: string
+                version:
+                  description: Version of the component (e.g. 2.4.48-3)
+                  type: string
+              type: object
+            status:
+              description: ComponentStatus defines the observed state of a Component.
+              properties:
+                requeueTimeNanos:
+                  description: RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
+                  format: int64
+                  type: integer
+                status:
+                  description: Status represents the state of the component in the ecosystem.
+                  type: string
+              required:
+                - status
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
