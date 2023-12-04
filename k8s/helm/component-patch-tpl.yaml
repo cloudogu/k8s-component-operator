@@ -1,0 +1,18 @@
+apiVersion: v1
+
+values:
+  images:
+    component-operator: cloudogu/k8s-component-operator:0.6.0
+    kube-rbac-proxy: gcr.io/kubebuilder/kube-rbac-proxy:v0.14.1
+
+patches:
+  values.yaml:
+    additionalImages:
+    kubeRbacProxy:
+      image:
+        repository: "{{ registryFrom .images.kube-rbac-proxy }}/{{ repositoryFrom .images.kube-rbac-proxy }}"
+        tag: "{{ tagFrom .images.kube-rbac-proxy }}"
+    manager:
+      image:
+        repository: "{{ registryFrom .images.component-operator }}/{{ repositoryFrom .images.component-operator }}"
+        tag: "{{ tagFrom .images.component-operator }}"
