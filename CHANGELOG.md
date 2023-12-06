@@ -6,8 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- [#44] Patch-templates for mirroring this operator and its images
 - [#46] Added documentation for upgrading kubebuilder components.
-
 ### Changed
 - [#42] Replace monolithic K8s resource YAML into Helm templates
 - Update Makefiles to 9.0.1
