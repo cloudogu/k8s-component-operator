@@ -1,14 +1,23 @@
 # Set these to the desired values
 ARTIFACT_ID=k8s-component-operator
-VERSION=0.6.0
+VERSION=0.7.0
 ## Image URL to use all building/pushing image targets
-IMAGE_DEV=${K3CES_REGISTRY_URL_PREFIX}/${ARTIFACT_ID}:${VERSION}
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
 GOTAG?=1.21
-MAKEFILES_VERSION=8.7.0
+MAKEFILES_VERSION=9.0.1
 LINT_VERSION?=v1.52.1
 
 ADDITIONAL_CLEAN=dist-clean
+
+K8S_RUN_PRE_TARGETS = setup-etcd-port-forward
+PRE_COMPILE = generate-deepcopy
+K8S_COMPONENT_SOURCE_VALUES = ${HELM_SOURCE_DIR}/values.yaml
+K8S_COMPONENT_TARGET_VALUES = ${HELM_TARGET_DIR}/values.yaml
+HELM_PRE_APPLY_TARGETS = template-stage template-image-pull-policy template-log-level
+HELM_PRE_GENERATE_TARGETS = helm-values-update-image-version
+HELM_POST_GENERATE_TARGETS = helm-values-replace-image-repo
+IMAGE_IMPORT_TARGET=image-import
+CHECK_VAR_TARGETS=check-all-vars
 
 include build/make/variables.mk
 include build/make/self-update.mk
@@ -20,41 +29,24 @@ include build/make/static-analysis.mk
 include build/make/clean.mk
 include build/make/digital-signature.mk
 include build/make/mocks.mk
-
-K8S_RUN_PRE_TARGETS=install setup-etcd-port-forward
-PRE_COMPILE=generate
-
-K8S_RESOURCE_TEMP_FOLDER ?= $(TARGET_DIR)
-K8S_PRE_GENERATE_TARGETS=k8s-create-temporary-resource template-stage template-dev-only-image-pull-policy template-log-level
-
 include build/make/k8s-controller.mk
 
 .PHONY: build-boot
-build-boot: image-import k8s-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.
+build-boot: crd-helm-apply helm-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.
 
-##@ Controller specific targets
+.PHONY: helm-values-update-image-version
+helm-values-update-image-version: $(BINARY_YQ)
+	@echo "Updating the image version in source value.yaml to ${VERSION}..."
+	@$(BINARY_YQ) -i e ".manager.image.tag = \"${VERSION}\"" ${K8S_COMPONENT_SOURCE_VALUES}
 
-.PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	@echo "Generate manifests..."
-	@$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	@cp config/crd/bases/k8s.cloudogu.com_components.yaml pkg/api/v1/
-
-.PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	@echo "Auto-generate deepcopy functions..."
-	@$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+.PHONY: helm-values-replace-image-repo
+helm-values-replace-image-repo: $(BINARY_YQ)
+	@if [[ ${STAGE} == "development" ]]; then \
+      		echo "Setting dev image repo in target value.yaml!" ;\
+    		$(BINARY_YQ) -i e ".manager.image.repository=\"${IMAGE_DEV}\"" ${K8S_COMPONENT_TARGET_VALUES} ;\
+    	fi
 
 ##@ Deployment
-
-.PHONY: install
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-
-.PHONY: uninstall
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | kubectl delete --wait=false --ignore-not-found=true -f -
-	@kubectl patch crd/components.k8s.cloudogu.com -p '{"metadata":{"finalizers":[]}}' --type=merge || true
 
 .PHONY: setup-etcd-port-forward
 setup-etcd-port-forward:
@@ -62,23 +54,27 @@ setup-etcd-port-forward:
 
 .PHONY: template-stage
 template-stage: $(BINARY_YQ)
-	@echo "Setting STAGE env in deployment to ${STAGE}!"
-	@$(BINARY_YQ) -i e "(select(.kind == \"Deployment\").spec.template.spec.containers[]|select(.image == \"*$(ARTIFACT_ID)*\").env[]|select(.name==\"STAGE\").value)=\"${STAGE}\"" $(K8S_RESOURCE_TEMP_YAML)
+	@if [[ ${STAGE} == "development" ]]; then \
+  		echo "Setting STAGE env in deployment to ${STAGE}!" ;\
+		$(BINARY_YQ) -i e ".manager.env.stage=\"${STAGE}\"" ${K8S_COMPONENT_TARGET_VALUES} ;\
+	fi
 
 .PHONY: template-log-level
 template-log-level: $(BINARY_YQ)
 	@echo "Setting LOG_LEVEL env in deployment to ${LOG_LEVEL}!"
-	@$(BINARY_YQ) -i e "(select(.kind == \"Deployment\").spec.template.spec.containers[]|select(.image == \"*$(ARTIFACT_ID)*\").env[]|select(.name==\"LOG_LEVEL\").value)=\"${LOG_LEVEL}\"" $(K8S_RESOURCE_TEMP_YAML)
+	@$(BINARY_YQ) -i e ".manager.env.logLevel=\"${LOG_LEVEL}\"" ${K8S_COMPONENT_TARGET_VALUES}
 
-.PHONY: template-dev-only-image-pull-policy
-template-dev-only-image-pull-policy: $(BINARY_YQ)
-	@echo "Setting pull policy to always!"
-	@$(BINARY_YQ) -i e "(select(.kind == \"Deployment\").spec.template.spec.containers[]|select(.image == \"*$(ARTIFACT_ID)*\").imagePullPolicy)=\"Always\"" $(K8S_RESOURCE_TEMP_YAML)
+.PHONY: template-image-pull-policy
+template-image-pull-policy: $(BINARY_YQ)
+	@if [[ ${STAGE} == "development" ]]; then \
+  		echo "Setting PULL POLICY to always!" ;\
+		$(BINARY_YQ) -i e ".manager.imagePullPolicy=\"Always\"" ${K8S_COMPONENT_TARGET_VALUES} ;\
+	fi
 
 .PHONY: kill-operator-pod
 kill-operator-pod:
-	@echo "Restarting k8s-component-operator!"
-	@kubectl -n ${NAMESPACE} delete pods -l 'app.kubernetes.io/name=k8s-component-operator'
+	@echo "Restarting k8s-dogu-operator!"
+	@kubectl -n ${NAMESPACE} delete pods -l 'app.kubernetes.io/name=${ARTIFACT_ID}'
 
 ##@ Helm-Repo-Config
 .PHONY: helm-repo-config

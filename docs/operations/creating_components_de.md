@@ -16,7 +16,6 @@ Die folgenden Schritte beschreiben die Erstellung einer allgemeinen K8s-CES-Komp
    - .gitignore
 - Die K8s-Ressourcen der Komponente bestimmen:
   - Als K8s-Controller: Einbindung des `k8s-controller.mk` Makefiles zur Generierung der K8s-Ressourcen
-  - Andernfalls: Das Make-Target `k8s-create-temporary-resource` erstellen, das für die Erstellung der K8s-Ressourcen zuständig ist
 - Helm-Chart `Chart.yaml` in `k8s/helm/` mit `make helm-init-chart` erzeugen
 - Ggf. [Component Dependencies](#component-dependencies) in der `Chart.yaml` eintragen
 - Ein [Component Patch Template](#component-patch-template) erstellen

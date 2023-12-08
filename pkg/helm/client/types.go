@@ -72,7 +72,6 @@ type HelmTemplateOptions struct {
 }
 
 // ChartSpec defines the values of a helm chart
-// +kubebuilder:object:generate:=true
 type ChartSpec struct {
 	ReleaseName string `json:"release"`
 	ChartName   string `json:"chart"`

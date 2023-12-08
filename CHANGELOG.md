@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.7.0] - 2023-12-08
+### Added
+- [#44] Patch-templates for mirroring this operator and its images
+- [#46] Added documentation for upgrading kubebuilder components.
+### Changed
+- [#42] Replace monolithic K8s resource YAML into Helm templates
+- Update Makefiles to 9.0.1
+
 ## [v0.6.0] - 2023-11-16
 ### Added
 - [#40] Components default values.yaml can be overwritten (with the field valuesYamlOverwrite)
