@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,6 +27,11 @@ const (
 )
 
 const FinalizerName = "component-finalizer"
+
+const (
+	componentNameLabelKey    = "k8s.cloudogu.com/component.name"
+	componentVersionLabelKey = "k8s.cloudogu.com/component.version"
+)
 
 // ComponentSpec defines the desired state of a component.
 type ComponentSpec struct {
@@ -94,6 +100,10 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		CleanupOnFail: false,
 		// Create non-existent namespace so that the operator can install charts in other namespaces.
 		CreateNamespace: true,
+		PostRenderer: labels.NewPostRenderer(map[string]string{
+			componentNameLabelKey:    c.Spec.Name,
+			componentVersionLabelKey: c.Spec.Version,
+		}),
 	}
 }
 

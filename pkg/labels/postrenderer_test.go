@@ -1,0 +1,271 @@
+package labels
+
+import (
+	"bytes"
+	_ "embed"
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+//go:embed testdata/job.yaml
+var jobBytes []byte
+
+//go:embed testdata/jobWithLabels.yaml
+var jobWithLabelsBytes []byte
+
+func TestPostRenderer_Run(t *testing.T) {
+	testJob := &batchv1.Job{
+		TypeMeta:   metav1.TypeMeta{Kind: "Job", APIVersion: "batch/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "hello"},
+		Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{
+			{Name: "hello", Image: "busyboxy", Command: []string{"sh", "-c", `echo "Hello, Kubernetes!" && sleep 3600`}},
+		}}}},
+	}
+
+	type fields struct {
+		documentSplitterFn       func(t *testing.T) documentSplitter
+		unstructuredSerializerFn func(t *testing.T) unstructuredSerializer
+		unstructuredConverterFn  func(t *testing.T) unstructuredConverter
+		serializerFn             func(t *testing.T) genericYamlSerializer
+		labels                   map[string]string
+	}
+	tests := []struct {
+		name                     string
+		fields                   fields
+		renderedManifests        *bytes.Buffer
+		wantModifiedManifestsStr string
+		wantErr                  assert.ErrorAssertionFunc
+	}{
+		{
+			name: "should fail to split document",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					t.Helper()
+					splitter := newMockDocumentSplitter(t)
+					splitter.EXPECT().WithReader(mock.Anything).Return(splitter)
+					splitter.EXPECT().Next().Return(false)
+					splitter.EXPECT().Err().Return(assert.AnError)
+					return splitter
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return newMockUnstructuredSerializer(t)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return newMockUnstructuredConverter(t)
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return newMockGenericYamlSerializer(t)
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(jobBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to split yaml document", i)
+			},
+		},
+		{
+			name: "should fail to decode object",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					t.Helper()
+					splitter := newMockDocumentSplitter(t)
+					splitter.EXPECT().WithReader(mock.Anything).Return(splitter)
+					nextCall := splitter.EXPECT().Next().Return(true).Once()
+					splitter.EXPECT().Next().Return(false).NotBefore(nextCall)
+					splitter.EXPECT().Bytes().Return(jobBytes)
+					return splitter
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					us := newMockUnstructuredSerializer(t)
+					us.EXPECT().Decode(jobBytes, (*schema.GroupVersionKind)(nil), nil).Return(nil, nil, assert.AnError)
+					return us
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return newMockUnstructuredConverter(t)
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return newMockGenericYamlSerializer(t)
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(jobBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to parse yaml resources", i)
+			},
+		},
+		{
+			name: "should fail to convert to unstructured map",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					t.Helper()
+					splitter := newMockDocumentSplitter(t)
+					splitter.EXPECT().WithReader(mock.Anything).Return(splitter)
+					nextCall := splitter.EXPECT().Next().Return(true).Once()
+					splitter.EXPECT().Next().Return(false).NotBefore(nextCall)
+					splitter.EXPECT().Bytes().Return(jobBytes)
+					return splitter
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					us := newMockUnstructuredSerializer(t)
+					us.EXPECT().Decode(jobBytes, (*schema.GroupVersionKind)(nil), nil).Return(testJob, nil, nil)
+					return us
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(testJob).Return(nil, assert.AnError)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return newMockGenericYamlSerializer(t)
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(jobBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to convert resource to unstructured object", i)
+			},
+		},
+		{
+			name: "should fail to serialize resource back to yaml",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					t.Helper()
+					splitter := newMockDocumentSplitter(t)
+					splitter.EXPECT().WithReader(mock.Anything).Return(splitter)
+					nextCall := splitter.EXPECT().Next().Return(true).Once()
+					splitter.EXPECT().Next().Return(false).NotBefore(nextCall)
+					splitter.EXPECT().Bytes().Return(jobBytes)
+					return splitter
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					us := newMockUnstructuredSerializer(t)
+					us.EXPECT().Decode(jobBytes, (*schema.GroupVersionKind)(nil), nil).Return(testJob, nil, nil)
+					return us
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(testJob).Return(jobMap(), nil)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					ys := newMockGenericYamlSerializer(t)
+					ys.EXPECT().Marshal(&unstructured.Unstructured{Object: jobMapWitLabels()}).Return(nil, assert.AnError)
+					return ys
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(jobBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to serialize resources back to yaml", i)
+			},
+		},
+		{
+			name: "should succeed",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					t.Helper()
+					splitter := newMockDocumentSplitter(t)
+					splitter.EXPECT().WithReader(mock.Anything).Return(splitter)
+					nextCall := splitter.EXPECT().Next().Return(true).Once()
+					splitter.EXPECT().Next().Return(false).NotBefore(nextCall)
+					splitter.EXPECT().Bytes().Return(jobBytes)
+					splitter.EXPECT().Err().Return(nil)
+					return splitter
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					us := newMockUnstructuredSerializer(t)
+					us.EXPECT().Decode(jobBytes, (*schema.GroupVersionKind)(nil), nil).Return(testJob, nil, nil)
+					return us
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(testJob).Return(jobMap(), nil)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					ys := newMockGenericYamlSerializer(t)
+					ys.EXPECT().Marshal(&unstructured.Unstructured{Object: jobMapWitLabels()}).Return(jobWithLabelsBytes, nil)
+					return ys
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(jobBytes),
+			wantModifiedManifestsStr: fmt.Sprintf("%s\n---\n", jobWithLabelsBytes),
+			wantErr:                  assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &PostRenderer{
+				documentSplitter:       tt.fields.documentSplitterFn(t),
+				unstructuredSerializer: tt.fields.unstructuredSerializerFn(t),
+				unstructuredConverter:  tt.fields.unstructuredConverterFn(t),
+				serializer:             tt.fields.serializerFn(t),
+				labels:                 tt.fields.labels,
+			}
+			gotModifiedManifests, err := c.Run(tt.renderedManifests)
+			tt.wantErr(t, err)
+			assert.Equal(t, tt.wantModifiedManifestsStr, gotModifiedManifests.String())
+		})
+	}
+}
+
+func jobMap() map[string]interface{} {
+	return map[string]interface{}{"apiVersion": "batch/v1", "kind": "Job", "metadata": map[string]interface{}{"name": "hello"},
+		"spec": map[string]interface{}{"template": map[string]interface{}{"spec": map[string]interface{}{
+			"containers": []map[string]interface{}{{"name": "hello", "image": "busybox", "command": []interface{}{"sh", "-c", `echo "Hello, Kubernetes!" && sleep 3600`}}},
+		}}},
+	}
+}
+
+func jobMapWitLabels() map[string]interface{} {
+	return map[string]interface{}{"apiVersion": "batch/v1", "kind": "Job",
+		"metadata": map[string]interface{}{"name": "hello", "labels": map[string]interface{}{
+			"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+			"k8s.cloudogu.com/component.version": "1.2.3-4",
+		}},
+		"spec": map[string]interface{}{"template": map[string]interface{}{"spec": map[string]interface{}{
+			"containers": []map[string]interface{}{{"name": "hello", "image": "busybox", "command": []interface{}{"sh", "-c", `echo "Hello, Kubernetes!" && sleep 3600`}}},
+		}}},
+	}
+}
+
+func TestNewPostRenderer(t *testing.T) {
+	renderer := NewPostRenderer(map[string]string{
+		"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+		"k8s.cloudogu.com/component.version": "1.2.3-4",
+	})
+	assert.NotEmpty(t, renderer)
+}
