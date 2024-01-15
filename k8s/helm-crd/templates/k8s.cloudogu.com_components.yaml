@@ -53,6 +53,9 @@ spec:
             status:
               description: ComponentStatus defines the observed state of a Component.
               properties:
+                health:
+                  description: Health describes the health status of the component
+                  type: string
                 requeueTimeNanos:
                   description: RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
                   format: int64
