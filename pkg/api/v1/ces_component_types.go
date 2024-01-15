@@ -29,8 +29,8 @@ const (
 const FinalizerName = "component-finalizer"
 
 const (
-	componentNameLabelKey    = "k8s.cloudogu.com/component.name"
-	componentVersionLabelKey = "k8s.cloudogu.com/component.version"
+	ComponentNameLabelKey    = "k8s.cloudogu.com/component.name"
+	ComponentVersionLabelKey = "k8s.cloudogu.com/component.version"
 )
 
 // ComponentSpec defines the desired state of a component.
@@ -50,12 +50,22 @@ type ComponentSpec struct {
 	ValuesYamlOverwrite string `json:"valuesYamlOverwrite,omitempty"`
 }
 
+type HealthStatus string
+
+const (
+	PendingHealthStatus     HealthStatus = ""
+	AvailableHealthStatus   HealthStatus = "available"
+	UnavailableHealthStatus HealthStatus = "unavailable"
+)
+
 // ComponentStatus defines the observed state of a Component.
 type ComponentStatus struct {
 	// Status represents the state of the component in the ecosystem.
 	Status string `json:"status"`
 	// RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
 	RequeueTimeNanos time.Duration `json:"requeueTimeNanos,omitempty"`
+	// Health describes the health status of the component
+	Health HealthStatus `json:"health,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -101,8 +111,8 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		// Create non-existent namespace so that the operator can install charts in other namespaces.
 		CreateNamespace: true,
 		PostRenderer: labels.NewPostRenderer(map[string]string{
-			componentNameLabelKey:    c.Spec.Name,
-			componentVersionLabelKey: c.Spec.Version,
+			ComponentNameLabelKey:    c.Spec.Name,
+			ComponentVersionLabelKey: c.Spec.Version,
 		}),
 	}
 }

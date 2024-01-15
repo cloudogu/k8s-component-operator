@@ -8,6 +8,7 @@ import (
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/cloudogu/k8s-component-operator/pkg/controllers"
+	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/logging"
 	"k8s.io/client-go/kubernetes"
@@ -161,6 +162,12 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)
+	}
+
+	healthReconcilers := health.NewController(operatorConfig.Namespace, componentClientSet)
+	err = healthReconcilers.SetupWithManager(k8sManager)
+	if err != nil {
+		return fmt.Errorf("failed to setup health reconcilers with manager: %w", err)
 	}
 
 	return nil
