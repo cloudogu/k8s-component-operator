@@ -25,12 +25,14 @@ func (s *documentSplitter) WithReader(r io.Reader) DocumentSplitter {
 }
 
 func (s *documentSplitter) Next() bool {
-	if err := s.decoder.Decode(s.currentDocument); err != nil {
+	var raw runtime.RawExtension
+	if err := s.decoder.Decode(&raw); err != nil {
 		s.err = fmt.Errorf("failed to decode next yaml document: %w", err)
 		s.currentDocument = nil
 		return false
 	}
 
+	s.currentDocument = &raw
 	return true
 }
 

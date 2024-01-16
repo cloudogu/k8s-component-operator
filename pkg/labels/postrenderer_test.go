@@ -13,7 +13,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
+
+	yamlutil "github.com/cloudogu/k8s-component-operator/pkg/yaml"
 )
 
 //go:embed testdata/job.yaml
@@ -21,6 +25,12 @@ var jobBytes []byte
 
 //go:embed testdata/jobWithLabels.yaml
 var jobWithLabelsBytes []byte
+
+//go:embed testdata/doguOp.yaml
+var doguOpBytes []byte
+
+//go:embed testdata/doguOpWithLabels.yaml
+var doguOpWithLabelsStr string
 
 func TestPostRenderer_Run(t *testing.T) {
 	testJob := &batchv1.Job{
@@ -223,6 +233,30 @@ func TestPostRenderer_Run(t *testing.T) {
 			},
 			renderedManifests:        bytes.NewBuffer(jobBytes),
 			wantModifiedManifestsStr: fmt.Sprintf("%s\n---\n", jobWithLabelsBytes),
+			wantErr:                  assert.NoError,
+		},
+		{
+			name: "test integration",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return runtime.DefaultUnstructuredConverter
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-dogu-operator",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(doguOpBytes),
+			wantModifiedManifestsStr: doguOpWithLabelsStr,
 			wantErr:                  assert.NoError,
 		},
 	}

@@ -35,12 +35,7 @@ func (c *PostRenderer) Run(renderedManifests *bytes.Buffer) (modifiedManifests *
 
 	c.documentSplitter.WithReader(renderedManifests)
 	for c.documentSplitter.Next() {
-		documentBytes := c.documentSplitter.Bytes()
-		if documentBytes == nil {
-			continue
-		}
-
-		obj, _, err := c.unstructuredSerializer.Decode(documentBytes, nil, nil)
+		obj, _, err := c.unstructuredSerializer.Decode(c.documentSplitter.Bytes(), nil, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse yaml resources: %w", err)
 		}
