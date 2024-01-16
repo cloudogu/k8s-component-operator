@@ -1,6 +1,7 @@
 package yaml
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -34,7 +35,7 @@ func (s *documentSplitter) Next() bool {
 }
 
 func (s *documentSplitter) Err() error {
-	if s.err == io.EOF {
+	if errors.Is(s.err, io.EOF) {
 		return nil
 	}
 	return s.err
