@@ -4197,8 +4197,6 @@ spec:
         - name: longhorn-manager
           image: longhornio/longhorn-manager:v1.5.1
           imagePullPolicy: IfNotPresent
-          securityContext:
-            privileged: true
           command:
             - longhorn-manager
             - -d
@@ -4236,9 +4234,6 @@ spec:
               mountPath: /host/dev/
             - name: proc
               mountPath: /host/proc/
-            - name: longhorn
-              mountPath: /var/lib/longhorn/
-              mountPropagation: Bidirectional
             - name: longhorn-grpc-tls
               mountPath: /tls-files/
           env:
@@ -4261,9 +4256,6 @@ spec:
         - name: proc
           hostPath:
             path: /proc/
-        - name: longhorn
-          hostPath:
-            path: /var/lib/longhorn/
         - name: longhorn-grpc-tls
           secret:
             secretName: longhorn-grpc-tls

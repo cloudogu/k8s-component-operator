@@ -4689,16 +4689,11 @@ spec:
             path: /v1/healthz
             port: 9501
             scheme: HTTPS
-        securityContext:
-          privileged: true
         volumeMounts:
         - mountPath: /host/dev/
           name: dev
         - mountPath: /host/proc/
           name: proc
-        - mountPath: /var/lib/longhorn/
-          mountPropagation: Bidirectional
-          name: longhorn
         - mountPath: /tls-files/
           name: longhorn-grpc-tls
       serviceAccountName: longhorn-service-account
@@ -4709,9 +4704,6 @@ spec:
       - hostPath:
           path: /proc/
         name: proc
-      - hostPath:
-          path: /var/lib/longhorn/
-        name: longhorn
       - name: longhorn-grpc-tls
         secret:
           optional: true
