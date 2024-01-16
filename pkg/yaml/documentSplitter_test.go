@@ -109,7 +109,7 @@ func Test_documentSplitter_Next(t *testing.T) {
 		// given
 		decoderMock := newMockDecoder(t)
 		sut := &documentSplitter{decoder: decoderMock}
-		decoderMock.EXPECT().Decode(sut.currentDocument).Return(io.EOF)
+		decoderMock.EXPECT().Decode(&runtime.RawExtension{}).Return(io.EOF)
 
 		// when
 		actual := sut.Next()
@@ -122,7 +122,7 @@ func Test_documentSplitter_Next(t *testing.T) {
 		// given
 		decoderMock := newMockDecoder(t)
 		sut := &documentSplitter{decoder: decoderMock}
-		decoderMock.EXPECT().Decode(sut.currentDocument).Return(assert.AnError)
+		decoderMock.EXPECT().Decode(&runtime.RawExtension{}).Return(assert.AnError)
 
 		// when
 		actual := sut.Next()
@@ -135,7 +135,7 @@ func Test_documentSplitter_Next(t *testing.T) {
 		// given
 		decoderMock := newMockDecoder(t)
 		sut := &documentSplitter{decoder: decoderMock}
-		decoderMock.EXPECT().Decode(sut.currentDocument).Return(nil)
+		decoderMock.EXPECT().Decode(&runtime.RawExtension{}).Return(nil)
 
 		// when
 		actual := sut.Next()
