@@ -32,6 +32,12 @@ var doguOpBytes []byte
 //go:embed testdata/doguOpWithLabels.yaml
 var doguOpWithLabelsStr string
 
+//go:embed testdata/longhorn.yaml
+var longhornBytes []byte
+
+//go:embed testdata/longhornWithLabels.yaml
+var longhornWithLabelsStr string
+
 func TestPostRenderer_Run(t *testing.T) {
 	testJob := &batchv1.Job{
 		TypeMeta:   metav1.TypeMeta{Kind: "Job", APIVersion: "batch/v1"},
@@ -236,7 +242,7 @@ func TestPostRenderer_Run(t *testing.T) {
 			wantErr:                  assert.NoError,
 		},
 		{
-			name: "test integration",
+			name: "test integration dogu-operator",
 			fields: fields{
 				documentSplitterFn: func(t *testing.T) documentSplitter {
 					return yamlutil.NewDocumentSplitter()
@@ -257,6 +263,30 @@ func TestPostRenderer_Run(t *testing.T) {
 			},
 			renderedManifests:        bytes.NewBuffer(doguOpBytes),
 			wantModifiedManifestsStr: doguOpWithLabelsStr,
+			wantErr:                  assert.NoError,
+		},
+		{
+			name: "test integration longhorn",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return runtime.DefaultUnstructuredConverter
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-longhorn",
+					"k8s.cloudogu.com/component.version": "1.5.1-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(longhornBytes),
+			wantModifiedManifestsStr: longhornWithLabelsStr,
 			wantErr:                  assert.NoError,
 		},
 	}
