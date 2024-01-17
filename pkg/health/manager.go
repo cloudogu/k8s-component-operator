@@ -52,12 +52,14 @@ func (m *defaultManager) componentHealthStatus(ctx context.Context, deployments 
 	states = append(states, util.Map(statefulSets.Items, statefulSetToState)...)
 	states = append(states, util.Map(daemonSets.Items, daemonSetToState)...)
 
-	componentAvailable := util.Reduce(states, true, func(value state, acc bool) bool {
-		applicationAvailable := value.IsAvailable()
-		if !applicationAvailable {
-			logger.Info(fmt.Sprintf("%s %q of component %q is not (yet?) available", value.kind, value.name, value.component))
+	for _, state := range states {
+		if !state.IsAvailable() {
+			logger.Info(fmt.Sprintf("%s %q of component %q is not (yet?) available", state.kind, state.name, state.component))
 		}
-		return applicationAvailable && acc
+	}
+
+	componentAvailable := util.Reduce(states, true, func(value state, acc bool) bool {
+		return value.IsAvailable() && acc
 	})
 
 	if componentAvailable {
