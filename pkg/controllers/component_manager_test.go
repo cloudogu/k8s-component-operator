@@ -11,7 +11,7 @@ import (
 func TestNewComponentManager(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// when
-		sut := NewComponentManager(nil, nil, nil)
+		sut := NewComponentManager(nil, nil, nil, nil)
 
 		// then
 		require.NotNil(t, sut)
@@ -27,7 +27,7 @@ func Test_componentManager_Install(t *testing.T) {
 		eventRecorderMock := newMockEventRecorder(t)
 		eventRecorderMock.EXPECT().Event(component, "Normal", "Installation", "Starting installation...")
 
-		sut := &componentManager{
+		sut := &DefaultComponentManager{
 			installManager: installManagerMock,
 			recorder:       eventRecorderMock,
 		}
@@ -49,7 +49,7 @@ func Test_componentManager_Upgrade(t *testing.T) {
 		eventRecorderMock := newMockEventRecorder(t)
 		eventRecorderMock.EXPECT().Event(component, "Normal", "Upgrade", "Starting upgrade...")
 
-		sut := &componentManager{
+		sut := &DefaultComponentManager{
 			upgradeManager: upgradeManagerMock,
 			recorder:       eventRecorderMock,
 		}
@@ -70,7 +70,7 @@ func Test_componentManager_Delete(t *testing.T) {
 		eventRecorderMock := newMockEventRecorder(t)
 		eventRecorderMock.EXPECT().Event(component, "Normal", "Deinstallation", "Starting deinstallation...")
 
-		sut := &componentManager{
+		sut := &DefaultComponentManager{
 			deleteManager: deleteManagerMock,
 			recorder:      eventRecorderMock,
 		}

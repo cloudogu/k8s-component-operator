@@ -14,7 +14,7 @@ import (
 
 type daemonSetReconciler struct {
 	clientSet ecosystemClientSet
-	manager   componentManager
+	manager   ComponentManager
 }
 
 func (dsr *daemonSetReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {

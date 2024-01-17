@@ -27,7 +27,7 @@ type appsV1Client interface {
 	appsv1client.AppsV1Interface
 }
 
-type componentManager interface {
+type ComponentManager interface {
 	UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error
 }
 

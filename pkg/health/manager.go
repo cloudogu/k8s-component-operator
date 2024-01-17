@@ -11,19 +11,19 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/util"
 )
 
-type defaultManager struct {
+type DefaultManager struct {
 	applicationFinder
 	componentRepo
 }
 
-func newManager(namespace string, clientSet ecosystemClientSet) *defaultManager {
-	return &defaultManager{
+func NewManager(namespace string, clientSet ecosystemClientSet) *DefaultManager {
+	return &DefaultManager{
 		applicationFinder: &defaultApplicationFinder{appsClient: clientSet.AppsV1()},
 		componentRepo:     &defaultComponentRepo{client: clientSet.ComponentV1Alpha1().Components(namespace)},
 	}
 }
 
-func (m *defaultManager) UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error {
+func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error {
 	deploymentList, statefulSetList, daemonSetList, err := m.findComponentApplications(ctx, componentName, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to find applications for component %q: %w", componentName, err)
@@ -44,7 +44,7 @@ func (m *defaultManager) UpdateComponentHealth(ctx context.Context, componentNam
 	return nil
 }
 
-func (m *defaultManager) componentHealthStatus(ctx context.Context, deployments *appsv1.DeploymentList, statefulSets *appsv1.StatefulSetList, daemonSets *appsv1.DaemonSetList) v1.HealthStatus {
+func (m *DefaultManager) componentHealthStatus(ctx context.Context, deployments *appsv1.DeploymentList, statefulSets *appsv1.StatefulSetList, daemonSets *appsv1.DaemonSetList) v1.HealthStatus {
 	logger := log.FromContext(ctx).WithName("componentHealthStatus")
 
 	states := make([]state, 0, len(deployments.Items)+len(statefulSets.Items)+len(daemonSets.Items))

@@ -73,7 +73,7 @@ func Test_newManager(t *testing.T) {
 	clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
 	clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentV1Alpha1Mock)
 
-	assert.NotEmpty(t, newManager(testNamespace, clientSetMock))
+	assert.NotEmpty(t, NewManager(testNamespace, clientSetMock))
 }
 
 func Test_defaultManager_componentHealthStatus(t *testing.T) {
@@ -126,7 +126,7 @@ func Test_defaultManager_componentHealthStatus(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &defaultManager{}
+			m := &DefaultManager{}
 			assert.Equal(t, tt.want, m.componentHealthStatus(testCtx, tt.args.deployments, tt.args.statefulSets, tt.args.daemonSets))
 		})
 	}
@@ -227,7 +227,7 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &defaultManager{
+			m := &DefaultManager{
 				applicationFinder: tt.fields.applicationFinderFn(t),
 				componentRepo:     tt.fields.componentRepoFn(t),
 			}

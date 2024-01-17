@@ -25,7 +25,7 @@ func (m metaController) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func NewController(namespace string, clientSet ecosystemClientSet) RegistrableController {
-	manager := newManager(namespace, clientSet)
+	manager := NewManager(namespace, clientSet)
 	return &metaController{controllers: []RegistrableController{
 		&deploymentReconciler{clientSet: clientSet, manager: manager},
 		&statefulSetReconciler{clientSet: clientSet, manager: manager},

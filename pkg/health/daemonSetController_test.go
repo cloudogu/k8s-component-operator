@@ -54,7 +54,7 @@ func Test_daemonSetReconciler_SetupWithManager(t *testing.T) {
 func Test_daemonSetReconciler_Reconcile(t *testing.T) {
 	type fields struct {
 		clientSetFn func(t *testing.T) ecosystemClientSet
-		managerFn   func(t *testing.T) componentManager
+		managerFn   func(t *testing.T) ComponentManager
 	}
 	tests := []struct {
 		name    string
@@ -75,8 +75,8 @@ func Test_daemonSetReconciler_Reconcile(t *testing.T) {
 					clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
 					return clientSetMock
 				},
-				managerFn: func(t *testing.T) componentManager {
-					return newMockComponentManager(t)
+				managerFn: func(t *testing.T) ComponentManager {
+					return NewMockComponentManager(t)
 				},
 			},
 			want:    reconcile.Result{},
@@ -95,8 +95,8 @@ func Test_daemonSetReconciler_Reconcile(t *testing.T) {
 					clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
 					return clientSetMock
 				},
-				managerFn: func(t *testing.T) componentManager {
-					return newMockComponentManager(t)
+				managerFn: func(t *testing.T) ComponentManager {
+					return NewMockComponentManager(t)
 				},
 			},
 			want: reconcile.Result{},
@@ -122,8 +122,8 @@ func Test_daemonSetReconciler_Reconcile(t *testing.T) {
 					clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
 					return clientSetMock
 				},
-				managerFn: func(t *testing.T) componentManager {
-					return newMockComponentManager(t)
+				managerFn: func(t *testing.T) ComponentManager {
+					return NewMockComponentManager(t)
 				},
 			},
 			want:    reconcile.Result{},
@@ -149,8 +149,8 @@ func Test_daemonSetReconciler_Reconcile(t *testing.T) {
 					clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
 					return clientSetMock
 				},
-				managerFn: func(t *testing.T) componentManager {
-					manager := newMockComponentManager(t)
+				managerFn: func(t *testing.T) ComponentManager {
+					manager := NewMockComponentManager(t)
 					manager.EXPECT().UpdateComponentHealth(testCtx, testComponentName, testNamespace).
 						Return(assert.AnError)
 					return manager
@@ -182,8 +182,8 @@ func Test_daemonSetReconciler_Reconcile(t *testing.T) {
 					clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
 					return clientSetMock
 				},
-				managerFn: func(t *testing.T) componentManager {
-					manager := newMockComponentManager(t)
+				managerFn: func(t *testing.T) ComponentManager {
+					manager := NewMockComponentManager(t)
 					manager.EXPECT().UpdateComponentHealth(testCtx, testComponentName, testNamespace).
 						Return(nil)
 					return manager

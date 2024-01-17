@@ -12,25 +12,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// componentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
-type componentInstallManager struct {
+// ComponentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
+type ComponentInstallManager struct {
 	componentClient componentInterface
 	helmClient      helmClient
+	healthManager   healthManager
 	recorder        record.EventRecorder
 }
 
-// NewComponentInstallManager creates a new instance of componentInstallManager.
-func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, recorder record.EventRecorder) *componentInstallManager {
-	return &componentInstallManager{
+// NewComponentInstallManager creates a new instance of ComponentInstallManager.
+func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentInstallManager {
+	return &ComponentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
+		healthManager:   healthManager,
 		recorder:        recorder,
 	}
 }
 
 // Install installs a given Component Resource.
 // nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
-func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
+func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
 	err := cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpec())
@@ -70,6 +72,13 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 		}
 	}
 
+	// check if components are healthy
+	// this ensures that components without a Deployment, StatefulSet or DaemonSet get the 'available' health status
+	err = cim.healthManager.UpdateComponentHealth(ctx, component.Spec.Name, component.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
+	}
+
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return &genericRequeueableError{"failed to update status-installed for component " + component.Spec.Name, err}
@@ -80,7 +89,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	return nil
 }
 
-func (cim *componentInstallManager) UpdateComponentVersion(ctx context.Context, component *k8sv1.Component) (*k8sv1.Component, error) {
+func (cim *ComponentInstallManager) UpdateComponentVersion(ctx context.Context, component *k8sv1.Component) (*k8sv1.Component, error) {
 	deployedReleases, err := cim.helmClient.ListDeployedReleases()
 	if err != nil {
 		return component, fmt.Errorf("could not list deployed Helm releases: %w", err)

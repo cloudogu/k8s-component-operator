@@ -11,25 +11,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// componentUpgradeManager is a central unit in the process of handling the upgrade process of a custom component resource.
-type componentUpgradeManager struct {
+// ComponentUpgradeManager is a central unit in the process of handling the upgrade process of a custom component resource.
+type ComponentUpgradeManager struct {
 	componentClient componentInterface
 	helmClient      helmClient
+	healthManager   healthManager
 	recorder        record.EventRecorder
 }
 
-// NewComponentUpgradeManager creates a new instance of componentUpgradeManager.
-func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, recorder record.EventRecorder) *componentUpgradeManager {
-	return &componentUpgradeManager{
+// NewComponentUpgradeManager creates a new instance of ComponentUpgradeManager.
+func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentUpgradeManager {
+	return &ComponentUpgradeManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
+		healthManager:   healthManager,
 		recorder:        recorder,
 	}
 }
 
 // Upgrade upgrades a given component resource.
 // nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
-func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
+func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
 	err := cum.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpec())
@@ -50,6 +52,13 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 
 	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
+	}
+
+	// check if components are healthy
+	// this ensures that components without a Deployment, StatefulSet or DaemonSet get the 'available' health status
+	err = cum.healthManager.UpdateComponentHealth(ctx, component.Spec.Name, component.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
 	}
 
 	component, err = cum.componentClient.UpdateStatusInstalled(helmCtx, component)

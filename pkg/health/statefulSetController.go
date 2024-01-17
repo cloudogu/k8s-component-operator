@@ -14,7 +14,7 @@ import (
 
 type statefulSetReconciler struct {
 	clientSet ecosystemClientSet
-	manager   componentManager
+	manager   ComponentManager
 }
 
 func (ssr *statefulSetReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {

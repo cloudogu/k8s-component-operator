@@ -12,7 +12,7 @@ import (
 
 func TestNewComponentInstallManager(t *testing.T) {
 	// when
-	manager := NewComponentInstallManager(nil, nil, nil)
+	manager := NewComponentInstallManager(nil, nil, nil, nil)
 
 	// then
 	require.NotNil(t, manager)
@@ -33,8 +33,12 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
 
-		sut := componentInstallManager{
+		mockHealthManager := newMockHealthManager(t)
+		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(nil)
+
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
+			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
 		}
 
@@ -55,7 +59,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Eventf(component, "Warning", "Installation", "Dependency check failed: %s", assert.AnError.Error()).Return()
 
-		sut := componentInstallManager{
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			recorder:        mockRecorder,
@@ -78,7 +82,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 
-		sut := componentInstallManager{
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 		}
@@ -101,7 +105,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 
-		sut := componentInstallManager{
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 		}
@@ -125,7 +129,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(assert.AnError)
 
-		sut := componentInstallManager{
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 		}
@@ -139,6 +143,34 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to install chart")
 	})
 
+	t.Run("failed to update component health", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
+
+		mockHealthManager := newMockHealthManager(t)
+		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(assert.AnError)
+
+		sut := ComponentInstallManager{
+			componentClient: mockComponentClient,
+			healthManager:   mockHealthManager,
+			helmClient:      mockHelmClient,
+		}
+
+		// when
+		err := sut.Install(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to update health status for component")
+	})
+
 	t.Run("failed set status installed", func(t *testing.T) {
 		// given
 		mockComponentClient := newMockComponentInterface(t)
@@ -150,8 +182,12 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
 
-		sut := componentInstallManager{
+		mockHealthManager := newMockHealthManager(t)
+		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(nil)
+
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
+			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
 		}
 
@@ -183,8 +219,12 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: componentWithVersion.Spec.Version}},
 		}}, nil)
 
-		sut := componentInstallManager{
+		mockHealthManager := newMockHealthManager(t)
+		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(nil)
+
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
+			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
 		}
 
@@ -208,7 +248,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
 
-		sut := componentInstallManager{
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 		}
@@ -240,7 +280,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: componentWithVersion.Spec.Version}},
 		}}, nil)
 
-		sut := componentInstallManager{
+		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 		}

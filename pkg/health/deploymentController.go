@@ -14,7 +14,7 @@ import (
 
 type deploymentReconciler struct {
 	clientSet ecosystemClientSet
-	manager   componentManager
+	manager   ComponentManager
 }
 
 func (dr *deploymentReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
