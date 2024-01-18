@@ -50,7 +50,7 @@ import (
 
 	extensionsv1beta1 "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 
-	flowcontrolv1alpha1 "k8s.io/client-go/kubernetes/typed/flowcontrol/v1alpha1"
+	flowcontrolv1 "k8s.io/client-go/kubernetes/typed/flowcontrol/v1"
 
 	flowcontrolv1beta1 "k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta1"
 
@@ -1414,45 +1414,45 @@ func (_c *mockEcosystemClientSet_ExtensionsV1beta1_Call) RunAndReturn(run func()
 	return _c
 }
 
-// FlowcontrolV1alpha1 provides a mock function with given fields:
-func (_m *mockEcosystemClientSet) FlowcontrolV1alpha1() flowcontrolv1alpha1.FlowcontrolV1alpha1Interface {
+// FlowcontrolV1 provides a mock function with given fields:
+func (_m *mockEcosystemClientSet) FlowcontrolV1() flowcontrolv1.FlowcontrolV1Interface {
 	ret := _m.Called()
 
-	var r0 flowcontrolv1alpha1.FlowcontrolV1alpha1Interface
-	if rf, ok := ret.Get(0).(func() flowcontrolv1alpha1.FlowcontrolV1alpha1Interface); ok {
+	var r0 flowcontrolv1.FlowcontrolV1Interface
+	if rf, ok := ret.Get(0).(func() flowcontrolv1.FlowcontrolV1Interface); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(flowcontrolv1alpha1.FlowcontrolV1alpha1Interface)
+			r0 = ret.Get(0).(flowcontrolv1.FlowcontrolV1Interface)
 		}
 	}
 
 	return r0
 }
 
-// mockEcosystemClientSet_FlowcontrolV1alpha1_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FlowcontrolV1alpha1'
-type mockEcosystemClientSet_FlowcontrolV1alpha1_Call struct {
+// mockEcosystemClientSet_FlowcontrolV1_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FlowcontrolV1'
+type mockEcosystemClientSet_FlowcontrolV1_Call struct {
 	*mock.Call
 }
 
-// FlowcontrolV1alpha1 is a helper method to define mock.On call
-func (_e *mockEcosystemClientSet_Expecter) FlowcontrolV1alpha1() *mockEcosystemClientSet_FlowcontrolV1alpha1_Call {
-	return &mockEcosystemClientSet_FlowcontrolV1alpha1_Call{Call: _e.mock.On("FlowcontrolV1alpha1")}
+// FlowcontrolV1 is a helper method to define mock.On call
+func (_e *mockEcosystemClientSet_Expecter) FlowcontrolV1() *mockEcosystemClientSet_FlowcontrolV1_Call {
+	return &mockEcosystemClientSet_FlowcontrolV1_Call{Call: _e.mock.On("FlowcontrolV1")}
 }
 
-func (_c *mockEcosystemClientSet_FlowcontrolV1alpha1_Call) Run(run func()) *mockEcosystemClientSet_FlowcontrolV1alpha1_Call {
+func (_c *mockEcosystemClientSet_FlowcontrolV1_Call) Run(run func()) *mockEcosystemClientSet_FlowcontrolV1_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run()
 	})
 	return _c
 }
 
-func (_c *mockEcosystemClientSet_FlowcontrolV1alpha1_Call) Return(_a0 flowcontrolv1alpha1.FlowcontrolV1alpha1Interface) *mockEcosystemClientSet_FlowcontrolV1alpha1_Call {
+func (_c *mockEcosystemClientSet_FlowcontrolV1_Call) Return(_a0 flowcontrolv1.FlowcontrolV1Interface) *mockEcosystemClientSet_FlowcontrolV1_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *mockEcosystemClientSet_FlowcontrolV1alpha1_Call) RunAndReturn(run func() flowcontrolv1alpha1.FlowcontrolV1alpha1Interface) *mockEcosystemClientSet_FlowcontrolV1alpha1_Call {
+func (_c *mockEcosystemClientSet_FlowcontrolV1_Call) RunAndReturn(run func() flowcontrolv1.FlowcontrolV1Interface) *mockEcosystemClientSet_FlowcontrolV1_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -85,3 +85,9 @@ type requeuableError interface {
 type appsV1Interface interface {
 	appsv1.AppsV1Interface
 }
+
+//nolint:unused
+//goland:noinspection GoUnusedType
+type componentV1Alpha1Interface interface {
+	ecosystem.ComponentV1Alpha1Interface
+}
