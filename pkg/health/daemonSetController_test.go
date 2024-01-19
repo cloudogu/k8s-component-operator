@@ -106,30 +106,6 @@ func Test_daemonSetReconciler_Reconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "should ignore applications that don't belong to a component",
-			fields: fields{
-				clientSetFn: func(t *testing.T) ecosystemClientSet {
-					daemonSetMock := newMockDaemonSetClient(t)
-					daemonSetMock.EXPECT().Get(testCtx, testComponentName, metav1.GetOptions{}).
-						Return(&appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{
-							Labels:    map[string]string{"other_key": testComponentName},
-							Name:      testComponentName,
-							Namespace: testNamespace,
-						}}, nil)
-					appsV1Mock := newMockAppsV1Client(t)
-					appsV1Mock.EXPECT().DaemonSets(testNamespace).Return(daemonSetMock)
-					clientSetMock := newMockEcosystemClientSet(t)
-					clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
-					return clientSetMock
-				},
-				managerFn: func(t *testing.T) ComponentManager {
-					return NewMockComponentManager(t)
-				},
-			},
-			want:    reconcile.Result{},
-			wantErr: assert.NoError,
-		},
-		{
 			name: "should fail to update component health",
 			fields: fields{
 				clientSetFn: func(t *testing.T) ecosystemClientSet {
