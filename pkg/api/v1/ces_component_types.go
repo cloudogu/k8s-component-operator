@@ -64,7 +64,9 @@ type ComponentStatus struct {
 	Status string `json:"status"`
 	// RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
 	RequeueTimeNanos time.Duration `json:"requeueTimeNanos,omitempty"`
-	// Health describes the health status of the component
+	// Health describes the health status of the component.
+	// A component becomes 'available' if its Status is 'installed',
+	// and all its deployments, stateful sets, and daemon sets are available.
 	Health HealthStatus `json:"health,omitempty"`
 }
 
