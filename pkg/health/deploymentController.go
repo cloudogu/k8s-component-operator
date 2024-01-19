@@ -31,10 +31,7 @@ func (dr *deploymentReconciler) Reconcile(ctx context.Context, request reconcile
 		)
 	}
 
-	if !hasComponentLabel(deployment) {
-		// ignore non component deployments
-		return finishOperation()
-	}
+	// we know that this object belongs to a component since healthChangeEventFilter checked that for us already
 	componentName := componentName(deployment)
 	logger.Info(fmt.Sprintf("Found deployment %q for component %q", deployment.Name, componentName))
 
@@ -49,5 +46,6 @@ func (dr *deploymentReconciler) Reconcile(ctx context.Context, request reconcile
 func (dr *deploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.Deployment{}).
+		WithEventFilter(&healthChangeEventFilter{}).
 		Complete(dr)
 }

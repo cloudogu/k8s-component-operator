@@ -31,10 +31,7 @@ func (ssr *statefulSetReconciler) Reconcile(ctx context.Context, request reconci
 		)
 	}
 
-	if !hasComponentLabel(statefulSet) {
-		// ignore non component stateful sets
-		return finishOperation()
-	}
+	// we know that this object belongs to a component since healthChangeEventFilter checked that for us already
 	componentName := componentName(statefulSet)
 	logger.Info(fmt.Sprintf("Found stateful set %q for component %q", statefulSet.Name, componentName))
 
@@ -49,5 +46,6 @@ func (ssr *statefulSetReconciler) Reconcile(ctx context.Context, request reconci
 func (ssr *statefulSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.StatefulSet{}).
+		WithEventFilter(&healthChangeEventFilter{}).
 		Complete(ssr)
 }

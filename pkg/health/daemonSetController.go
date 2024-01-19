@@ -31,10 +31,7 @@ func (dsr *daemonSetReconciler) Reconcile(ctx context.Context, request reconcile
 		)
 	}
 
-	if !hasComponentLabel(daemonSet) {
-		// ignore non component daemon sets
-		return finishOperation()
-	}
+	// we know that this object belongs to a component since healthChangeEventFilter checked that for us already
 	componentName := componentName(daemonSet)
 	logger.Info(fmt.Sprintf("Found daemon set %q for component %q", daemonSet.Name, componentName))
 
@@ -49,5 +46,6 @@ func (dsr *daemonSetReconciler) Reconcile(ctx context.Context, request reconcile
 func (dsr *daemonSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.DaemonSet{}).
+		WithEventFilter(&healthChangeEventFilter{}).
 		Complete(dsr)
 }
