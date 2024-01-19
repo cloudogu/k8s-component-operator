@@ -81,6 +81,7 @@ func Test_defaultManager_componentHealthStatus(t *testing.T) {
 		deployments  *appsv1.DeploymentList
 		statefulSets *appsv1.StatefulSetList
 		daemonSets   *appsv1.DaemonSetList
+		component    *v1.Component
 	}
 	tests := []struct {
 		name string
@@ -88,13 +89,24 @@ func Test_defaultManager_componentHealthStatus(t *testing.T) {
 		want v1.HealthStatus
 	}{
 		{
-			name: "should be available with no applications found",
+			name: "should be available if installed with no applications found",
 			args: args{
 				deployments:  &appsv1.DeploymentList{},
 				statefulSets: &appsv1.StatefulSetList{},
 				daemonSets:   &appsv1.DaemonSetList{},
+				component:    &v1.Component{Status: v1.ComponentStatus{Status: v1.ComponentStatusInstalled}},
 			},
 			want: "available",
+		},
+		{
+			name: "should be available if not installed with no applications found",
+			args: args{
+				deployments:  &appsv1.DeploymentList{},
+				statefulSets: &appsv1.StatefulSetList{},
+				daemonSets:   &appsv1.DaemonSetList{},
+				component:    &v1.Component{Status: v1.ComponentStatus{Status: v1.ComponentStatusInstalling}},
+			},
+			want: "unavailable",
 		},
 		{
 			name: "should be unavailable if at least one application is not available",
@@ -102,6 +114,7 @@ func Test_defaultManager_componentHealthStatus(t *testing.T) {
 				deployments:  availableDeploymentList(),
 				statefulSets: unavailableStatefulSetList(),
 				daemonSets:   availableDaemonSetList(),
+				component:    &v1.Component{Status: v1.ComponentStatus{Status: v1.ComponentStatusInstalled}},
 			},
 			want: "unavailable",
 		},
@@ -111,15 +124,37 @@ func Test_defaultManager_componentHealthStatus(t *testing.T) {
 				deployments:  unavailableDeploymentList(),
 				statefulSets: unavailableStatefulSetList(),
 				daemonSets:   unavailableDaemonSetList(),
+				component:    &v1.Component{Status: v1.ComponentStatus{Status: v1.ComponentStatusInstalled}},
 			},
 			want: "unavailable",
 		},
 		{
-			name: "should be available if all applications are available",
+			name: "should be unavailable if not installed and multiple applications are not available",
+			args: args{
+				deployments:  unavailableDeploymentList(),
+				statefulSets: unavailableStatefulSetList(),
+				daemonSets:   unavailableDaemonSetList(),
+				component:    &v1.Component{Status: v1.ComponentStatus{Status: v1.ComponentStatusDeleting}},
+			},
+			want: "unavailable",
+		},
+		{
+			name: "should be unavailable if not installed and all applications are available",
 			args: args{
 				deployments:  availableDeploymentList(),
 				statefulSets: availableStatefulSetList(),
 				daemonSets:   availableDaemonSetList(),
+				component:    &v1.Component{Status: v1.ComponentStatus{Status: v1.ComponentStatusUpgrading}},
+			},
+			want: "unavailable",
+		},
+		{
+			name: "should be available if installed and all applications are available",
+			args: args{
+				deployments:  availableDeploymentList(),
+				statefulSets: availableStatefulSetList(),
+				daemonSets:   availableDaemonSetList(),
+				component:    &v1.Component{Status: v1.ComponentStatus{Status: v1.ComponentStatusInstalled}},
 			},
 			want: "available",
 		},
@@ -127,12 +162,13 @@ func Test_defaultManager_componentHealthStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &DefaultManager{}
-			assert.Equal(t, tt.want, m.componentHealthStatus(testCtx, tt.args.deployments, tt.args.statefulSets, tt.args.daemonSets))
+			assert.Equal(t, tt.want, m.componentHealthStatus(testCtx, tt.args.deployments, tt.args.statefulSets, tt.args.daemonSets, tt.args.component))
 		})
 	}
 }
 
 func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
+	testComponent := v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}, Status: v1.ComponentStatus{Status: v1.ComponentStatusInstalled}}
 	type fields struct {
 		applicationFinderFn func(t *testing.T) applicationFinder
 		componentRepoFn     func(t *testing.T) componentRepo
@@ -193,8 +229,8 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 				componentRepoFn: func(t *testing.T) componentRepo {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
-						Return(&v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}}, nil)
-					repo.EXPECT().updateHealthStatus(testCtx, &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}}, v1.HealthStatus("available")).
+						Return(&testComponent, nil)
+					repo.EXPECT().updateHealthStatus(testCtx, &testComponent, v1.HealthStatus("available")).
 						Return(assert.AnError)
 					return repo
 				},
@@ -216,8 +252,8 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 				componentRepoFn: func(t *testing.T) componentRepo {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
-						Return(&v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}}, nil)
-					repo.EXPECT().updateHealthStatus(testCtx, &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}}, v1.HealthStatus("available")).
+						Return(&testComponent, nil)
+					repo.EXPECT().updateHealthStatus(testCtx, &testComponent, v1.HealthStatus("available")).
 						Return(nil)
 					return repo
 				},

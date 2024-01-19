@@ -54,16 +54,14 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 
-	// check if components are healthy
-	// this ensures that components without a Deployment, StatefulSet or DaemonSet get the 'available' health status
-	err = cum.healthManager.UpdateComponentHealth(ctx, component.Spec.Name, component.Namespace)
-	if err != nil {
-		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
-	}
-
 	component, err = cum.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
+	}
+
+	err = cum.healthManager.UpdateComponentHealth(ctx, component.Spec.Name, component.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
 	}
 
 	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))

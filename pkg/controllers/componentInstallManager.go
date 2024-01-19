@@ -72,17 +72,14 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 			return &genericRequeueableError{"failed to update version for component " + component.Spec.Name, err}
 		}
 	}
-
-	// check if components are healthy
-	// this ensures that components without a Deployment, StatefulSet or DaemonSet get the 'available' health status
-	err = cim.healthManager.UpdateComponentHealth(ctx, component.Spec.Name, component.Namespace)
-	if err != nil {
-		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
-	}
-
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return &genericRequeueableError{"failed to update status-installed for component " + component.Spec.Name, err}
+	}
+
+	err = cim.healthManager.UpdateComponentHealth(ctx, component.Spec.Name, component.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
 	}
 
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))

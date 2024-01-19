@@ -140,42 +140,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to upgrade chart for component testComponent:")
 	})
 
-	t.Run("should fail to upgrade component on error while updating health status", func(t *testing.T) {
-		ctx := context.Background()
-		component := &k8sv1.Component{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "testComponent",
-				Namespace: "ecosystem",
-			},
-			Spec: k8sv1.ComponentSpec{
-				Namespace: "ecosystem",
-				Name:      "testComponent",
-				Version:   "1.0",
-			},
-			Status: k8sv1.ComponentStatus{Status: "installed"},
-		}
-
-		mockComponentClient := newMockComponentInterface(t)
-		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
-
-		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(nil)
-
-		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, "ecosystem").Return(assert.AnError)
-
-		manager := &ComponentUpgradeManager{
-			componentClient: mockComponentClient,
-			helmClient:      mockHelmClient,
-			healthManager:   mockHealthManager,
-		}
-		err := manager.Upgrade(ctx, component)
-
-		require.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to update health status for component")
-	})
-
 	t.Run("should fail to upgrade component on error while setting installed status", func(t *testing.T) {
 		ctx := context.Background()
 		component := &k8sv1.Component{
@@ -200,7 +164,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, "ecosystem").Return(nil)
 
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -211,5 +174,42 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		require.ErrorIs(t, err, assert.AnError)
 		assert.ErrorContains(t, err, "failed to update status-installed for component testComponent:")
+	})
+
+	t.Run("should fail to upgrade component on error while updating health status", func(t *testing.T) {
+		ctx := context.Background()
+		component := &k8sv1.Component{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testComponent",
+				Namespace: "ecosystem",
+			},
+			Spec: k8sv1.ComponentSpec{
+				Namespace: "ecosystem",
+				Name:      "testComponent",
+				Version:   "1.0",
+			},
+			Status: k8sv1.ComponentStatus{Status: "installed"},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(ctx, component).Return(component, nil)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctx, component.GetHelmChartSpec()).Return(nil)
+
+		mockHealthManager := newMockHealthManager(t)
+		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, "ecosystem").Return(assert.AnError)
+
+		manager := &ComponentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			healthManager:   mockHealthManager,
+		}
+		err := manager.Upgrade(ctx, component)
+
+		require.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to update health status for component")
 	})
 }

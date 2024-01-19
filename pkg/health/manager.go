@@ -29,12 +29,12 @@ func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentNam
 		return fmt.Errorf("failed to find applications for component %q: %w", componentName, err)
 	}
 
-	healthStatus := m.componentHealthStatus(ctx, deploymentList, statefulSetList, daemonSetList)
-
 	component, err := m.get(ctx, componentName)
 	if err != nil {
 		return fmt.Errorf("failed to get component %q: %w", componentName, err)
 	}
+
+	healthStatus := m.componentHealthStatus(ctx, deploymentList, statefulSetList, daemonSetList, component)
 
 	err = m.updateHealthStatus(ctx, component, healthStatus)
 	if err != nil {
@@ -44,7 +44,7 @@ func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentNam
 	return nil
 }
 
-func (m *DefaultManager) componentHealthStatus(ctx context.Context, deployments *appsv1.DeploymentList, statefulSets *appsv1.StatefulSetList, daemonSets *appsv1.DaemonSetList) v1.HealthStatus {
+func (m *DefaultManager) componentHealthStatus(ctx context.Context, deployments *appsv1.DeploymentList, statefulSets *appsv1.StatefulSetList, daemonSets *appsv1.DaemonSetList, component *v1.Component) v1.HealthStatus {
 	logger := log.FromContext(ctx).WithName("componentHealthStatus")
 
 	states := make([]state, 0, len(deployments.Items)+len(statefulSets.Items)+len(daemonSets.Items))
@@ -60,7 +60,7 @@ func (m *DefaultManager) componentHealthStatus(ctx context.Context, deployments 
 
 	componentAvailable := util.Reduce(states, true, func(value state, acc bool) bool {
 		return value.IsAvailable() && acc
-	})
+	}) && component.Status.Status == v1.ComponentStatusInstalled
 
 	if componentAvailable {
 		return v1.AvailableHealthStatus

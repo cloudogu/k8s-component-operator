@@ -143,10 +143,39 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to install chart")
 	})
 
+	t.Run("failed set status installed", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(testCtx, component).Return(component, assert.AnError)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
+
+		mockHealthManager := newMockHealthManager(t)
+
+		sut := ComponentInstallManager{
+			componentClient: mockComponentClient,
+			healthManager:   mockHealthManager,
+			helmClient:      mockHelmClient,
+		}
+
+		// when
+		err := sut.Install(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to update status-installed for component dogu-op")
+	})
+
 	t.Run("failed to update component health", func(t *testing.T) {
 		// given
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(testCtx, component).Return(component, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
@@ -169,35 +198,6 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
 		assert.ErrorContains(t, err, "failed to update health status for component")
-	})
-
-	t.Run("failed set status installed", func(t *testing.T) {
-		// given
-		mockComponentClient := newMockComponentInterface(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
-		mockComponentClient.EXPECT().UpdateStatusInstalled(testCtx, component).Return(component, assert.AnError)
-		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
-
-		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
-
-		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(nil)
-
-		sut := ComponentInstallManager{
-			componentClient: mockComponentClient,
-			healthManager:   mockHealthManager,
-			helmClient:      mockHelmClient,
-		}
-
-		// when
-		err := sut.Install(testCtx, component)
-
-		// then
-		require.Error(t, err)
-		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to update status-installed for component dogu-op")
 	})
 
 	t.Run("should update version of component", func(t *testing.T) {
