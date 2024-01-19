@@ -98,6 +98,18 @@ func Test_healthChangeEventFilter_Update(t *testing.T) {
 
 		// Deployments
 		{
+			name: "should be false if type assertion fails for deployment",
+			event: event.UpdateEvent{
+				ObjectOld: &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{v1.ComponentNameLabelKey: testComponentName},
+				}},
+				ObjectNew: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{v1.ComponentNameLabelKey: testComponentName},
+				}},
+			},
+			want: false,
+		},
+		{
 			name: "should be false if spec.replicas, status.replicas, status.updatedReplicas and status.availableReplicas did not change for deployment",
 			event: event.UpdateEvent{
 				ObjectOld: &appsv1.Deployment{
@@ -240,6 +252,18 @@ func Test_healthChangeEventFilter_Update(t *testing.T) {
 
 		// StatefulSets
 		{
+			name: "should be false if type assertion fails for stateful set",
+			event: event.UpdateEvent{
+				ObjectOld: &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{v1.ComponentNameLabelKey: testComponentName},
+				}},
+				ObjectNew: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{v1.ComponentNameLabelKey: testComponentName},
+				}},
+			},
+			want: false,
+		},
+		{
 			name: "should be false if spec.replicas, status.replicas, status.updatedReplicas and status.availableReplicas did not change for stateful set",
 			event: event.UpdateEvent{
 				ObjectOld: &appsv1.StatefulSet{
@@ -381,6 +405,18 @@ func Test_healthChangeEventFilter_Update(t *testing.T) {
 		},
 
 		// DaemonSets
+		{
+			name: "should be false if type assertion fails for daemon set",
+			event: event.UpdateEvent{
+				ObjectOld: &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{v1.ComponentNameLabelKey: testComponentName},
+				}},
+				ObjectNew: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{v1.ComponentNameLabelKey: testComponentName},
+				}},
+			},
+			want: false,
+		},
 		{
 			name: "should be false if status.desiredNumberScheduled, status.currentNumberScheduled, status.updatedNumberScheduled and status.numberAvailable did not change for daemon set",
 			event: event.UpdateEvent{

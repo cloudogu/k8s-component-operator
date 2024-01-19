@@ -22,23 +22,23 @@ func (h *healthChangeEventFilter) Update(event event.UpdateEvent) bool {
 
 	switch oldObj := event.ObjectOld.(type) {
 	case *appsv1.Deployment:
-		newObj := event.ObjectNew.(*appsv1.Deployment)
-		return oldObj.Spec.Replicas != newObj.Spec.Replicas ||
+		newObj, ok := event.ObjectNew.(*appsv1.Deployment)
+		return ok && (oldObj.Spec.Replicas != newObj.Spec.Replicas ||
 			oldObj.Status.Replicas != newObj.Status.Replicas ||
 			oldObj.Status.UpdatedReplicas != newObj.Status.UpdatedReplicas ||
-			oldObj.Status.AvailableReplicas != newObj.Status.AvailableReplicas
+			oldObj.Status.AvailableReplicas != newObj.Status.AvailableReplicas)
 	case *appsv1.StatefulSet:
-		newObj := event.ObjectNew.(*appsv1.StatefulSet)
-		return oldObj.Spec.Replicas != newObj.Spec.Replicas ||
+		newObj, ok := event.ObjectNew.(*appsv1.StatefulSet)
+		return ok && (oldObj.Spec.Replicas != newObj.Spec.Replicas ||
 			oldObj.Status.Replicas != newObj.Status.Replicas ||
 			oldObj.Status.UpdatedReplicas != newObj.Status.UpdatedReplicas ||
-			oldObj.Status.AvailableReplicas != newObj.Status.AvailableReplicas
+			oldObj.Status.AvailableReplicas != newObj.Status.AvailableReplicas)
 	case *appsv1.DaemonSet:
-		newObj := event.ObjectNew.(*appsv1.DaemonSet)
-		return oldObj.Status.DesiredNumberScheduled != newObj.Status.DesiredNumberScheduled ||
+		newObj, ok := event.ObjectNew.(*appsv1.DaemonSet)
+		return ok && (oldObj.Status.DesiredNumberScheduled != newObj.Status.DesiredNumberScheduled ||
 			oldObj.Status.CurrentNumberScheduled != newObj.Status.CurrentNumberScheduled ||
 			oldObj.Status.UpdatedNumberScheduled != newObj.Status.UpdatedNumberScheduled ||
-			oldObj.Status.NumberAvailable != newObj.Status.NumberAvailable
+			oldObj.Status.NumberAvailable != newObj.Status.NumberAvailable)
 	default:
 		return false
 	}
