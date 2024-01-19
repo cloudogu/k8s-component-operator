@@ -9,7 +9,6 @@ metadata:
     app: ces
     app.kubernetes.io/name: k8s-component-operator
     k8s.cloudogu.com/component.name: k8s-component-operator-crd
-    k8s.cloudogu.com/component.version: {{ .Chart.AppVersion | quote }}
   name: components.k8s.cloudogu.com
 spec:
   group: k8s.cloudogu.com
@@ -56,7 +55,7 @@ spec:
               description: ComponentStatus defines the observed state of a Component.
               properties:
                 health:
-                  description: Health describes the health status of the component
+                  description: Health describes the health status of the component. A component becomes 'available' if its Status is 'installed', and all its deployments, stateful sets, and daemon sets are available.
                   type: string
                 requeueTimeNanos:
                   description: RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
