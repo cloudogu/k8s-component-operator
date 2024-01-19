@@ -8,6 +8,8 @@ metadata:
   labels:
     app: ces
     app.kubernetes.io/name: k8s-component-operator
+    k8s.cloudogu.com/component.name: k8s-component-operator-crd
+    k8s.cloudogu.com/component.version: {{ .Chart.AppVersion | quote }}
   name: components.k8s.cloudogu.com
 spec:
   group: k8s.cloudogu.com
