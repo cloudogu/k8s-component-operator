@@ -208,6 +208,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(testCtx, componentWithoutVersion).Return(componentWithoutVersion, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithoutVersion, "component-finalizer").Return(componentWithoutVersion, nil)
 
+		mockComponentClient.EXPECT().Get(testCtx, componentWithoutVersion.Name, metav1.GetOptions{}).Return(componentWithoutVersion, nil)
 		componentWithVersion := getComponent(namespace, "k8s", "", "dogu-op", "4.8.3")
 		mockComponentClient.EXPECT().Update(testCtx, componentWithVersion, metav1.UpdateOptions{}).Return(componentWithoutVersion, nil)
 
@@ -262,6 +263,39 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		assert.ErrorContains(t, err, "could not list deployed Helm releases")
 	})
 
+	t.Run("should fail to update version of component on error getting component", func(t *testing.T) {
+		// given
+		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, componentWithoutVersion).Return(componentWithoutVersion, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithoutVersion, "component-finalizer").Return(componentWithoutVersion, nil)
+
+		mockComponentClient.EXPECT().Get(testCtx, componentWithoutVersion.Name, metav1.GetOptions{}).Return(componentWithoutVersion, assert.AnError)
+		componentWithVersion := getComponent(namespace, "k8s", "", "dogu-op", "4.8.3")
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+			Name:  componentWithoutVersion.Name,
+			Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: componentWithVersion.Spec.Version}},
+		}}, nil)
+
+		sut := ComponentInstallManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+		}
+
+		// when
+		err := sut.Install(testCtx, componentWithoutVersion)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to get component \"dogu-op\" for update")
+		assert.ErrorContains(t, err, "failed to update version in component \"dogu-op\"")
+	})
+
 	t.Run("should fail to update version of component on error while updating", func(t *testing.T) {
 		// given
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
@@ -269,6 +303,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, componentWithoutVersion).Return(componentWithoutVersion, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithoutVersion, "component-finalizer").Return(componentWithoutVersion, nil)
 
+		mockComponentClient.EXPECT().Get(testCtx, componentWithoutVersion.Name, metav1.GetOptions{}).Return(componentWithoutVersion, nil)
 		componentWithVersion := getComponent(namespace, "k8s", "", "dogu-op", "4.8.3")
 		mockComponentClient.EXPECT().Update(testCtx, componentWithVersion, metav1.UpdateOptions{}).Return(nil, assert.AnError)
 
@@ -291,6 +326,6 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to update version in component with name dogu-op")
+		assert.ErrorContains(t, err, "failed to update version in component \"dogu-op\"")
 	})
 }

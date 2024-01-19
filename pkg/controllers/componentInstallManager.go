@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/retry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -97,12 +98,26 @@ func (cim *ComponentInstallManager) UpdateComponentVersion(ctx context.Context, 
 
 	for _, release := range deployedReleases {
 		if component.Spec.Name == release.Name {
-			component.Spec.Version = release.Chart.AppVersion()
+			err := retry.OnConflict(func() error {
+				retryComponent, err := cim.componentClient.Get(ctx, component.Name, metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to get component %q for update: %w", component.Spec.Name, err)
+				}
 
-			_, err = cim.componentClient.Update(ctx, component, metav1.UpdateOptions{})
+				retryComponent.Spec.Version = release.Chart.AppVersion()
+
+				retryComponent, err = cim.componentClient.Update(ctx, retryComponent, metav1.UpdateOptions{})
+				if err != nil {
+					return err
+				}
+
+				component = retryComponent
+				return nil
+			})
 			if err != nil {
-				return component, fmt.Errorf("failed to update version in component with name %s: %w", component.Spec.Name, err)
+				return component, fmt.Errorf("failed to update version in component %q: %w", component.Spec.Name, err)
 			}
+
 			break
 		}
 	}
