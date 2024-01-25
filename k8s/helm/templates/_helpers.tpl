@@ -15,12 +15,12 @@ app: ces
 helm.sh/chart: {{- printf " %s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+k8s.cloudogu.com/component.name: {{ include "k8s-component-operator.name" . }}
+k8s.cloudogu.com/component.version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 
 {{/* Selector labels */}}
 {{- define "k8s-component-operator.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "k8s-component-operator.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-k8s.cloudogu.com/component.name: {{ include "k8s-component-operator.name" . }}
-k8s.cloudogu.com/component.version: {{ .Chart.AppVersion | quote }}
 {{- end }}
