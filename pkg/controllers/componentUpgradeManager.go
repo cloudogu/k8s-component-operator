@@ -40,7 +40,7 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 
 	component, err = cum.componentClient.UpdateStatusUpgrading(ctx, component)
 	if err != nil {
-		return fmt.Errorf("failed to update status-upgrading for component %s: %w", component.Spec.Name, err)
+		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-upgrading for component %s", component.Spec.Name), err: err}
 	}
 
 	logger.Info("Upgrade helm chart...")
@@ -49,12 +49,12 @@ func (cum *componentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	helmCtx := context.Background()
 
 	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
-		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
+		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
 	}
 
 	component, err = cum.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
-		return fmt.Errorf("failed to update status-installed for component %s: %w", component.Spec.Name, err)
+		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-installed for component %s", component.Spec.Name), err: err}
 	}
 
 	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))

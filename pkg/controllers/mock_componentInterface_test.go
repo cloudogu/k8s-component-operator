@@ -745,6 +745,61 @@ func (_c *mockComponentInterface_UpdateStatusInstalling_Call) RunAndReturn(run f
 	return _c
 }
 
+// UpdateStatusNotInstalled provides a mock function with given fields: ctx, component
+func (_m *mockComponentInterface) UpdateStatusNotInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	ret := _m.Called(ctx, component)
+
+	var r0 *v1.Component
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *v1.Component) (*v1.Component, error)); ok {
+		return rf(ctx, component)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *v1.Component) *v1.Component); ok {
+		r0 = rf(ctx, component)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*v1.Component)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *v1.Component) error); ok {
+		r1 = rf(ctx, component)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockComponentInterface_UpdateStatusNotInstalled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateStatusNotInstalled'
+type mockComponentInterface_UpdateStatusNotInstalled_Call struct {
+	*mock.Call
+}
+
+// UpdateStatusNotInstalled is a helper method to define mock.On call
+//   - ctx context.Context
+//   - component *v1.Component
+func (_e *mockComponentInterface_Expecter) UpdateStatusNotInstalled(ctx interface{}, component interface{}) *mockComponentInterface_UpdateStatusNotInstalled_Call {
+	return &mockComponentInterface_UpdateStatusNotInstalled_Call{Call: _e.mock.On("UpdateStatusNotInstalled", ctx, component)}
+}
+
+func (_c *mockComponentInterface_UpdateStatusNotInstalled_Call) Run(run func(ctx context.Context, component *v1.Component)) *mockComponentInterface_UpdateStatusNotInstalled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*v1.Component))
+	})
+	return _c
+}
+
+func (_c *mockComponentInterface_UpdateStatusNotInstalled_Call) Return(_a0 *v1.Component, _a1 error) *mockComponentInterface_UpdateStatusNotInstalled_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockComponentInterface_UpdateStatusNotInstalled_Call) RunAndReturn(run func(context.Context, *v1.Component) (*v1.Component, error)) *mockComponentInterface_UpdateStatusNotInstalled_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateStatusUpgrading provides a mock function with given fields: ctx, component
 func (_m *mockComponentInterface) UpdateStatusUpgrading(ctx context.Context, component *v1.Component) (*v1.Component, error) {
 	ret := _m.Called(ctx, component)

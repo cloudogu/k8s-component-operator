@@ -38,6 +38,9 @@ type ComponentInterface interface {
 	// UpdateStatusDeleting sets the status of the component to "deleting".
 	UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error)
 
+	// UpdateStatusNotInstalled sets the status of the component to "".
+	UpdateStatusNotInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error)
+
 	// Delete takes name of the component and deletes it. Returns an error if one occurs.
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 
@@ -86,6 +89,11 @@ func (d *componentClient) UpdateStatusUpgrading(ctx context.Context, component *
 // UpdateStatusDeleting sets the status of the component to "deleting".
 func (d *componentClient) UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error) {
 	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusDeleting)
+}
+
+// UpdateStatusNotInstalled sets the status of the component to "".
+func (d *componentClient) UpdateStatusNotInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusNotInstalled)
 }
 
 func (d *componentClient) updateStatusWithRetry(ctx context.Context, component *v1.Component, targetStatus string) (*v1.Component, error) {
