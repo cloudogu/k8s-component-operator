@@ -3,10 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/retry"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/retry"
 )
 
 // componentDeleteManager is a central unit in the process of handling the deletion process of a custom component resource.
@@ -49,17 +51,13 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 		}
 	}
 
-	// create a new context that does not get canceled immediately on SIGTERM
-	// this allows self-deletes
-	helmCtx := context.WithoutCancel(ctx)
-
 	err = retry.OnConflict(func() error {
-		retryComponent, err := cdm.componentClient.Get(helmCtx, component.Name, v1.GetOptions{})
+		retryComponent, err := cdm.componentClient.Get(ctx, component.Name, v1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to get component %s: %w", component.Spec.Name, err)
 		}
 
-		_, err = cdm.componentClient.RemoveFinalizer(helmCtx, retryComponent, k8sv1.FinalizerName)
+		_, err = cdm.componentClient.RemoveFinalizer(ctx, retryComponent, k8sv1.FinalizerName)
 		return err
 	})
 	if err != nil {
