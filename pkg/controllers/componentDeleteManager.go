@@ -49,13 +49,17 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 		}
 	}
 
+	// create a new context that does not get canceled immediately on SIGTERM
+	// this allows self-deletes
+	helmCtx := context.WithoutCancel(ctx)
+
 	err = retry.OnConflict(func() error {
-		retryComponent, err := cdm.componentClient.Get(ctx, component.Name, v1.GetOptions{})
+		retryComponent, err := cdm.componentClient.Get(helmCtx, component.Name, v1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to get component %s: %w", component.Spec.Name, err)
 		}
 
-		_, err = cdm.componentClient.RemoveFinalizer(ctx, retryComponent, k8sv1.FinalizerName)
+		_, err = cdm.componentClient.RemoveFinalizer(helmCtx, retryComponent, k8sv1.FinalizerName)
 		return err
 	})
 	if err != nil {
