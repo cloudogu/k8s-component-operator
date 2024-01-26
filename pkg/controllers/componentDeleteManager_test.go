@@ -2,11 +2,15 @@ package controllers
 
 import (
 	"context"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"helm.sh/helm/v3/pkg/release"
-	"testing"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 )
 
 func TestNewComponentDeleteManager(t *testing.T) {
@@ -37,6 +41,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
+		mockComponentClient.EXPECT().Get(ctx, component.Name, v1.GetOptions{}).Return(component, nil)
 		mockComponentClient.EXPECT().RemoveFinalizer(ctx, component, k8sv1.FinalizerName).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
@@ -125,6 +130,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
+		mockComponentClient.EXPECT().Get(ctx, component.Name, v1.GetOptions{}).Return(component, nil)
 		mockComponentClient.EXPECT().RemoveFinalizer(ctx, component, k8sv1.FinalizerName).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)

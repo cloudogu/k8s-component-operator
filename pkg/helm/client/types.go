@@ -2,6 +2,7 @@ package client
 
 import (
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
+	"helm.sh/helm/v3/pkg/postrender"
 	"io"
 	"time"
 
@@ -109,4 +110,8 @@ type ChartSpec struct {
 	// CleanupOnFail indicates whether to cleanup the release on failure.
 	// +optional
 	CleanupOnFail bool `json:"cleanupOnFail,omitempty"`
+	// PostRenderer can be used to apply transformations to kubernetes resources
+	// on installation and upgrade after rendering the templates
+	// +optional
+	PostRenderer postrender.PostRenderer
 }

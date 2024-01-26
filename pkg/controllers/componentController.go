@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"reflect"
 	"strings"
 
@@ -54,8 +55,8 @@ type ComponentManager interface {
 	upgradeManager
 }
 
-// componentReconciler watches every Component object in the cluster and handles them accordingly.
-type componentReconciler struct {
+// ComponentReconciler watches every Component object in the cluster and handles them accordingly.
+type ComponentReconciler struct {
 	clientSet        componentEcosystemInterface
 	recorder         record.EventRecorder
 	componentManager ComponentManager
@@ -65,21 +66,26 @@ type componentReconciler struct {
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string) *componentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
-	return &componentReconciler{
-		clientSet:        clientSet,
-		recorder:         recorder,
-		componentManager: NewComponentManager(clientSet.ComponentV1Alpha1().Components(namespace), helmClient, recorder),
-		helmClient:       helmClient,
-		requeueHandler:   componentRequeueHandler,
-		namespace:        namespace,
+	return &ComponentReconciler{
+		clientSet: clientSet,
+		recorder:  recorder,
+		componentManager: NewComponentManager(
+			clientSet.ComponentV1Alpha1().Components(namespace),
+			helmClient,
+			health.NewManager(namespace, clientSet),
+			recorder,
+		),
+		helmClient:     helmClient,
+		requeueHandler: componentRequeueHandler,
+		namespace:      namespace,
 	}
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile this component", "component", req.Name)
 	component, err := r.clientSet.ComponentV1Alpha1().Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
@@ -117,7 +123,7 @@ func (r *componentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 }
 
-func (r *componentReconciler) validateName(component *k8sv1.Component) (success bool) {
+func (r *ComponentReconciler) validateName(component *k8sv1.Component) (success bool) {
 	if component.ObjectMeta.Name != component.Spec.Name {
 		r.recorder.Eventf(component, corev1.EventTypeWarning, FailedNameValidationEventReason, "Component resource does not follow naming rules: The component's metadata.name '%s' must be the same as its spec.name '%s'.", component.ObjectMeta.Name, component.Spec.Name)
 		return false
@@ -126,26 +132,26 @@ func (r *componentReconciler) validateName(component *k8sv1.Component) (success 
 	return true
 }
 
-func (r *componentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
+func (r *ComponentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
 	return r.performOperation(ctx, component, InstallEventReason, k8sv1.ComponentStatusNotInstalled, r.componentManager.Install)
 }
 
-func (r *componentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
+func (r *ComponentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
 	return r.performOperation(ctx, component, UpgradeEventReason, k8sv1.ComponentStatusInstalled, r.componentManager.Upgrade)
 }
 
-func (r *componentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
+func (r *ComponentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
 	return r.performOperation(ctx, component, DeinstallationEventReason, k8sv1.ComponentStatusInstalled, r.componentManager.Delete)
 }
 
-func (r *componentReconciler) performDowngradeOperation(component *k8sv1.Component) (ctrl.Result, error) {
+func (r *ComponentReconciler) performDowngradeOperation(component *k8sv1.Component) (ctrl.Result, error) {
 	r.recorder.Event(component, corev1.EventTypeWarning, DowngradeEventReason, "component downgrades are not allowed")
 	return ctrl.Result{}, fmt.Errorf("downgrades are not allowed")
 }
 
 // performOperation executes the given operationFn and requeues if necessary.
 // When requeueing, the sourceComponentStatus is set as the components' status.
-func (r *componentReconciler) performOperation(
+func (r *ComponentReconciler) performOperation(
 	ctx context.Context,
 	component *k8sv1.Component,
 	eventReason string,
@@ -206,7 +212,7 @@ func finishOperation() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
+func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
 	logger := log.FromContext(ctx)
 	if component.DeletionTimestamp != nil && !component.DeletionTimestamp.IsZero() {
 		return Delete, nil
@@ -234,7 +240,7 @@ func (r *componentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	}
 }
 
-func (r *componentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
+func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
 	logger := log.FromContext(ctx)
 
 	deployedReleases, err := r.helmClient.ListDeployedReleases()
@@ -265,7 +271,7 @@ func (r *componentReconciler) getChangeOperation(ctx context.Context, component 
 	return Ignore, nil
 }
 
-func (r *componentReconciler) isValuesChanged(deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
+func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
 	deployedValues, err := r.helmClient.GetReleaseValues(deployedRelease.Name, false)
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
@@ -287,7 +293,7 @@ func (r *componentReconciler) isValuesChanged(deployedRelease *release.Release, 
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
 }
 
-func (r *componentReconciler) getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
+func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
@@ -319,7 +325,7 @@ func (r *componentReconciler) getChangeOperationForRelease(component *k8sv1.Comp
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *componentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		For(&k8sv1.Component{}).

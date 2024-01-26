@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/retry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -12,25 +13,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// componentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
-type componentInstallManager struct {
+// ComponentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
+type ComponentInstallManager struct {
 	componentClient componentInterface
 	helmClient      helmClient
+	healthManager   healthManager
 	recorder        record.EventRecorder
 }
 
-// NewComponentInstallManager creates a new instance of componentInstallManager.
-func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, recorder record.EventRecorder) *componentInstallManager {
-	return &componentInstallManager{
+// NewComponentInstallManager creates a new instance of ComponentInstallManager.
+func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentInstallManager {
+	return &ComponentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
+		healthManager:   healthManager,
 		recorder:        recorder,
 	}
 }
 
 // Install installs a given Component Resource.
 // nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
-func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
+func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
 	err := cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpec())
@@ -69,10 +72,14 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 			return &genericRequeueableError{"failed to update version for component " + component.Spec.Name, err}
 		}
 	}
-
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return &genericRequeueableError{"failed to update status-installed for component " + component.Spec.Name, err}
+	}
+
+	err = cim.healthManager.UpdateComponentHealth(ctx, component.Spec.Name, component.Namespace)
+	if err != nil {
+		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
 	}
 
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))
@@ -80,7 +87,7 @@ func (cim *componentInstallManager) Install(ctx context.Context, component *k8sv
 	return nil
 }
 
-func (cim *componentInstallManager) UpdateComponentVersion(ctx context.Context, component *k8sv1.Component) (*k8sv1.Component, error) {
+func (cim *ComponentInstallManager) UpdateComponentVersion(ctx context.Context, component *k8sv1.Component) (*k8sv1.Component, error) {
 	deployedReleases, err := cim.helmClient.ListDeployedReleases()
 	if err != nil {
 		return component, fmt.Errorf("could not list deployed Helm releases: %w", err)
@@ -88,12 +95,26 @@ func (cim *componentInstallManager) UpdateComponentVersion(ctx context.Context, 
 
 	for _, release := range deployedReleases {
 		if component.Spec.Name == release.Name {
-			component.Spec.Version = release.Chart.AppVersion()
+			err := retry.OnConflict(func() error {
+				retryComponent, err := cim.componentClient.Get(ctx, component.Name, metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to get component %q for update: %w", component.Spec.Name, err)
+				}
 
-			_, err = cim.componentClient.Update(ctx, component, metav1.UpdateOptions{})
+				retryComponent.Spec.Version = release.Chart.AppVersion()
+
+				retryComponent, err = cim.componentClient.Update(ctx, retryComponent, metav1.UpdateOptions{})
+				if err != nil {
+					return err
+				}
+
+				component = retryComponent
+				return nil
+			})
 			if err != nil {
-				return component, fmt.Errorf("failed to update version in component with name %s: %w", component.Spec.Name, err)
+				return component, fmt.Errorf("failed to update version in component %q: %w", component.Spec.Name, err)
 			}
+
 			break
 		}
 	}

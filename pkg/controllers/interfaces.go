@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"time"
 
 	"helm.sh/helm/v3/pkg/release"
@@ -29,6 +31,10 @@ type deleteManager interface {
 type upgradeManager interface {
 	// Upgrade upgrades a component resource.
 	Upgrade(ctx context.Context, component *k8sv1.Component) error
+}
+
+type healthManager interface {
+	health.ComponentManager
 }
 
 // helmClient is an interface for managing components with helm.
@@ -72,4 +78,16 @@ type requeuableError interface {
 	error
 	// GetRequeueTime returns the time to wait before the next reconciliation.
 	GetRequeueTime(requeueTimeNanos time.Duration) time.Duration
+}
+
+//nolint:unused
+//goland:noinspection GoUnusedType
+type appsV1Interface interface {
+	appsv1.AppsV1Interface
+}
+
+//nolint:unused
+//goland:noinspection GoUnusedType
+type componentV1Alpha1Interface interface {
+	ecosystem.ComponentV1Alpha1Interface
 }
