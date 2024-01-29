@@ -439,6 +439,7 @@ func mergeInstallOptions(chartSpec *ChartSpec, installOptions *action.Install) {
 	installOptions.ReleaseName = chartSpec.ReleaseName
 	installOptions.Version = chartSpec.Version
 	installOptions.Atomic = chartSpec.Atomic
+	installOptions.PostRenderer = chartSpec.PostRenderer
 }
 
 // mergeUpgradeOptions merges values of the provided chart to helm upgrade options used by the client.
@@ -450,6 +451,7 @@ func mergeUpgradeOptions(chartSpec *ChartSpec, upgradeOptions *action.Upgrade) {
 	upgradeOptions.ReuseValues = chartSpec.ReuseValues
 	upgradeOptions.Atomic = chartSpec.Atomic
 	upgradeOptions.CleanupOnFail = chartSpec.CleanupOnFail
+	upgradeOptions.PostRenderer = chartSpec.PostRenderer
 }
 
 // mergeUninstallReleaseOptions merges values of the provided chart to helm uninstall options used by the client.

@@ -4,28 +4,30 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/config"
-	"github.com/cloudogu/k8s-component-operator/pkg/controllers"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm"
-	"github.com/cloudogu/k8s-component-operator/pkg/logging"
-	"k8s.io/client-go/kubernetes"
 	"os"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
+	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"github.com/cloudogu/k8s-component-operator/pkg/controllers"
+	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm"
+	"github.com/cloudogu/k8s-component-operator/pkg/logging"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -109,8 +111,12 @@ func getK8sManagerOptions(operatorConfig *config.OperatorConfig) manager.Options
 	options := ctrl.Options{
 		Scheme:  scheme,
 		Metrics: server.Options{BindAddress: metricsAddr},
-		Cache: cache.Options{DefaultNamespaces: map[string]cache.Config{
-			operatorConfig.Namespace: {},
+		Cache: cache.Options{ByObject: map[client.Object]cache.ByObject{
+			// Restrict namespace for components only as we want to reconcile Deployments,
+			// StatefulSets and DaemonSets across all namespaces.
+			&k8sv1.Component{}: {Namespaces: map[string]cache.Config{
+				operatorConfig.Namespace: {},
+			}},
 		}},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: probeAddr,
@@ -161,6 +167,12 @@ func configureReconciler(k8sManager manager.Manager, operatorConfig *config.Oper
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)
+	}
+
+	healthReconcilers := health.NewController(operatorConfig.Namespace, componentClientSet)
+	err = healthReconcilers.SetupWithManager(k8sManager)
+	if err != nil {
+		return fmt.Errorf("failed to setup health reconcilers with manager: %w", err)
 	}
 
 	return nil
