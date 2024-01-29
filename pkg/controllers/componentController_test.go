@@ -679,7 +679,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "tryToInstall"
-		sut := componentReconciler{}
+		sut := ComponentReconciler{}
 
 		// when
 		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
@@ -697,7 +697,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		helmMock := newMockHelmClient(t)
 		installedReleases := []*release.Release{{Namespace: "ecosystem", Name: componentName, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.0"}}}}
 		helmMock.EXPECT().ListDeployedReleases().Return(installedReleases, nil)
-		sut := componentReconciler{helmClient: helmMock}
+		sut := ComponentReconciler{helmClient: helmMock}
 
 		// when
 		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
@@ -714,7 +714,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		component.Status.Status = "tryToDelete"
 		timeNow := v1.NewTime(time.Now())
 		component.DeletionTimestamp = &timeNow
-		sut := componentReconciler{}
+		sut := ComponentReconciler{}
 
 		// when
 		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
