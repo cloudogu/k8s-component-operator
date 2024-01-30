@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.8.0] - 2024-01-30
+### Changed
+- [#51] Requeue components on errors during install, update and delete.
+### Added
+- [#48] Add labels with component name and version to all resources of a component
+- [#48] Track health on component CR
+
 ## [v0.7.0] - 2023-12-08
 ### Added
 - [#44] Patch-templates for mirroring this operator and its images

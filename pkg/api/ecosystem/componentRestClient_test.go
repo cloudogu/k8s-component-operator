@@ -403,6 +403,33 @@ func Test_componentClient_UpdateStatusInstalled(t *testing.T) {
 	})
 }
 
+func Test_componentClient_UpdateStatusNotInstalled(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "", false, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusNotInstalled(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+	t.Run("success with retry", func(t *testing.T) {
+		// given
+		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"}}
+		mockClient := mockClientForStatusUpdates(t, component, "", true, false)
+		cClient := mockClient.Components("test")
+
+		// when
+		_, err := cClient.UpdateStatusNotInstalled(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+}
+
 func Test_componentClient_UpdateStatusUpgrading(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// given
