@@ -28,8 +28,10 @@ func TestNewComponentReconciler(t *testing.T) {
 	componentInterfaceMock := newMockComponentInterface(t)
 	componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
 	componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+	appsMock := newMockAppsV1Interface(t)
 	clientSetMock := newMockComponentEcosystemInterface(t)
 	clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+	clientSetMock.EXPECT().AppsV1().Return(appsMock)
 
 	mockHelmClient := newMockHelmClient(t)
 	mockRecorder := newMockEventRecorder(t)
@@ -64,7 +66,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		mockRequeueHandler := newMockRequeueHandler(t)
 		mockRequeueHandler.EXPECT().Handle(testCtx, "Installation failed with component dogu-op", component, nil, mock.Anything).Return(reconcile.Result{}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
@@ -103,7 +105,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		mockRequeueHandler := newMockRequeueHandler(t)
 		mockRequeueHandler.EXPECT().Handle(testCtx, "Deinstallation failed with component dogu-op", component, nil, mock.Anything).Return(reconcile.Result{}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
@@ -145,7 +147,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		mockRequeueHandler := newMockRequeueHandler(t)
 		mockRequeueHandler.EXPECT().Handle(testCtx, "Upgrade failed with component dogu-op", component, nil, mock.Anything).Return(reconcile.Result{}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
@@ -182,7 +184,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.2.0"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
@@ -218,7 +220,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		helmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		helmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
@@ -243,7 +245,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		clientSetMock := newMockComponentEcosystemInterface(t)
 		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet: clientSetMock,
 		}
 		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
@@ -266,7 +268,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		clientSetMock := newMockComponentEcosystemInterface(t)
 		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet: clientSetMock,
 		}
 		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
@@ -294,7 +296,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "invalidsemver"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet:  clientSetMock,
 			helmClient: helmClient,
 		}
@@ -334,7 +336,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 				return reconcile.Result{}, err
 			})
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
 			recorder:         mockRecorder,
 			componentManager: manager,
@@ -359,7 +361,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -379,7 +381,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -399,7 +401,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(nil, assert.AnError)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -422,7 +424,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(nil, assert.AnError)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -443,7 +445,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -462,7 +464,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "deploy-namespace", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1-1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -481,7 +483,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1-1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -500,7 +502,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -521,7 +523,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -542,7 +544,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -563,7 +565,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}(nil), nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -584,7 +586,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec()).Return(map[string]interface{}{}, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -603,7 +605,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		var helmReleases []*release.Release
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
-		sut := componentReconciler{
+		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
 		}
 
@@ -621,7 +623,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "installing"
-		sut := componentReconciler{}
+		sut := ComponentReconciler{}
 
 		// when
 		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
@@ -635,7 +637,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "deleting"
-		sut := componentReconciler{}
+		sut := ComponentReconciler{}
 
 		// when
 		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
@@ -649,7 +651,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "upgrading"
-		sut := componentReconciler{}
+		sut := ComponentReconciler{}
 
 		// when
 		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
@@ -663,7 +665,7 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "foobar"
-		sut := componentReconciler{}
+		sut := ComponentReconciler{}
 
 		// when
 		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
@@ -671,6 +673,55 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		// then
 		require.NoError(t, err)
 		assert.Equal(t, Ignore, requiredOperation)
+	})
+
+	t.Run("should return install on tryToInstall status", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
+		component.Status.Status = "tryToInstall"
+		sut := ComponentReconciler{}
+
+		// when
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Install, requiredOperation)
+	})
+
+	t.Run("should return upgrade on tryToUpgrade status", func(t *testing.T) {
+		// given
+		componentName := "dogu-op"
+		component := getComponent("ecosystem", "k8s", "", componentName, "0.0.1")
+		component.Status.Status = "tryToUpgrade"
+		helmMock := newMockHelmClient(t)
+		installedReleases := []*release.Release{{Namespace: "ecosystem", Name: componentName, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.0"}}}}
+		helmMock.EXPECT().ListDeployedReleases().Return(installedReleases, nil)
+		sut := ComponentReconciler{helmClient: helmMock}
+
+		// when
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Upgrade, requiredOperation)
+	})
+
+	t.Run("should return delete on tryToDelete status", func(t *testing.T) {
+		// given
+		componentName := "dogu-op"
+		component := getComponent("ecosystem", "k8s", "", componentName, "0.0.0")
+		component.Status.Status = "tryToDelete"
+		timeNow := v1.NewTime(time.Now())
+		component.DeletionTimestamp = &timeNow
+		sut := ComponentReconciler{}
+
+		// when
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Delete, requiredOperation)
 	})
 }
 
@@ -700,7 +751,7 @@ func Test_componentReconciler_validateName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &componentReconciler{recorder: tt.recorderFunc(t)}
+			r := &ComponentReconciler{recorder: tt.recorderFunc(t)}
 			success := r.validateName(tt.component)
 			assert.Equal(t, tt.wantSuccess, success)
 		})

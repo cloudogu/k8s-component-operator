@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,9 +24,22 @@ const (
 	ComponentStatusDeleting = "deleting"
 	// ComponentStatusInstalled represents a status for a component that was successfully installed
 	ComponentStatusInstalled = "installed"
+	// ComponentStatusTryToInstall represents a status for a component that is not installed but its install process is in requeue loop.
+	ComponentStatusTryToInstall = "tryToInstall"
+	// ComponentStatusTryToUpgrade represents a status for a component that is installed but its actual upgrade process is in requeue loop.
+	// In this state the component can be healthy but the version in the spec is not installed.
+	ComponentStatusTryToUpgrade = "tryToUpgrade"
+	// ComponentStatusTryToDelete represents a status for a component that is installed but its delete process is in requeue loop.
+	// In this state the component can be healthy.
+	ComponentStatusTryToDelete = "tryToDelete"
 )
 
 const FinalizerName = "component-finalizer"
+
+const (
+	ComponentNameLabelKey    = "k8s.cloudogu.com/component.name"
+	ComponentVersionLabelKey = "k8s.cloudogu.com/component.version"
+)
 
 // ComponentSpec defines the desired state of a component.
 type ComponentSpec struct {
@@ -44,17 +58,29 @@ type ComponentSpec struct {
 	ValuesYamlOverwrite string `json:"valuesYamlOverwrite,omitempty"`
 }
 
+type HealthStatus string
+
+const (
+	PendingHealthStatus     HealthStatus = ""
+	AvailableHealthStatus   HealthStatus = "available"
+	UnavailableHealthStatus HealthStatus = "unavailable"
+)
+
 // ComponentStatus defines the observed state of a Component.
 type ComponentStatus struct {
 	// Status represents the state of the component in the ecosystem.
 	Status string `json:"status"`
 	// RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.
 	RequeueTimeNanos time.Duration `json:"requeueTimeNanos,omitempty"`
+	// Health describes the health status of the component.
+	// A component becomes 'available' if its Status is 'installed',
+	// and all its deployments, stateful sets, and daemon sets are available.
+	Health HealthStatus `json:"health,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:metadata:labels=app=ces;app.kubernetes.io/name=k8s-component-operator
+// +kubebuilder:metadata:labels=app=ces;app.kubernetes.io/name=k8s-component-operator;k8s.cloudogu.com/component.name=k8s-component-operator-crd
 
 // Component is the Schema for the ces component API
 type Component struct {
@@ -94,6 +120,10 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		CleanupOnFail: false,
 		// Create non-existent namespace so that the operator can install charts in other namespaces.
 		CreateNamespace: true,
+		PostRenderer: labels.NewPostRenderer(map[string]string{
+			ComponentNameLabelKey:    c.Spec.Name,
+			ComponentVersionLabelKey: c.Spec.Version,
+		}),
 	}
 }
 

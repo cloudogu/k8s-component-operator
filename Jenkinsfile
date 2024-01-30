@@ -1,6 +1,6 @@
 #!groovy
 
-@Library(['github.com/cloudogu/ces-build-lib@1.68.0'])
+@Library(['github.com/cloudogu/ces-build-lib@2.0.1'])
 import com.cloudogu.ces.cesbuildlib.*
 
 // Creating necessary git objects
@@ -219,12 +219,12 @@ void stageAutomaticRelease() {
             gpg.createSignature()
         }
 
-        stage('Add Github-Release') {
-            releaseId = github.createReleaseWithChangelog(releaseVersion, changelog, productionReleaseBranch)
-        }
-
         stage('Finish Release') {
             gitflow.finishRelease(releaseVersion, productionReleaseBranch)
+        }
+
+        stage('Add Github-Release') {
+            releaseId = github.createReleaseWithChangelog(releaseVersion, changelog, productionReleaseBranch)
         }
     }
 }
