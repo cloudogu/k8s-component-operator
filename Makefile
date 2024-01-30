@@ -9,7 +9,7 @@ LINT_VERSION?=v1.52.1
 
 ADDITIONAL_CLEAN=dist-clean
 
-K8S_RUN_PRE_TARGETS = setup-etcd-port-forward
+K8S_RUN_PRE_TARGETS = setup-etcd-port-forward helm-repo-config-local
 PRE_COMPILE = generate-deepcopy
 K8S_COMPONENT_SOURCE_VALUES = ${HELM_SOURCE_DIR}/values.yaml
 K8S_COMPONENT_TARGET_VALUES = ${HELM_TARGET_DIR}/values.yaml
@@ -78,13 +78,31 @@ kill-operator-pod:
 
 ##@ Helm-Repo-Config
 .PHONY: helm-repo-config
-helm-repo-config: ## Creates a configMap and a secret for the helm repo connection from env vars HELM_REPO_USERNAME, HELM_REPO_PASSWORD, HELM_REPO_ENDPOINT.
+helm-repo-config: ## Creates a configMap and a secret for the helm repo connection from env var HELM_REPO_ENDPOINT and either HELM_REPO_USERNAME & HELM_REPO_PASSWORD or HELM_AUTH_BASE64.
 	@kubectl create configmap component-operator-helm-repository --from-literal=endpoint=${HELM_REPO_ENDPOINT} --from-literal=schema=oci --from-literal=plainHttp=${HELM_REPO_PLAIN_HTTP}
-	@kubectl create secret generic component-operator-helm-registry --from-literal=config.json='{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "$(shell printf "%s:%s" "${HELM_REPO_USERNAME}" "${HELM_REPO_PASSWORD}" | base64 -w0)"}}}'
+	@if [ -z ${HELM_AUTH_BASE64} ]; then \
+	  	echo "Using fields HELM_REPO_USERNAME & HELM_REPO_PASSWORD to create secret!" ;\
+		kubectl create secret generic component-operator-helm-registry --from-literal=config.json='{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "$(shell printf "%s:%s" "${HELM_REPO_USERNAME}" "${HELM_REPO_PASSWORD}" | base64 -w0)"}}}' ;\
+	else \
+		echo "Using field HELM_AUTH_BASE64 to create secret!" ;\
+		kubectl create secret generic component-operator-helm-registry --from-literal=config.json='{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "${HELM_AUTH_BASE64}"}}}' ;\
+	fi
+
+.PHONY: helm-repo-config-local
+helm-repo-config-local: ## Creates a configMap and a local config.json for the helm repo connection from env var HELM_REPO_ENDPOINT and either HELM_REPO_USERNAME & HELM_REPO_PASSWORD or HELM_AUTH_BASE64.
+	@kubectl create configmap component-operator-helm-repository --from-literal=endpoint=${HELM_REPO_ENDPOINT} --from-literal=schema=oci --from-literal=plainHttp=${HELM_REPO_PLAIN_HTTP}
+	@mkdir -p tmp/.helmregistry
+	@if [ -z ${HELM_AUTH_BASE64} ]; then \
+	  	echo "Using fields HELM_REPO_USERNAME & HELM_REPO_PASSWORD to create config.json!" ;\
+		echo '{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "$(shell printf "%s:%s" "${HELM_REPO_USERNAME}" "${HELM_REPO_PASSWORD}" | base64 -w0)"}}}' > tmp/.helmregistry/config.json ;\
+	else \
+		echo "Using field HELM_AUTH_BASE64 to create config.json!" ;\
+		echo '{"auths": {"${HELM_REPO_ENDPOINT}": {"auth": "${HELM_AUTH_BASE64}"}}}' > tmp/.helmregistry/config.json ;\
+	fi
 
 ##@ Debug
 
 .PHONY: print-debug-info
-print-debug-info: ## Generates indo and the list of environment variables required to start the operator in debug mode.
+print-debug-info: ## Generates info and the list of environment variables required to start the operator in debug mode.
 	@echo "The target generates a list of env variables required to start the operator in debug mode. These can be pasted directly into the 'go build' run configuration in IntelliJ to run and debug the operator on-demand."
-	@echo "STAGE=$(STAGE);LOG_LEVEL=$(LOG_LEVEL);KUBECONFIG=$(KUBECONFIG);NAMESPACE=$(NAMESPACE);DOGU_REGISTRY_ENDPOINT=$(DOGU_REGISTRY_ENDPOINT);DOGU_REGISTRY_USERNAME=$(DOGU_REGISTRY_USERNAME);DOGU_REGISTRY_PASSWORD=$(DOGU_REGISTRY_PASSWORD);DOCKER_REGISTRY={\"auths\":{\"$(docker_registry_server)\":{\"username\":\"$(docker_registry_username)\",\"password\":\"$(docker_registry_password)\",\"email\":\"ignore@me.com\",\"auth\":\"ignoreMe\"}}}"
+	@echo "STAGE=$(STAGE);LOG_LEVEL=$(LOG_LEVEL);KUBECONFIG=$(KUBECONFIG);NAMESPACE=$(NAMESPACE)"
