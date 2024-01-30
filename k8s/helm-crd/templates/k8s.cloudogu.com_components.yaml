@@ -38,6 +38,11 @@ spec:
                 deployNamespace:
                   description: DeployNamespace is the namespace where the helm chart should be deployed in. This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
                   type: string
+                mappedValues:
+                  additionalProperties:
+                    type: string
+                  description: MappedValues contains helm values which require a mapping. Components hold metadata information in a file `component-metadata-values.yaml` for these fields. The component-operator reads the file in install or upgrade process the sets the corresponding values in the chart spec. Possible values in this map are forbidden to set via the field ValuesYamlOverwrite.
+                  type: object
                 name:
                   description: Name of the component (e.g. k8s-dogu-operator)
                   type: string

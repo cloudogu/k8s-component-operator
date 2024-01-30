@@ -48,6 +48,12 @@ type ComponentSpec struct {
 	// It can be used to overwrite specific configurations. Lists are overwritten, maps are merged.
 	// +optional
 	ValuesYamlOverwrite string `json:"valuesYamlOverwrite,omitempty"`
+	// MappedValues contains helm values which require a mapping.
+	// Components hold metadata information in a file `component-metadata-values.yaml` for these fields.
+	// The component-operator reads the file in install or upgrade process the sets the corresponding values in the chart spec.
+	// Possible values in this map are forbidden to set via the field ValuesYamlOverwrite.
+	// +optional
+	MappedValues map[string]string `json:"mappedValues,omitempty"`
 }
 
 type HealthStatus string

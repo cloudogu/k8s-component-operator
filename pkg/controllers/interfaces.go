@@ -41,6 +41,8 @@ type healthManager interface {
 type helmClient interface {
 	// InstallOrUpgrade takes a helmChart and applies it.
 	InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) error
+	// InstallOrUpgradeWithMappedValues takes a helmChart and applies it with custom values which should be in the metadata file of the helm chart.
+	InstallOrUpgradeWithMappedValues(ctx context.Context, chart *client.ChartSpec, mappedValues map[string]string) error
 	// Uninstall removes the helmRelease for the given name
 	Uninstall(releaseName string) error
 	// ListDeployedReleases returns all deployed helm releases

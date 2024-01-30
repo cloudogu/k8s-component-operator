@@ -277,6 +277,7 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
+	// TODO Check changes for mappedValues. Merge them here. Maybe extend chartSpec and reuse them later.
 	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpec())
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpec().ChartName, err)

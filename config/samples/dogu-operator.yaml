@@ -5,3 +5,6 @@ metadata:
 spec:
   name: k8s-dogu-operator
   namespace: k8s
+  version: 0.41.11-dev
+  mappedValues:
+    log-level: error

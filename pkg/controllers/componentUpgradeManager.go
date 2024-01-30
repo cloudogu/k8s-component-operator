@@ -50,7 +50,7 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// this allows self-upgrades
 	helmCtx := context.WithoutCancel(ctx)
 
-	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
+	if err := cum.helmClient.InstallOrUpgradeWithMappedValues(helmCtx, component.GetHelmChartSpec(), component.Spec.MappedValues); err != nil {
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 

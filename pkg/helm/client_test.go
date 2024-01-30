@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"strings"
 	"testing"
 
@@ -627,4 +628,29 @@ func TestClient_GetReleaseValues(t *testing.T) {
 		assert.Equal(t, 1, len(values))
 		assert.Equal(t, "val", values["key"])
 	})
+}
+
+func Test_isMetadataPathInValuesMap(t *testing.T) {
+	type args struct {
+		path   string
+		values chartutil.Values
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"empty path should result in false with empty values", args{"", map[string]interface{}{}}, false},
+		{"empty path should result in false", args{"", map[string]interface{}{"controllerManager": "value"}}, false},
+		{"simple path is in values", args{"controllerManager", map[string]interface{}{"controllerManager": "value"}}, true},
+		{"path is in values", args{"controllerManager.env", map[string]interface{}{"controllerManager": map[string]interface{}{"env": "value"}}}, true},
+		{"path is not in values", args{"controllerManager.env", map[string]interface{}{"controllerManager": "value"}}, false},
+		{"path is not in values because of bool value", args{"controllerManager.env", map[string]interface{}{"controllerManager": false}}, false},
+		{"path is not in values because of slice value", args{"controllerManager.env", map[string]interface{}{"controllerManager": []byte{}}}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, isMetadataPathInValuesMap(tt.args.path, tt.args.values), "isMetadataPathInValuesMap(%v, %v)", tt.args.path, tt.args.values)
+		})
+	}
 }
