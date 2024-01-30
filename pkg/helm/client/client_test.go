@@ -865,6 +865,46 @@ func TestHelmClient_UpgradeChart(t *testing.T) {
 		assert.Nil(t, actual)
 	})
 
+	t.Run("should fail to upgrade", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			ReleaseName: "test-release",
+		}
+		upgradeAction := &action.Upgrade{}
+		envSettings := &cli.EnvSettings{
+			RepositoryConfig: defaultRepositoryConfigPath,
+			RepositoryCache:  defaultCachePath,
+		}
+
+		upgradeMock := newMockUpgradeAction(t)
+		upgradeMock.EXPECT().raw().Return(upgradeAction)
+		upgradeMock.EXPECT().upgrade(testCtx, "test-release", mock.Anything, mock.Anything).Return(nil, assert.AnError)
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", ">0.0.0-0", envSettings).Return("testdata/test-chart", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newUpgrade().Return(upgradeMock)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		sut := &HelmClient{
+			Settings: envSettings,
+			actions:  providerMock,
+			DebugLog: func(format string, v ...interface{}) {
+				t.Helper()
+				assert.Equal(t, "release upgrade failed: %s", format)
+			},
+		}
+
+		// when
+		actual, err := sut.UpgradeChart(testCtx, spec)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "failed to upgrade release \"test-release\"")
+
+		assert.Nil(t, actual)
+	})
+
 	t.Run("should succeed to upgrade", func(t *testing.T) {
 		// given
 		spec := &ChartSpec{

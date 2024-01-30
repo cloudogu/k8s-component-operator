@@ -71,6 +71,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to check dependencies")
 	})
 
@@ -93,6 +94,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to set status installing")
 	})
 
@@ -116,6 +118,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to add finalizer component-finalizer")
 	})
 
@@ -140,6 +143,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to install chart")
 	})
 
@@ -168,6 +172,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to update status-installed for component dogu-op")
 	})
 
@@ -260,6 +265,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "could not list deployed Helm releases")
 	})
 
@@ -292,6 +298,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to get component \"dogu-op\" for update")
 		assert.ErrorContains(t, err, "failed to update version in component \"dogu-op\"")
 	})
@@ -326,6 +333,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to update version in component \"dogu-op\"")
 	})
 }
