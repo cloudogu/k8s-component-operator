@@ -86,6 +86,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to check dependencies")
 	})
 
@@ -113,6 +114,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		err := manager.Upgrade(ctx, component)
 
 		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to update status-upgrading for component testComponent:")
 	})
 
@@ -141,6 +143,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		err := manager.Upgrade(ctx, component)
 
 		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to upgrade chart for component testComponent:")
 	})
 
@@ -177,6 +180,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		err := manager.Upgrade(ctx, component)
 
 		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to update status-installed for component testComponent:")
 	})
 

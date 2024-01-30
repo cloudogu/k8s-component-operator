@@ -24,6 +24,14 @@ const (
 	ComponentStatusDeleting = "deleting"
 	// ComponentStatusInstalled represents a status for a component that was successfully installed
 	ComponentStatusInstalled = "installed"
+	// ComponentStatusTryToInstall represents a status for a component that is not installed but its install process is in requeue loop.
+	ComponentStatusTryToInstall = "tryToInstall"
+	// ComponentStatusTryToUpgrade represents a status for a component that is installed but its actual upgrade process is in requeue loop.
+	// In this state the component can be healthy but the version in the spec is not installed.
+	ComponentStatusTryToUpgrade = "tryToUpgrade"
+	// ComponentStatusTryToDelete represents a status for a component that is installed but its delete process is in requeue loop.
+	// In this state the component can be healthy.
+	ComponentStatusTryToDelete = "tryToDelete"
 )
 
 const FinalizerName = "component-finalizer"

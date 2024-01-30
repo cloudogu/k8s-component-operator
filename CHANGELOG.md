@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- [#51] Requeue components on errors during install, update and delete.
 ### Added
 - [#48] Add labels with component name and version to all resources of a component
 - [#48] Track health on component CR

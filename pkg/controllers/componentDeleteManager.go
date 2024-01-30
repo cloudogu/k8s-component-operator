@@ -31,12 +31,12 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 
 	component, err := cdm.componentClient.UpdateStatusDeleting(ctx, component)
 	if err != nil {
-		return fmt.Errorf("failed to update status-deleting for component %s: %w", component.Spec.Name, err)
+		return &genericRequeueableError{fmt.Sprintf("failed to update status-deleting for component %s", component.Spec.Name), err}
 	}
 
 	deployedReleases, err := cdm.helmClient.ListDeployedReleases()
 	if err != nil {
-		return fmt.Errorf("could not list deployed Helm releases")
+		return &genericRequeueableError{"could not list deployed Helm releases", err}
 	}
 
 	// Check if Helm Chart is still present before uninstalling; maybe someone has already removed it manually
@@ -45,7 +45,7 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 			// Component Helm Chart is still present and can be uninstalled
 			err = cdm.helmClient.Uninstall(component.Spec.Name)
 			if err != nil {
-				return fmt.Errorf("failed to uninstall chart with name %s: %w", component.Spec.Name, err)
+				return &genericRequeueableError{fmt.Sprintf("failed to uninstall chart with name %s", component.Spec.Name), err}
 			}
 			break
 		}
@@ -61,7 +61,7 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 		return err
 	})
 	if err != nil {
-		return fmt.Errorf("failed to remove finalizer for component %s: %w", component.Spec.Name, err)
+		return &genericRequeueableError{fmt.Sprintf("failed to remove finalizer for component %s", component.Spec.Name), err}
 	}
 
 	logger.Info(fmt.Sprintf("Deleted component %s.", component.Spec.Name))

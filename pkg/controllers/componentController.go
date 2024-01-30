@@ -133,15 +133,15 @@ func (r *ComponentReconciler) validateName(component *k8sv1.Component) (success 
 }
 
 func (r *ComponentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
-	return r.performOperation(ctx, component, InstallEventReason, k8sv1.ComponentStatusNotInstalled, r.componentManager.Install)
+	return r.performOperation(ctx, component, InstallEventReason, k8sv1.ComponentStatusTryToInstall, r.componentManager.Install)
 }
 
 func (r *ComponentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
-	return r.performOperation(ctx, component, UpgradeEventReason, k8sv1.ComponentStatusInstalled, r.componentManager.Upgrade)
+	return r.performOperation(ctx, component, UpgradeEventReason, k8sv1.ComponentStatusTryToUpgrade, r.componentManager.Upgrade)
 }
 
 func (r *ComponentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
-	return r.performOperation(ctx, component, DeinstallationEventReason, k8sv1.ComponentStatusInstalled, r.componentManager.Delete)
+	return r.performOperation(ctx, component, DeinstallationEventReason, k8sv1.ComponentStatusTryToDelete, r.componentManager.Delete)
 }
 
 func (r *ComponentReconciler) performDowngradeOperation(component *k8sv1.Component) (ctrl.Result, error) {
@@ -219,9 +219,9 @@ func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	}
 
 	switch component.Status.Status {
-	case k8sv1.ComponentStatusNotInstalled:
+	case k8sv1.ComponentStatusNotInstalled, k8sv1.ComponentStatusTryToInstall:
 		return Install, nil
-	case k8sv1.ComponentStatusInstalled:
+	case k8sv1.ComponentStatusInstalled, k8sv1.ComponentStatusTryToUpgrade, k8sv1.ComponentStatusTryToDelete:
 		operation, err := r.getChangeOperation(ctx, component)
 		if err != nil {
 			return "", err

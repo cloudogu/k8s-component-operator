@@ -674,6 +674,55 @@ func Test_componentReconciler_evaluateRequiredOperation(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, Ignore, requiredOperation)
 	})
+
+	t.Run("should return install on tryToInstall status", func(t *testing.T) {
+		// given
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
+		component.Status.Status = "tryToInstall"
+		sut := ComponentReconciler{}
+
+		// when
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Install, requiredOperation)
+	})
+
+	t.Run("should return upgrade on tryToUpgrade status", func(t *testing.T) {
+		// given
+		componentName := "dogu-op"
+		component := getComponent("ecosystem", "k8s", "", componentName, "0.0.1")
+		component.Status.Status = "tryToUpgrade"
+		helmMock := newMockHelmClient(t)
+		installedReleases := []*release.Release{{Namespace: "ecosystem", Name: componentName, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.0"}}}}
+		helmMock.EXPECT().ListDeployedReleases().Return(installedReleases, nil)
+		sut := ComponentReconciler{helmClient: helmMock}
+
+		// when
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Upgrade, requiredOperation)
+	})
+
+	t.Run("should return delete on tryToDelete status", func(t *testing.T) {
+		// given
+		componentName := "dogu-op"
+		component := getComponent("ecosystem", "k8s", "", componentName, "0.0.0")
+		component.Status.Status = "tryToDelete"
+		timeNow := v1.NewTime(time.Now())
+		component.DeletionTimestamp = &timeNow
+		sut := ComponentReconciler{}
+
+		// when
+		requiredOperation, err := sut.evaluateRequiredOperation(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, Delete, requiredOperation)
+	})
 }
 
 func Test_componentReconciler_validateName(t *testing.T) {

@@ -82,7 +82,36 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 		err := manager.Delete(ctx, component)
 
 		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to update status-deleting for component testComponent:")
+	})
+
+	t.Run("should fail to delete component on error while list deployed releases", func(t *testing.T) {
+		ctx := context.Background()
+		component := &k8sv1.Component{
+			Spec: k8sv1.ComponentSpec{
+				Namespace: "ecosystem",
+				Name:      "testComponent",
+				Version:   "1.0",
+			},
+			Status: k8sv1.ComponentStatus{Status: "installed"},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
+
+		manager := &componentDeleteManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+		}
+		err := manager.Delete(ctx, component)
+
+		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
+		assert.ErrorContains(t, err, "could not list deployed Helm releases")
 	})
 
 	t.Run("should fail to delete component on error while uninstalling chart", func(t *testing.T) {
@@ -113,6 +142,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 		err := manager.Delete(ctx, component)
 
 		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to uninstall chart with name testComponent:")
 	})
 
@@ -146,6 +176,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 		err := manager.Delete(ctx, component)
 
 		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to remove finalizer for component testComponent:")
 	})
 }
