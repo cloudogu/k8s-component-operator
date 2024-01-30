@@ -36,7 +36,7 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 
 	deployedReleases, err := cdm.helmClient.ListDeployedReleases()
 	if err != nil {
-		return &genericRequeueableError{fmt.Sprintf("could not list deployed Helm releases"), err}
+		return &genericRequeueableError{"could not list deployed Helm releases", err}
 	}
 
 	// Check if Helm Chart is still present before uninstalling; maybe someone has already removed it manually
