@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -19,7 +18,7 @@ type DefaultComponentManager struct {
 }
 
 // NewComponentManager creates a new instance of DefaultComponentManager.
-func NewComponentManager(clientset componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder) *DefaultComponentManager {
+func NewComponentManager(clientset componentInterface, helmClient componentHelmClient, healthManager healthManager, recorder record.EventRecorder) *DefaultComponentManager {
 	return &DefaultComponentManager{
 		installManager: NewComponentInstallManager(clientset, helmClient, healthManager, recorder),
 		deleteManager:  NewComponentDeleteManager(clientset, helmClient),

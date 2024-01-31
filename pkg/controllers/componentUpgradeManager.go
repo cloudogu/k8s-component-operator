@@ -14,13 +14,13 @@ import (
 // ComponentUpgradeManager is a central unit in the process of handling the upgrade process of a custom component resource.
 type ComponentUpgradeManager struct {
 	componentClient componentInterface
-	helmClient      helmClient
+	helmClient      componentHelmClient
 	healthManager   healthManager
 	recorder        record.EventRecorder
 }
 
 // NewComponentUpgradeManager creates a new instance of ComponentUpgradeManager.
-func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentUpgradeManager {
+func NewComponentUpgradeManager(componentClient componentInterface, helmClient componentHelmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentUpgradeManager {
 	return &ComponentUpgradeManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
@@ -50,7 +50,7 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// this allows self-upgrades
 	helmCtx := context.WithoutCancel(ctx)
 
-	if err := cum.helmClient.InstallOrUpgradeWithMappedValues(helmCtx, component.GetHelmChartSpec(), component.Spec.MappedValues); err != nil {
+	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
 		return fmt.Errorf("failed to upgrade chart for component %s: %w", component.Spec.Name, err)
 	}
 

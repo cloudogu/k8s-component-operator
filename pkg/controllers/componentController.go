@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
-	"reflect"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"strings"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -57,16 +57,16 @@ type ComponentManager interface {
 
 // ComponentReconciler watches every Component object in the cluster and handles them accordingly.
 type ComponentReconciler struct {
-	clientSet        componentEcosystemInterface
-	recorder         record.EventRecorder
-	componentManager ComponentManager
-	helmClient       helmClient
-	requeueHandler   requeueHandler
-	namespace        string
+	clientSet               componentEcosystemInterface
+	recorder                record.EventRecorder
+	componentManager        ComponentManager
+	metaDataValueHelmClient metadataValueHelmClient
+	requeueHandler          requeueHandler
+	namespace               string
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string) *ComponentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient componentHelmClient, recorder record.EventRecorder, namespace string) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
 	return &ComponentReconciler{
 		clientSet: clientSet,
@@ -77,9 +77,9 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 			health.NewManager(namespace, clientSet),
 			recorder,
 		),
-		helmClient:     helmClient,
-		requeueHandler: componentRequeueHandler,
-		namespace:      namespace,
+		metaDataValueHelmClient: helm.NewMetadataValueClient(helmClient),
+		requeueHandler:          componentRequeueHandler,
+		namespace:               namespace,
 	}
 }
 
@@ -99,6 +99,11 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	success := r.validateName(component)
 	if !success {
 		return finishOperation()
+	}
+
+	err = r.validateValues(ctx, component)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	operation, err := r.evaluateRequiredOperation(ctx, component)
@@ -243,7 +248,7 @@ func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, com
 func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
 	logger := log.FromContext(ctx)
 
-	deployedReleases, err := r.helmClient.ListDeployedReleases()
+	deployedReleases, err := r.metaDataValueHelmClient.ListDeployedReleases()
 	if err != nil {
 		return "", fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
@@ -263,7 +268,7 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 			logger.Info("Found existing release for reconciled component",
 				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
 			if existsReleaseInTargetNamespace {
-				return r.getChangeOperationForRelease(component, deployedRelease)
+				return r.getChangeOperationForRelease(ctx, component, deployedRelease)
 			}
 		}
 	}
@@ -271,30 +276,7 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 	return Ignore, nil
 }
 
-func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
-	deployedValues, err := r.helmClient.GetReleaseValues(deployedRelease.Name, false)
-	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
-	}
-
-	// TODO Check changes for mappedValues. Merge them here. Maybe extend chartSpec and reuse them later.
-	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpec())
-	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpec().ChartName, err)
-	}
-
-	// if no additional values are set, the maps will look like this:
-	// deployedValues=map[string]interface {}(nil)                                                                                                                                        │
-	// chartSpecValues=map[string]interface {}{}
-	// this is treated as a difference by DeepEqual, so we have to handle this edge case manually
-	if len(deployedValues) == 0 && len(chartSpecValues) == 0 {
-		return false, nil
-	}
-
-	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
-}
-
-func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
+func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
@@ -314,7 +296,7 @@ func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Comp
 		return Downgrade, nil
 	}
 
-	isValuesChanged, err := r.isValuesChanged(release, component)
+	isValuesChanged, err := r.metaDataValueHelmClient.IsValuesChanged(ctx, release, component)
 	if err != nil {
 		return "", fmt.Errorf("failed to compare Values.yaml files of component %s: %w", component.Name, err)
 	}
@@ -323,6 +305,18 @@ func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Comp
 	}
 
 	return Ignore, nil
+}
+
+func (r *ComponentReconciler) validateValues(ctx context.Context, component *k8sv1.Component) error {
+	logger := log.FromContext(ctx)
+
+	switch component.Status.Status {
+	case k8sv1.ComponentStatusNotInstalled, k8sv1.ComponentStatusInstalled:
+		logger.Info(fmt.Sprintf("Validate user defined values for component %q", component.Spec.Name))
+		return r.metaDataValueHelmClient.VerifyUserDefinedValues(ctx, component)
+	default:
+		return nil
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

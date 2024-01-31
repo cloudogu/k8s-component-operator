@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+	"helm.sh/helm/v3/pkg/chart"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"time"
 
@@ -12,7 +14,6 @@ import (
 
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 )
 
 // installManager includes functionality to install components in the cluster.
@@ -38,11 +39,9 @@ type healthManager interface {
 }
 
 // helmClient is an interface for managing components with helm.
-type helmClient interface {
+type componentHelmClient interface {
 	// InstallOrUpgrade takes a helmChart and applies it.
 	InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) error
-	// InstallOrUpgradeWithMappedValues takes a helmChart and applies it with custom values which should be in the metadata file of the helm chart.
-	InstallOrUpgradeWithMappedValues(ctx context.Context, chart *client.ChartSpec, mappedValues map[string]string) error
 	// Uninstall removes the helmRelease for the given name
 	Uninstall(releaseName string) error
 	// ListDeployedReleases returns all deployed helm releases
@@ -55,6 +54,15 @@ type helmClient interface {
 	// indicates that all dependencies (if any) meet the requirements, so that the client may conduct an installation or
 	// upgrade.
 	SatisfiesDependencies(ctx context.Context, chart *client.ChartSpec) error
+
+	GetChart(ctx context.Context, chartSpec *client.ChartSpec) (*chart.Chart, error)
+}
+
+// metadataValueHelmClient is an interface for managing components with metadata helm values.
+type metadataValueHelmClient interface {
+	VerifyUserDefinedValues(ctx context.Context, component *k8sv1.Component) error
+	IsValuesChanged(ctx context.Context, deployedRelease *release.Release, component *k8sv1.Component) (bool, error)
+	componentHelmClient
 }
 
 // eventRecorder embeds the record.EventRecorder interface for usage in this package.

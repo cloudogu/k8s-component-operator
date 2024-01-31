@@ -120,7 +120,7 @@ func TestClient_InstallOrUpgrade(t *testing.T) {
 		assert.ErrorContains(t, err, "error patching chart-version for chart oci://staging.cloudogu.com/testing/testComponent")
 	})
 
-	t.Run("should fail to install or upgrade chart for error in helmClient", func(t *testing.T) {
+	t.Run("should fail to install or upgrade chart for error in componentHelmClient", func(t *testing.T) {
 		chartSpec := &client.ChartSpec{
 			ReleaseName: "testComponent",
 			ChartName:   "testing/testComponent",
@@ -155,7 +155,7 @@ func TestClient_Uninstall(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("should fail to uninstall for error in helmClient", func(t *testing.T) {
+	t.Run("should fail to uninstall for error in componentHelmClient", func(t *testing.T) {
 		releaseName := "testComponent"
 
 		mockHelmClient := NewMockHelmClient(t)
@@ -189,7 +189,7 @@ func TestClient_ListDeployedReleases(t *testing.T) {
 		assert.Equal(t, releases, result)
 	})
 
-	t.Run("should fail to list deployed releases for error in helmClient", func(t *testing.T) {
+	t.Run("should fail to list deployed releases for error in componentHelmClient", func(t *testing.T) {
 		mockHelmClient := NewMockHelmClient(t)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
 

@@ -16,13 +16,13 @@ import (
 // ComponentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
 type ComponentInstallManager struct {
 	componentClient componentInterface
-	helmClient      helmClient
+	helmClient      componentHelmClient
 	healthManager   healthManager
 	recorder        record.EventRecorder
 }
 
 // NewComponentInstallManager creates a new instance of ComponentInstallManager.
-func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentInstallManager {
+func NewComponentInstallManager(componentClient componentInterface, helmClient componentHelmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentInstallManager {
 	return &ComponentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
@@ -61,7 +61,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.Background()
 
-	if err := cim.helmClient.InstallOrUpgradeWithMappedValues(helmCtx, component.GetHelmChartSpec(), component.Spec.MappedValues); err != nil {
+	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
 		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 	}
 
