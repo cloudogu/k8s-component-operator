@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - [#54] Helm-Credentials can be stored in base64 encoding and clarified escaping rules if not
-  (see [here](docs/development/developing_the_operator_en.md) or [here](.env.template)) #64
+  (see [here](docs/development/developing_the_operator_en.md) or [here](.env.template))
 
 ## [v0.8.0] - 2024-01-30
 ### Changed
