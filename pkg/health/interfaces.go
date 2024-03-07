@@ -29,6 +29,7 @@ type appsV1Client interface {
 
 type ComponentManager interface {
 	UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error
+	UpdateComponentHealthWithVersion(ctx context.Context, componentName string, namespace string, version string) error
 }
 
 type applicationFinder interface {
@@ -46,7 +47,7 @@ type applicationFinder interface {
 
 type componentRepo interface {
 	get(ctx context.Context, name string) (*v1.Component, error)
-	updateHealthStatus(ctx context.Context, component *v1.Component, status v1.HealthStatus) error
+	updateCondition(ctx context.Context, component *v1.Component, status v1.HealthStatus, version string) error
 }
 
 // interfaces for mocks

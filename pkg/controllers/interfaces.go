@@ -47,6 +47,8 @@ type helmClient interface {
 	ListDeployedReleases() ([]*release.Release, error)
 	// GetReleaseValues returns the (optionally, all computed) values for the specified release.
 	GetReleaseValues(name string, allValues bool) (map[string]interface{}, error)
+	// GetReleaseVersion returns the version for the specified release (if the release exists).
+	GetReleaseVersion(ctx context.Context, name string) (string, error)
 	// GetChartSpecValues returns the additional values for the specified ChartSpec.
 	GetChartSpecValues(chart *client.ChartSpec) (map[string]interface{}, error)
 	// SatisfiesDependencies validates that all dependencies are installed in the required version. A nil error

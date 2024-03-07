@@ -134,6 +134,59 @@ func (_c *mockHelmClient_GetReleaseValues_Call) RunAndReturn(run func(string, bo
 	return _c
 }
 
+// GetReleaseVersion provides a mock function with given fields: ctx, name
+func (_m *mockHelmClient) GetReleaseVersion(ctx context.Context, name string) (string, error) {
+	ret := _m.Called(ctx, name)
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
+		return rf(ctx, name)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
+		r0 = rf(ctx, name)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockHelmClient_GetReleaseVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetReleaseVersion'
+type mockHelmClient_GetReleaseVersion_Call struct {
+	*mock.Call
+}
+
+// GetReleaseVersion is a helper method to define mock.On call
+//   - ctx context.Context
+//   - name string
+func (_e *mockHelmClient_Expecter) GetReleaseVersion(ctx interface{}, name interface{}) *mockHelmClient_GetReleaseVersion_Call {
+	return &mockHelmClient_GetReleaseVersion_Call{Call: _e.mock.On("GetReleaseVersion", ctx, name)}
+}
+
+func (_c *mockHelmClient_GetReleaseVersion_Call) Run(run func(ctx context.Context, name string)) *mockHelmClient_GetReleaseVersion_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *mockHelmClient_GetReleaseVersion_Call) Return(_a0 string, _a1 error) *mockHelmClient_GetReleaseVersion_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockHelmClient_GetReleaseVersion_Call) RunAndReturn(run func(context.Context, string) (string, error)) *mockHelmClient_GetReleaseVersion_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // InstallOrUpgrade provides a mock function with given fields: ctx, chart
 func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) error {
 	ret := _m.Called(ctx, chart)

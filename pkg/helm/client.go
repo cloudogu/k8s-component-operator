@@ -149,6 +149,28 @@ func (c *Client) GetReleaseValues(name string, allValues bool) (map[string]inter
 	return c.helmClient.GetReleaseValues(name, allValues)
 }
 
+// GetReleaseVersion returns the version for the specified release (if the release exists).
+func (c *Client) GetReleaseVersion(ctx context.Context, name string) (string, error) {
+	logger := log.FromContext(ctx)
+
+	deployedReleases, err := c.ListDeployedReleases()
+	if err != nil {
+		return "", fmt.Errorf("could not list deployed Helm releases: %w", err)
+	}
+
+	for _, k8sRelease := range deployedReleases {
+		if name == k8sRelease.Name {
+			version := k8sRelease.Chart.AppVersion()
+			logger.Info("Found existing release for reconciled component",
+				"component", name, "version", version)
+			return version, nil
+		}
+	}
+
+	logger.Info("could not find a deployed release for component: ", name)
+	return "", nil
+}
+
 // GetChartSpecValues returns the additional values for the specified ChartSpec.
 func (c *Client) GetChartSpecValues(spec *client.ChartSpec) (map[string]interface{}, error) {
 	return c.helmClient.GetChartSpecValues(spec)

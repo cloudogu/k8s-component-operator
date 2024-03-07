@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/release"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
 
@@ -31,10 +29,11 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(nil)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -156,6 +155,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
@@ -185,10 +185,11 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(assert.AnError)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(assert.AnError)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -202,7 +203,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
-		assert.ErrorContains(t, err, "failed to update health status for component")
+		assert.ErrorContains(t, err, "failed to update health status and installed version for component")
 	})
 
 	t.Run("should update version of component", func(t *testing.T) {
@@ -220,13 +221,10 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
-			Name:  componentWithoutVersion.Name,
-			Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: componentWithVersion.Spec.Version}},
-		}}, nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("4.8.3", nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(testCtx, component.Spec.Name, namespace).Return(nil)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithVersion(testCtx, component.Spec.Name, namespace, "4.8.3").Return(nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -252,7 +250,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("", assert.AnError)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -266,7 +264,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
 		assert.IsType(t, err, &genericRequeueableError{})
-		assert.ErrorContains(t, err, "could not list deployed Helm releases")
+		assert.ErrorContains(t, err, "failed to get release version for component")
 	})
 
 	t.Run("should fail to update version of component on error getting component", func(t *testing.T) {
@@ -277,15 +275,11 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithoutVersion, "component-finalizer").Return(componentWithoutVersion, nil)
 
 		mockComponentClient.EXPECT().Get(testCtx, componentWithoutVersion.Name, metav1.GetOptions{}).Return(componentWithoutVersion, assert.AnError)
-		componentWithVersion := getComponent(namespace, "k8s", "", "dogu-op", "4.8.3")
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
-			Name:  componentWithoutVersion.Name,
-			Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: componentWithVersion.Spec.Version}},
-		}}, nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("4.8.3", nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -317,10 +311,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
-			Name:  componentWithoutVersion.Name,
-			Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: componentWithVersion.Spec.Version}},
-		}}, nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("4.8.3", nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,

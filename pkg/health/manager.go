@@ -24,6 +24,14 @@ func NewManager(namespace string, clientSet ecosystemClientSet) *DefaultManager 
 }
 
 func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error {
+	return m.updateComponentCondition(ctx, componentName, namespace, noVersionChange)
+}
+
+func (m *DefaultManager) UpdateComponentHealthWithVersion(ctx context.Context, componentName string, namespace string, version string) error {
+	return m.updateComponentCondition(ctx, componentName, namespace, version)
+}
+
+func (m *DefaultManager) updateComponentCondition(ctx context.Context, componentName string, namespace string, version string) error {
 	deploymentList, statefulSetList, daemonSetList, err := m.findComponentApplications(ctx, componentName, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to find applications for component %q: %w", componentName, err)
@@ -36,9 +44,9 @@ func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentNam
 
 	healthStatus := m.componentHealthStatus(ctx, deploymentList, statefulSetList, daemonSetList, component)
 
-	err = m.updateHealthStatus(ctx, component, healthStatus)
+	err = m.updateCondition(ctx, component, healthStatus, version)
 	if err != nil {
-		return fmt.Errorf("failed to update health status for component %q: %w", componentName, err)
+		return fmt.Errorf("failed to update health status and installed version for component %q: %w", componentName, err)
 	}
 
 	return nil

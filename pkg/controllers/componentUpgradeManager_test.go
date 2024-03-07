@@ -49,10 +49,11 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(mock.Anything, component.Spec.Name, "ecosystem").Return(nil)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithVersion(mock.Anything, component.Spec.Name, "ecosystem", "0.1.0").Return(nil)
 
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -205,10 +206,12 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().GetReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(mock.Anything, component.Spec.Name, "ecosystem").Return(assert.AnError)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithVersion(mock.Anything, component.Spec.Name, "ecosystem", "0.1.0").
+			Return(assert.AnError)
 
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,

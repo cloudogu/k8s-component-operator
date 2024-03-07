@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.13.0
   labels:
     app: ces
     app.kubernetes.io/name: k8s-component-operator
@@ -48,7 +47,7 @@ spec:
                   description: ValuesYamlOverwrite is a multiline-yaml string that is applied alongside the original values.yaml-file of the component. It can be used to overwrite specific configurations. Lists are overwritten, maps are merged.
                   type: string
                 version:
-                  description: Version of the component (e.g. 2.4.48-3)
+                  description: Desired version of the component (e.g. 2.4.48-3)
                   type: string
               type: object
             status:
@@ -56,6 +55,9 @@ spec:
               properties:
                 health:
                   description: Health describes the health status of the component. A component becomes 'available' if its Status is 'installed', and all its deployments, stateful sets, and daemon sets are available.
+                  type: string
+                installedVersion:
+                  description: Installed version of the component (e.g. 2.4.48-3)
                   type: string
                 requeueTimeNanos:
                   description: RequeueTimeNanos contains the time in nanoseconds to wait until the next requeue.

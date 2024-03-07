@@ -59,7 +59,11 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-installed for component %s", component.Spec.Name), err: err}
 	}
 
-	err = cum.healthManager.UpdateComponentHealth(helmCtx, component.Spec.Name, component.Namespace)
+	version, err := cum.helmClient.GetReleaseVersion(ctx, component.Spec.Name)
+	if err != nil {
+		return err
+	}
+	err = cum.healthManager.UpdateComponentHealthWithVersion(helmCtx, component.Spec.Name, component.Namespace, version)
 	if err != nil {
 		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
 	}

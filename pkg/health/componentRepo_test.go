@@ -147,7 +147,7 @@ func Test_defaultComponentRepo_updateHealthStatus(t *testing.T) {
 					Return(tt.mockValues.updateComponentOut, tt.mockValues.updateErr)
 			}
 			cr := &defaultComponentRepo{client: clientMock}
-			tt.wantErr(t, cr.updateHealthStatus(testCtx, tt.args.component, tt.args.status))
+			tt.wantErr(t, cr.updateCondition(testCtx, tt.args.component, tt.args.status, ""))
 		})
 	}
 }

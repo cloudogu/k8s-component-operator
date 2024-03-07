@@ -230,14 +230,14 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateHealthStatus(testCtx, &testComponent, v1.HealthStatus("available")).
+					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), noVersionChange).
 						Return(assert.AnError)
 					return repo
 				},
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
-					assert.ErrorContains(t, err, fmt.Sprintf("failed to update health status for component %q", testComponentName), i)
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to update health status and installed version for component %q", testComponentName), i)
 			},
 		},
 		{
@@ -253,7 +253,7 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateHealthStatus(testCtx, &testComponent, v1.HealthStatus("available")).
+					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), noVersionChange).
 						Return(nil)
 					return repo
 				},
