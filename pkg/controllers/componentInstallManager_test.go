@@ -240,7 +240,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		assert.Equal(t, componentWithVersion.Spec.Version, componentWithoutVersion.Spec.Version)
 	})
 
-	t.Run("should fail to update version of component on error while listing releases", func(t *testing.T) {
+	t.Run("should fail to update version of component on error while getting the release version", func(t *testing.T) {
 		// given
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
 		mockComponentClient := newMockComponentInterface(t)

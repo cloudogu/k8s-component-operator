@@ -49,6 +49,7 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			By("Creating component resource")
 			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().SatisfiesDependencies(mock.Anything, mock.Anything).Return(nil)
+			helmClientMock.EXPECT().GetReleaseVersion(mock.Anything, mock.Anything).Return("0.1.0", nil)
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
 			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Starting installation...")
@@ -81,6 +82,7 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().SatisfiesDependencies(mock.Anything, mock.Anything).Return(nil)
 			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{Name: installComponent.Spec.Name, Namespace: installComponent.Namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}, nil)
+			helmClientMock.EXPECT().GetReleaseVersion(mock.Anything, mock.Anything).Return("0.1.0", nil)
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
 			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Starting upgrade...")
