@@ -149,8 +149,8 @@ func (c *Client) GetReleaseValues(name string, allValues bool) (map[string]inter
 	return c.helmClient.GetReleaseValues(name, allValues)
 }
 
-// GetReleaseVersion returns the version for the specified release (if the release exists).
-func (c *Client) GetReleaseVersion(ctx context.Context, name string) (string, error) {
+// GetDeployedReleaseVersion returns the version for the specified release (if the release exists).
+func (c *Client) GetDeployedReleaseVersion(ctx context.Context, name string) (string, error) {
 	logger := log.FromContext(ctx)
 
 	deployedReleases, err := c.ListDeployedReleases()

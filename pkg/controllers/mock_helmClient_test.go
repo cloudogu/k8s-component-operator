@@ -135,7 +135,7 @@ func (_c *mockHelmClient_GetReleaseValues_Call) RunAndReturn(run func(string, bo
 }
 
 // GetReleaseVersion provides a mock function with given fields: ctx, name
-func (_m *mockHelmClient) GetReleaseVersion(ctx context.Context, name string) (string, error) {
+func (_m *mockHelmClient) GetDeployedReleaseVersion(ctx context.Context, name string) (string, error) {
 	ret := _m.Called(ctx, name)
 
 	var r0 string
@@ -158,7 +158,7 @@ func (_m *mockHelmClient) GetReleaseVersion(ctx context.Context, name string) (s
 	return r0, r1
 }
 
-// mockHelmClient_GetReleaseVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetReleaseVersion'
+// mockHelmClient_GetReleaseVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDeployedReleaseVersion'
 type mockHelmClient_GetReleaseVersion_Call struct {
 	*mock.Call
 }
@@ -167,7 +167,7 @@ type mockHelmClient_GetReleaseVersion_Call struct {
 //   - ctx context.Context
 //   - name string
 func (_e *mockHelmClient_Expecter) GetReleaseVersion(ctx interface{}, name interface{}) *mockHelmClient_GetReleaseVersion_Call {
-	return &mockHelmClient_GetReleaseVersion_Call{Call: _e.mock.On("GetReleaseVersion", ctx, name)}
+	return &mockHelmClient_GetReleaseVersion_Call{Call: _e.mock.On("GetDeployedReleaseVersion", ctx, name)}
 }
 
 func (_c *mockHelmClient_GetReleaseVersion_Call) Run(run func(ctx context.Context, name string)) *mockHelmClient_GetReleaseVersion_Call {

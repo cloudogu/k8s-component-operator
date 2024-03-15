@@ -654,7 +654,7 @@ func TestClient_GetReleaseVersion(t *testing.T) {
 		}
 
 		// when
-		version, err := sut.GetReleaseVersion(testCtx, "Test Release 2")
+		version, err := sut.GetDeployedReleaseVersion(testCtx, "Test Release 2")
 
 		require.NoError(t, err)
 		assert.Equal(t, "0.2.0", version)
@@ -684,7 +684,7 @@ func TestClient_GetReleaseVersion(t *testing.T) {
 		}
 
 		// when
-		version, err := sut.GetReleaseVersion(testCtx, "Test Release 3")
+		version, err := sut.GetDeployedReleaseVersion(testCtx, "Test Release 3")
 
 		require.NoError(t, err)
 		assert.Equal(t, "", version)
@@ -700,7 +700,7 @@ func TestClient_GetReleaseVersion(t *testing.T) {
 		}
 
 		// when
-		version, err := sut.GetReleaseVersion(testCtx, "Test Release 1")
+		version, err := sut.GetDeployedReleaseVersion(testCtx, "Test Release 1")
 
 		require.Error(t, err)
 		require.ErrorIs(t, err, assert.AnError)

@@ -67,12 +67,12 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	}
 
 	// set the installed version in the component to use it for version-comparison in future upgrades
-	version, err := cim.helmClient.GetReleaseVersion(ctx, component.Spec.Name)
+	version, err := cim.helmClient.GetDeployedReleaseVersion(ctx, component.Spec.Name)
 	if err != nil {
 		return &genericRequeueableError{fmt.Sprintf("failed to get release version for component %s", component.Spec.Name), err}
 	}
 	if component.Spec.Version == "" {
-		component, err = cim.UpdateComponentVersion(helmCtx, component, version)
+		component, err = cim.UpdateExpectedComponentVersion(helmCtx, component, version)
 		if err != nil {
 			return &genericRequeueableError{"failed to update version for component " + component.Spec.Name, err}
 		}
@@ -92,7 +92,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	return nil
 }
 
-func (cim *ComponentInstallManager) UpdateComponentVersion(ctx context.Context, component *k8sv1.Component, version string) (*k8sv1.Component, error) {
+func (cim *ComponentInstallManager) UpdateExpectedComponentVersion(ctx context.Context, component *k8sv1.Component, version string) (*k8sv1.Component, error) {
 	err := retry.OnConflict(func() error {
 		retryComponent, err := cim.componentClient.Get(ctx, component.Name, metav1.GetOptions{})
 		if err != nil {
