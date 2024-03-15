@@ -59,6 +59,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	logger.Info("Install helm chart...")
 
 	// create a new context that does not get canceled immediately on SIGTERM
+	// TODO: discuss, why we use background as this is an anti pattern. Why not context.WithoutCancel(ctx)?
 	helmCtx := context.Background()
 
 	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
@@ -68,7 +69,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// set the installed version in the component to use it for version-comparison in future upgrades
 	version, err := cim.helmClient.GetReleaseVersion(ctx, component.Spec.Name)
 	if err != nil {
-		return &genericRequeueableError{"failed to get release version for component " + component.Spec.Name, err}
+		return &genericRequeueableError{fmt.Sprintf("failed to get release version for component %s", component.Spec.Name), err}
 	}
 	if component.Spec.Version == "" {
 		component, err = cim.UpdateComponentVersion(helmCtx, component, version)
