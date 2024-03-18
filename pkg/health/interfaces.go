@@ -29,7 +29,7 @@ type appsV1Client interface {
 
 type ComponentManager interface {
 	UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error
-	UpdateComponentHealthWithVersion(ctx context.Context, componentName string, namespace string, version string) error
+	UpdateComponentHealthWithInstalledVersion(ctx context.Context, componentName string, namespace string, version string) error
 }
 
 type applicationFinder interface {

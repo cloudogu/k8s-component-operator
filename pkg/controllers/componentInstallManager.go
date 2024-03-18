@@ -3,9 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/retry"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -32,7 +29,7 @@ func NewComponentInstallManager(componentClient componentInterface, helmClient h
 }
 
 // Install installs a given Component Resource.
-// nolint: contextcheck // uses a new non-inherited context to finish running helm-processes on SIGTERM
+// If no expected version is given in the component CR the latest version will be installed.
 func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
@@ -59,30 +56,33 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	logger.Info("Install helm chart...")
 
 	// create a new context that does not get canceled immediately on SIGTERM
-	// TODO: discuss, why we use background as this is an anti pattern. Why not context.WithoutCancel(ctx)?
-	helmCtx := context.Background()
+	helmCtx := context.WithoutCancel(ctx)
 
+	// if no version is set in the component CR, this will find the latest version and install it
+	// TODO: if no specific version is set, find the latest version here, not in the client.
+	//  A client should have no business logic (but we can bundle it with e.g. `GetLatestChartVersion()`)
+	//  Then we dont have to load the installed version again with a helm call.
 	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
 		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 	}
 
-	// set the installed version in the component to use it for version-comparison in future upgrades
-	version, err := cim.helmClient.GetDeployedReleaseVersion(ctx, component.Spec.Name)
+	// set the installed version in the component CR to use it for version-comparison in future upgrades
+	installedVersion, err := cim.helmClient.GetDeployedReleaseVersion(ctx, component.Spec.Name)
 	if err != nil {
-		return &genericRequeueableError{fmt.Sprintf("failed to get release version for component %s", component.Spec.Name), err}
+		return &genericRequeueableError{fmt.Sprintf("failed to get release version for component %q", component.Spec.Name), err}
 	}
 	if component.Spec.Version == "" {
-		component, err = cim.UpdateExpectedComponentVersion(helmCtx, component, version)
+		component, err = cim.componentClient.UpdateExpectedComponentVersion(helmCtx, component.Spec.Name, installedVersion)
 		if err != nil {
-			return &genericRequeueableError{"failed to update version for component " + component.Spec.Name, err}
+			return &genericRequeueableError{fmt.Sprintf("failed to update expected version for component %q", component.Spec.Name), err}
 		}
 	}
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
-		return &genericRequeueableError{"failed to update status-installed for component " + component.Spec.Name, err}
+		return &genericRequeueableError{fmt.Sprintf("failed to update status-installed for component %q", component.Spec.Name), err}
 	}
 
-	err = cim.healthManager.UpdateComponentHealthWithVersion(ctx, component.Spec.Name, component.Namespace, version)
+	err = cim.healthManager.UpdateComponentHealthWithInstalledVersion(ctx, component.Spec.Name, component.Namespace, installedVersion)
 	if err != nil {
 		return fmt.Errorf("failed to update health status and installed version for component %q: %w", component.Spec.Name, err)
 	}
@@ -90,27 +90,4 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))
 
 	return nil
-}
-
-func (cim *ComponentInstallManager) UpdateExpectedComponentVersion(ctx context.Context, component *k8sv1.Component, version string) (*k8sv1.Component, error) {
-	err := retry.OnConflict(func() error {
-		retryComponent, err := cim.componentClient.Get(ctx, component.Name, metav1.GetOptions{})
-		if err != nil {
-			return fmt.Errorf("failed to get component %q for update: %w", component.Spec.Name, err)
-		}
-
-		retryComponent.Spec.Version = version
-		retryComponent, err = cim.componentClient.Update(ctx, retryComponent, metav1.UpdateOptions{})
-		if err != nil {
-			return err
-		}
-
-		component = retryComponent
-		return nil
-	})
-	if err != nil {
-		return component, fmt.Errorf("failed to update version in component %q: %w", component.Spec.Name, err)
-	}
-
-	return component, nil
 }

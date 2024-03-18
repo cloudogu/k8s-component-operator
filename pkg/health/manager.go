@@ -27,7 +27,7 @@ func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentNam
 	return m.updateComponentCondition(ctx, componentName, namespace, noVersionChange)
 }
 
-func (m *DefaultManager) UpdateComponentHealthWithVersion(ctx context.Context, componentName string, namespace string, version string) error {
+func (m *DefaultManager) UpdateComponentHealthWithInstalledVersion(ctx context.Context, componentName string, namespace string, version string) error {
 	return m.updateComponentCondition(ctx, componentName, namespace, version)
 }
 

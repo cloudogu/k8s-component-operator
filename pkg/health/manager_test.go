@@ -373,7 +373,7 @@ func Test_defaultManager_UpdateComponentHealthWithVersion(t *testing.T) {
 				applicationFinder: tt.fields.applicationFinderFn(t),
 				componentRepo:     tt.fields.componentRepoFn(t),
 			}
-			tt.wantErr(t, m.UpdateComponentHealthWithVersion(testCtx, testComponentName, testNamespace, testVersion))
+			tt.wantErr(t, m.UpdateComponentHealthWithInstalledVersion(testCtx, testComponentName, testNamespace, testVersion))
 		})
 	}
 }

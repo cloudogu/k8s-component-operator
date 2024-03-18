@@ -65,8 +65,8 @@ func (_c *mockHealthManager_UpdateComponentHealth_Call) RunAndReturn(run func(co
 	return _c
 }
 
-// UpdateComponentHealthWithVersion provides a mock function with given fields: ctx, componentName, namespace, version
-func (_m *mockHealthManager) UpdateComponentHealthWithVersion(ctx context.Context, componentName string, namespace string, version string) error {
+// UpdateComponentHealthWithInstalledVersion provides a mock function with given fields: ctx, componentName, namespace, version
+func (_m *mockHealthManager) UpdateComponentHealthWithInstalledVersion(ctx context.Context, componentName string, namespace string, version string) error {
 	ret := _m.Called(ctx, componentName, namespace, version)
 
 	var r0 error
@@ -79,33 +79,33 @@ func (_m *mockHealthManager) UpdateComponentHealthWithVersion(ctx context.Contex
 	return r0
 }
 
-// mockHealthManager_UpdateComponentHealthWithVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateComponentHealthWithVersion'
-type mockHealthManager_UpdateComponentHealthWithVersion_Call struct {
+// mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateComponentHealthWithInstalledVersion'
+type mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call struct {
 	*mock.Call
 }
 
-// UpdateComponentHealthWithVersion is a helper method to define mock.On call
+// UpdateComponentHealthWithInstalledVersion is a helper method to define mock.On call
 //   - ctx context.Context
 //   - componentName string
 //   - namespace string
 //   - version string
-func (_e *mockHealthManager_Expecter) UpdateComponentHealthWithVersion(ctx interface{}, componentName interface{}, namespace interface{}, version interface{}) *mockHealthManager_UpdateComponentHealthWithVersion_Call {
-	return &mockHealthManager_UpdateComponentHealthWithVersion_Call{Call: _e.mock.On("UpdateComponentHealthWithVersion", ctx, componentName, namespace, version)}
+func (_e *mockHealthManager_Expecter) UpdateComponentHealthWithInstalledVersion(ctx interface{}, componentName interface{}, namespace interface{}, version interface{}) *mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call {
+	return &mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call{Call: _e.mock.On("UpdateComponentHealthWithInstalledVersion", ctx, componentName, namespace, version)}
 }
 
-func (_c *mockHealthManager_UpdateComponentHealthWithVersion_Call) Run(run func(ctx context.Context, componentName string, namespace string, version string)) *mockHealthManager_UpdateComponentHealthWithVersion_Call {
+func (_c *mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call) Run(run func(ctx context.Context, componentName string, namespace string, version string)) *mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
 	})
 	return _c
 }
 
-func (_c *mockHealthManager_UpdateComponentHealthWithVersion_Call) Return(_a0 error) *mockHealthManager_UpdateComponentHealthWithVersion_Call {
+func (_c *mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call) Return(_a0 error) *mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *mockHealthManager_UpdateComponentHealthWithVersion_Call) RunAndReturn(run func(context.Context, string, string, string) error) *mockHealthManager_UpdateComponentHealthWithVersion_Call {
+func (_c *mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call) RunAndReturn(run func(context.Context, string, string, string) error) *mockHealthManager_UpdateComponentHealthWithInstalledVersion_Call {
 	_c.Call.Return(run)
 	return _c
 }
