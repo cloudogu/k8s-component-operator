@@ -2,6 +2,7 @@ package health
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -24,24 +25,50 @@ func NewManager(namespace string, clientSet ecosystemClientSet) *DefaultManager 
 }
 
 func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error {
-	deploymentList, statefulSetList, daemonSetList, err := m.findComponentApplications(ctx, componentName, namespace)
-	if err != nil {
-		return fmt.Errorf("failed to find applications for component %q: %w", componentName, err)
-	}
-
 	component, err := m.get(ctx, componentName)
 	if err != nil {
 		return fmt.Errorf("failed to get component %q: %w", componentName, err)
+	}
+
+	err = m.updateComponentHealth(ctx, namespace, component)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *DefaultManager) updateComponentHealth(ctx context.Context, namespace string, component *v1.Component) error {
+	deploymentList, statefulSetList, daemonSetList, err := m.findComponentApplications(ctx, component.Name, namespace)
+	if err != nil {
+		return fmt.Errorf("failed to find applications for component %q: %w", component.Name, err)
 	}
 
 	healthStatus := m.componentHealthStatus(ctx, deploymentList, statefulSetList, daemonSetList, component)
 
 	err = m.updateHealthStatus(ctx, component, healthStatus)
 	if err != nil {
-		return fmt.Errorf("failed to update health status for component %q: %w", componentName, err)
+		return fmt.Errorf("failed to update health status for component %q: %w", component.Name, err)
 	}
 
 	return nil
+}
+
+func (m *DefaultManager) UpdateComponentHealthAll(ctx context.Context) error {
+	components, err := m.list(ctx)
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	for _, component := range components.Items {
+		err := m.updateComponentHealth(ctx, component.Spec.DeployNamespace, &component)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("failed to update health for component %q: %w", component.Name, err))
+		}
+	}
+
+	return errors.Join(errs...)
 }
 
 func (m *DefaultManager) componentHealthStatus(ctx context.Context, deployments *appsv1.DeploymentList, statefulSets *appsv1.StatefulSetList, daemonSets *appsv1.DaemonSetList, component *v1.Component) v1.HealthStatus {

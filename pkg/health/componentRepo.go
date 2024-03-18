@@ -14,6 +14,15 @@ type defaultComponentRepo struct {
 	client componentClient
 }
 
+func (cr *defaultComponentRepo) list(ctx context.Context) (*v1.ComponentList, error) {
+	list, err := cr.client.List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list components: %w", err)
+	}
+
+	return list, nil
+}
+
 func (cr *defaultComponentRepo) get(ctx context.Context, name string) (*v1.Component, error) {
 	component, err := cr.client.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {

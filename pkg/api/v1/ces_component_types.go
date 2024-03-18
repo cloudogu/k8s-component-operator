@@ -64,6 +64,7 @@ const (
 	PendingHealthStatus     HealthStatus = ""
 	AvailableHealthStatus   HealthStatus = "available"
 	UnavailableHealthStatus HealthStatus = "unavailable"
+	UnknownHealthStatus     HealthStatus = "unknown"
 )
 
 // ComponentStatus defines the observed state of a Component.

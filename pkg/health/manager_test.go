@@ -179,31 +179,10 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
-			name: "should fail to find applications",
-			fields: fields{
-				applicationFinderFn: func(t *testing.T) applicationFinder {
-					finder := newMockApplicationFinder(t)
-					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
-						Return(nil, nil, nil, assert.AnError)
-					return finder
-				},
-				componentRepoFn: func(t *testing.T) componentRepo {
-					repo := newMockComponentRepo(t)
-					return repo
-				},
-			},
-			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				return assert.ErrorIs(t, err, assert.AnError, i) &&
-					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i)
-			},
-		},
-		{
 			name: "should fail to get component",
 			fields: fields{
 				applicationFinderFn: func(t *testing.T) applicationFinder {
 					finder := newMockApplicationFinder(t)
-					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
-						Return(availableDeploymentList(), availableStatefulSetList(), availableDaemonSetList(), nil)
 					return finder
 				},
 				componentRepoFn: func(t *testing.T) componentRepo {
@@ -215,6 +194,27 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
 					assert.ErrorContains(t, err, fmt.Sprintf("failed to get component %q", testComponentName), i)
+			},
+		},
+		{
+			name: "should fail to find applications",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					finder := newMockApplicationFinder(t)
+					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
+						Return(nil, nil, nil, assert.AnError)
+					return finder
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repo := newMockComponentRepo(t)
+					repo.EXPECT().get(testCtx, testComponentName).
+						Return(&testComponent, nil)
+					return repo
+				},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i)
 			},
 		},
 		{
