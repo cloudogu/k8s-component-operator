@@ -2,6 +2,7 @@ package health
 
 import (
 	"context"
+	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -18,5 +19,10 @@ func (s *StartupHandler) Start(ctx context.Context) error {
 	log.FromContext(ctx).
 		WithName("health startup handler").
 		Info("updating health of all components on startup")
-	return s.manager.UpdateComponentHealthAll(ctx)
+	err := s.manager.UpdateComponentHealthAll(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to update health of components on startup: %w", err)
+	}
+
+	return nil
 }
