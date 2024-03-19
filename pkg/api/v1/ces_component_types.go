@@ -2,12 +2,12 @@ package v1
 
 import (
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
