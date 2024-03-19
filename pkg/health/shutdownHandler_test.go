@@ -47,10 +47,10 @@ func TestShutdownHandler_Start(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
 				}, nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
-				}, k8sv1.UnavailableHealthStatus).Return(assert.AnError)
+				}, k8sv1.UnavailableHealthStatus, noVersionChange).Return(assert.AnError)
 				return repoMock
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
@@ -66,10 +66,10 @@ func TestShutdownHandler_Start(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
 				}, nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
-				}, k8sv1.UnavailableHealthStatus).Return(nil)
+				}, k8sv1.UnavailableHealthStatus, noVersionChange).Return(nil)
 				repoMock.EXPECT().list(mock.Anything).Return(nil, assert.AnError)
 				return repoMock
 			},
@@ -85,10 +85,10 @@ func TestShutdownHandler_Start(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
 				}, nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
-				}, k8sv1.UnavailableHealthStatus).Return(nil)
+				}, k8sv1.UnavailableHealthStatus, noVersionChange).Return(nil)
 				repoMock.EXPECT().list(mock.Anything).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
@@ -108,18 +108,18 @@ func TestShutdownHandler_Start(t *testing.T) {
 					},
 				},
 				}, nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-dogu-operator"},
-				}, k8sv1.UnknownHealthStatus).Return(assert.AnError)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				}, k8sv1.UnknownHealthStatus, noVersionChange).Return(assert.AnError)
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-blueprint-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-blueprint-operator"},
-				}, k8sv1.UnknownHealthStatus).Return(nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				}, k8sv1.UnknownHealthStatus, noVersionChange).Return(nil)
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-backup-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-backup-operator"},
-				}, k8sv1.UnknownHealthStatus).Return(assert.AnError)
+				}, k8sv1.UnknownHealthStatus, noVersionChange).Return(assert.AnError)
 				return repoMock
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
@@ -136,10 +136,10 @@ func TestShutdownHandler_Start(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
 				}, nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-component-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-component-operator"},
-				}, k8sv1.UnavailableHealthStatus).Return(nil)
+				}, k8sv1.UnavailableHealthStatus, noVersionChange).Return(nil)
 				repoMock.EXPECT().list(mock.Anything).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{
 					{
 						ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
@@ -159,18 +159,18 @@ func TestShutdownHandler_Start(t *testing.T) {
 					},
 				},
 				}, nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-dogu-operator"},
-				}, k8sv1.UnknownHealthStatus).Return(nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				}, k8sv1.UnknownHealthStatus, noVersionChange).Return(nil)
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-blueprint-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-blueprint-operator"},
-				}, k8sv1.UnknownHealthStatus).Return(nil)
-				repoMock.EXPECT().updateHealthStatus(mock.Anything, &k8sv1.Component{
+				}, k8sv1.UnknownHealthStatus, noVersionChange).Return(nil)
+				repoMock.EXPECT().updateCondition(mock.Anything, &k8sv1.Component{
 					ObjectMeta: metav1.ObjectMeta{Name: "k8s-backup-operator"},
 					Spec:       k8sv1.ComponentSpec{Name: "k8s-backup-operator"},
-				}, k8sv1.UnknownHealthStatus).Return(nil)
+				}, k8sv1.UnknownHealthStatus, noVersionChange).Return(nil)
 				return repoMock
 			},
 			wantErr: assert.NoError,

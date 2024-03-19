@@ -38,7 +38,7 @@ func (s *ShutdownHandler) handle(ctx context.Context) error {
 		return fmt.Errorf("failed to get component for %q: %w", componentOperatorName, err)
 	}
 
-	err = s.repo.updateHealthStatus(ctx, componentOperator, v1.UnavailableHealthStatus)
+	err = s.repo.updateCondition(ctx, componentOperator, v1.UnavailableHealthStatus, noVersionChange)
 	if err != nil {
 		return fmt.Errorf("failed to set health status of %q to %q: %w", componentOperatorName, v1.UnavailableHealthStatus, err)
 	}
@@ -55,7 +55,7 @@ func (s *ShutdownHandler) handle(ctx context.Context) error {
 			continue
 		}
 
-		err := s.repo.updateHealthStatus(ctx, &component, v1.UnknownHealthStatus)
+		err := s.repo.updateCondition(ctx, &component, v1.UnknownHealthStatus, noVersionChange)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to set health status of %q to %q: %w", component.Name, v1.UnknownHealthStatus, err))
 		}

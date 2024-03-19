@@ -47,7 +47,7 @@ type ComponentSpec struct {
 	Namespace string `json:"namespace,omitempty"`
 	// Name of the component (e.g. k8s-dogu-operator)
 	Name string `json:"name,omitempty"`
-	// Version of the component (e.g. 2.4.48-3)
+	// Desired version of the component (e.g. 2.4.48-3)
 	Version string `json:"version,omitempty"`
 	// DeployNamespace is the namespace where the helm chart should be deployed in.
 	// This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
@@ -77,6 +77,8 @@ type ComponentStatus struct {
 	// A component becomes 'available' if its Status is 'installed',
 	// and all its deployments, stateful sets, and daemon sets are available.
 	Health HealthStatus `json:"health,omitempty"`
+	// Installed version of the component (e.g. 2.4.48-3)
+	InstalledVersion string `json:"installedVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

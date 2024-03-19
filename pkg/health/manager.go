@@ -25,20 +25,19 @@ func NewManager(namespace string, clientSet ecosystemClientSet) *DefaultManager 
 }
 
 func (m *DefaultManager) UpdateComponentHealth(ctx context.Context, componentName string, namespace string) error {
+	return m.UpdateComponentHealthWithInstalledVersion(ctx, componentName, namespace, noVersionChange)
+}
+
+func (m *DefaultManager) UpdateComponentHealthWithInstalledVersion(ctx context.Context, componentName string, namespace string, version string) error {
 	component, err := m.get(ctx, componentName)
 	if err != nil {
 		return fmt.Errorf("failed to get component %q: %w", componentName, err)
 	}
 
-	err = m.updateComponentHealth(ctx, namespace, component)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return m.updateComponentCondition(ctx, namespace, component, version)
 }
 
-func (m *DefaultManager) updateComponentHealth(ctx context.Context, namespace string, component *v1.Component) error {
+func (m *DefaultManager) updateComponentCondition(ctx context.Context, namespace string, component *v1.Component, version string) error {
 	deploymentList, statefulSetList, daemonSetList, err := m.findComponentApplications(ctx, component.Name, namespace)
 	if err != nil {
 		return fmt.Errorf("failed to find applications for component %q: %w", component.Name, err)
@@ -46,9 +45,9 @@ func (m *DefaultManager) updateComponentHealth(ctx context.Context, namespace st
 
 	healthStatus := m.componentHealthStatus(ctx, deploymentList, statefulSetList, daemonSetList, component)
 
-	err = m.updateHealthStatus(ctx, component, healthStatus)
+	err = m.updateCondition(ctx, component, healthStatus, version)
 	if err != nil {
-		return fmt.Errorf("failed to update health status for component %q: %w", component.Name, err)
+		return fmt.Errorf("failed to update health status and installed version for component %q: %w", component.Name, err)
 	}
 
 	return nil
@@ -62,7 +61,7 @@ func (m *DefaultManager) UpdateComponentHealthAll(ctx context.Context) error {
 
 	var errs []error
 	for _, component := range components.Items {
-		err := m.updateComponentHealth(ctx, component.Spec.DeployNamespace, &component)
+		err := m.updateComponentCondition(ctx, component.Spec.DeployNamespace, &component, noVersionChange)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to update health for component %q: %w", component.Name, err))
 		}

@@ -131,13 +131,13 @@ func (_c *mockComponentRepo_list_Call) RunAndReturn(run func(context.Context) (*
 	return _c
 }
 
-// updateHealthStatus provides a mock function with given fields: ctx, component, status
-func (_m *mockComponentRepo) updateHealthStatus(ctx context.Context, component *v1.Component, status v1.HealthStatus) error {
-	ret := _m.Called(ctx, component, status)
+// updateCondition provides a mock function with given fields: ctx, component, status, version
+func (_m *mockComponentRepo) updateCondition(ctx context.Context, component *v1.Component, status v1.HealthStatus, version string) error {
+	ret := _m.Called(ctx, component, status, version)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, *v1.Component, v1.HealthStatus) error); ok {
-		r0 = rf(ctx, component, status)
+	if rf, ok := ret.Get(0).(func(context.Context, *v1.Component, v1.HealthStatus, string) error); ok {
+		r0 = rf(ctx, component, status, version)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -145,32 +145,33 @@ func (_m *mockComponentRepo) updateHealthStatus(ctx context.Context, component *
 	return r0
 }
 
-// mockComponentRepo_updateHealthStatus_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'updateHealthStatus'
-type mockComponentRepo_updateHealthStatus_Call struct {
+// mockComponentRepo_updateCondition_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'updateCondition'
+type mockComponentRepo_updateCondition_Call struct {
 	*mock.Call
 }
 
-// updateHealthStatus is a helper method to define mock.On call
+// updateCondition is a helper method to define mock.On call
 //   - ctx context.Context
 //   - component *v1.Component
 //   - status v1.HealthStatus
-func (_e *mockComponentRepo_Expecter) updateHealthStatus(ctx interface{}, component interface{}, status interface{}) *mockComponentRepo_updateHealthStatus_Call {
-	return &mockComponentRepo_updateHealthStatus_Call{Call: _e.mock.On("updateHealthStatus", ctx, component, status)}
+//   - version string
+func (_e *mockComponentRepo_Expecter) updateCondition(ctx interface{}, component interface{}, status interface{}, version interface{}) *mockComponentRepo_updateCondition_Call {
+	return &mockComponentRepo_updateCondition_Call{Call: _e.mock.On("updateCondition", ctx, component, status, version)}
 }
 
-func (_c *mockComponentRepo_updateHealthStatus_Call) Run(run func(ctx context.Context, component *v1.Component, status v1.HealthStatus)) *mockComponentRepo_updateHealthStatus_Call {
+func (_c *mockComponentRepo_updateCondition_Call) Run(run func(ctx context.Context, component *v1.Component, status v1.HealthStatus, version string)) *mockComponentRepo_updateCondition_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(*v1.Component), args[2].(v1.HealthStatus))
+		run(args[0].(context.Context), args[1].(*v1.Component), args[2].(v1.HealthStatus), args[3].(string))
 	})
 	return _c
 }
 
-func (_c *mockComponentRepo_updateHealthStatus_Call) Return(_a0 error) *mockComponentRepo_updateHealthStatus_Call {
+func (_c *mockComponentRepo_updateCondition_Call) Return(_a0 error) *mockComponentRepo_updateCondition_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *mockComponentRepo_updateHealthStatus_Call) RunAndReturn(run func(context.Context, *v1.Component, v1.HealthStatus) error) *mockComponentRepo_updateHealthStatus_Call {
+func (_c *mockComponentRepo_updateCondition_Call) RunAndReturn(run func(context.Context, *v1.Component, v1.HealthStatus, string) error) *mockComponentRepo_updateCondition_Call {
 	_c.Call.Return(run)
 	return _c
 }
