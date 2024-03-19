@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -59,24 +58,28 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	helmCtx := context.WithoutCancel(ctx)
 
 	// if no version is set in the component CR, this will find the latest version and install it
-	// TODO: if no specific version is set, find the latest version here, not in the client.
+	// TODO: if no specific version is set, find the latest version here separately, not hidden in the client.
 	//  A client should have no business logic (but we can bundle it with e.g. `GetLatestChartVersion()`)
-	//  Then we dont have to load the installed version again with a helm call.
+	//  Then we don't have to load the installed version again with a helm call.
 	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
 		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 	}
 
 	// set the installed version in the component CR to use it for version-comparison in future upgrades
-	installedVersion, err := cim.helmClient.GetDeployedReleaseVersion(ctx, component.Spec.Name)
-	if err != nil {
-		return &genericRequeueableError{fmt.Sprintf("failed to get release version for component %q", component.Spec.Name), err}
-	}
+	var installedVersion string
 	if component.Spec.Version == "" {
+		installedVersion, err = cim.helmClient.GetDeployedReleaseVersion(ctx, component.Spec.Name)
+		if err != nil {
+			return &genericRequeueableError{fmt.Sprintf("failed to get release version for component %q", component.Spec.Name), err}
+		}
 		component, err = cim.componentClient.UpdateExpectedComponentVersion(helmCtx, component.Spec.Name, installedVersion)
 		if err != nil {
 			return &genericRequeueableError{fmt.Sprintf("failed to update expected version for component %q", component.Spec.Name), err}
 		}
+	} else {
+		installedVersion = component.Spec.Version
 	}
+
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return &genericRequeueableError{fmt.Sprintf("failed to update status-installed for component %q", component.Spec.Name), err}

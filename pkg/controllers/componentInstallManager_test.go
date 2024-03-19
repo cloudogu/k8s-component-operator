@@ -31,7 +31,6 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
@@ -157,7 +156,6 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
@@ -187,7 +185,6 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
