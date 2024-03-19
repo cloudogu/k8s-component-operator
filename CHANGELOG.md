@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - [#54] Helm-Credentials can be stored in base64 encoding and clarified escaping rules if not
   (see [here](docs/development/developing_the_operator_en.md) or [here](.env.template))
+- [#58] Set health status of components on startup and shutdown.
+  ([see here](docs/operations/component_health_en.md))
 
 ## [v0.8.0] - 2024-01-30
 ### Changed
