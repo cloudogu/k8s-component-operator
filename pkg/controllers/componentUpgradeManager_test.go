@@ -35,7 +35,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		Spec: k8sv1.ComponentSpec{
 			Namespace: "ecosystem",
 			Name:      "testComponent",
-			Version:   "1.0",
+			Version:   "0.1.0",
 		},
 		Status: k8sv1.ComponentStatus{Status: "installed"},
 	}
@@ -49,7 +49,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
@@ -195,7 +194,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			Spec: k8sv1.ComponentSpec{
 				Namespace: "ecosystem",
 				Name:      "testComponent",
-				Version:   "1.0",
+				Version:   "0.1.0",
 			},
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
@@ -206,7 +205,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return("0.1.0", nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
