@@ -749,3 +749,234 @@ func mockClientForStatusUpdates(t *testing.T, expectedComponent *v1.Component, e
 	require.NoError(t, err)
 	return client
 }
+
+func Test_componentClient_UpdateExpectedComponentVersion(t *testing.T) {
+	t.Run("ok, no retry", func(t *testing.T) {
+		// given
+		componentWithoutVersion := &v1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"},
+			Spec: v1.ComponentSpec{
+				Name:    "myComponent",
+				Version: "",
+			},
+		}
+		componentWithVersion := &v1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"},
+			Spec: v1.ComponentSpec{
+				Name:    "myComponent",
+				Version: "1.0.0",
+			},
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			assert.Contains(t, []string{"GET", "PUT"}, request.Method)
+			if request.Method == "GET" {
+				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
+				assert.Equal(t, http.NoBody, request.Body)
+
+				writer.Header().Add("content-type", "application/json")
+				componentBytes, err := json.Marshal(componentWithoutVersion)
+				require.NoError(t, err)
+				_, err = writer.Write(componentBytes)
+				require.NoError(t, err)
+				writer.WriteHeader(200)
+			} else {
+				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
+
+				bytes, err := io.ReadAll(request.Body)
+				require.NoError(t, err)
+
+				createdComponent := &v1.Component{}
+				require.NoError(t, json.Unmarshal(bytes, createdComponent))
+				assert.Equal(t, "myComponent", createdComponent.Name)
+
+				writer.Header().Add("content-type", "application/json")
+				_, err = writer.Write(bytes)
+				require.NoError(t, err)
+				writer.WriteHeader(200)
+			}
+		}))
+
+		config := rest.Config{
+			Host: server.URL,
+		}
+		client, err := NewForConfig(&config)
+		require.NoError(t, err)
+		cClient := client.Components("test")
+
+		//then
+		updatedComponent, err := cClient.UpdateExpectedComponentVersion(
+			testCtx,
+			componentWithoutVersion.Name,
+			"1.0.0",
+		)
+
+		//assert
+		assert.NoError(t, err)
+		assert.Equal(t, componentWithVersion, updatedComponent)
+	})
+	t.Run("ok, with retry", func(t *testing.T) {
+		// given
+		componentWithoutVersion := &v1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"},
+			Spec: v1.ComponentSpec{
+				Name:    "myComponent",
+				Version: "",
+			},
+		}
+		componentWithVersion := &v1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"},
+			Spec: v1.ComponentSpec{
+				Name:    "myComponent",
+				Version: "1.0.0",
+			},
+		}
+		requestPutCounter := 0
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			assert.Contains(t, []string{"GET", "PUT"}, request.Method)
+			if request.Method == "GET" {
+				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
+				assert.Equal(t, http.NoBody, request.Body)
+
+				writer.Header().Add("content-type", "application/json")
+				componentBytes, err := json.Marshal(componentWithoutVersion)
+				require.NoError(t, err)
+				_, err = writer.Write(componentBytes)
+				require.NoError(t, err)
+				writer.WriteHeader(200)
+			} else {
+				requestPutCounter++
+				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
+				bytes, err := io.ReadAll(request.Body)
+				createdComponent := &v1.Component{}
+				require.NoError(t, json.Unmarshal(bytes, createdComponent))
+				assert.Equal(t, "myComponent", createdComponent.Name)
+				require.NoError(t, err)
+				if requestPutCounter == 1 {
+					writer.WriteHeader(http.StatusConflict)
+				} else if requestPutCounter == 2 {
+					writer.Header().Add("content-type", "application/json")
+					_, err = writer.Write(bytes)
+					require.NoError(t, err)
+					writer.WriteHeader(200)
+				}
+			}
+		}))
+
+		config := rest.Config{
+			Host: server.URL,
+		}
+		client, err := NewForConfig(&config)
+		require.NoError(t, err)
+		cClient := client.Components("test")
+
+		//then
+		updatedComponent, err := cClient.UpdateExpectedComponentVersion(
+			testCtx,
+			componentWithoutVersion.Name,
+			"1.0.0",
+		)
+
+		//assert
+		assert.NoError(t, err)
+		assert.Equal(t, componentWithVersion, updatedComponent)
+	})
+	t.Run("error getting component", func(t *testing.T) {
+		// given
+		componentWithoutVersion := &v1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"},
+			Spec: v1.ComponentSpec{
+				Name:    "myComponent",
+				Version: "",
+			},
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			assert.Contains(t, []string{"GET"}, request.Method)
+			if request.Method == "GET" {
+				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
+				assert.Equal(t, http.NoBody, request.Body)
+				writer.WriteHeader(500)
+			}
+		}))
+
+		config := rest.Config{
+			Host: server.URL,
+		}
+		client, err := NewForConfig(&config)
+		require.NoError(t, err)
+		cClient := client.Components("test")
+
+		//then
+		_, err = cClient.UpdateExpectedComponentVersion(
+			testCtx,
+			componentWithoutVersion.Name,
+			"1.0.0",
+		)
+
+		//assert
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "failed to update version in component \"myComponent\": failed to get component \"myComponent\" for update")
+	})
+	t.Run("error updating component", func(t *testing.T) {
+		// given
+		componentWithoutVersion := &v1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"},
+			Spec: v1.ComponentSpec{
+				Name:    "myComponent",
+				Version: "",
+			},
+		}
+		componentWithVersion := &v1.Component{
+			ObjectMeta: metav1.ObjectMeta{Name: "myComponent", Namespace: "test"},
+			Spec: v1.ComponentSpec{
+				Name:    "myComponent",
+				Version: "1.0.0",
+			},
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			assert.Contains(t, []string{"GET", "PUT"}, request.Method)
+			if request.Method == "GET" {
+				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
+				assert.Equal(t, http.NoBody, request.Body)
+
+				writer.Header().Add("content-type", "application/json")
+				componentBytes, err := json.Marshal(componentWithoutVersion)
+				require.NoError(t, err)
+				_, err = writer.Write(componentBytes)
+				require.NoError(t, err)
+				writer.WriteHeader(200)
+			} else {
+				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
+
+				bytes, err := io.ReadAll(request.Body)
+				require.NoError(t, err)
+
+				createdComponent := &v1.Component{}
+				require.NoError(t, json.Unmarshal(bytes, createdComponent))
+				assert.Equal(t, componentWithVersion.Spec.Name, createdComponent.Spec.Name)
+				assert.Equal(t, componentWithVersion.Spec.Version, createdComponent.Spec.Version)
+				writer.WriteHeader(500)
+			}
+		}))
+
+		config := rest.Config{
+			Host: server.URL,
+		}
+		client, err := NewForConfig(&config)
+		require.NoError(t, err)
+		cClient := client.Components("test")
+
+		//then
+		_, err = cClient.UpdateExpectedComponentVersion(
+			testCtx,
+			componentWithoutVersion.Name,
+			"1.0.0",
+		)
+
+		//assert
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "failed to update version in component \"myComponent\"")
+	})
+}

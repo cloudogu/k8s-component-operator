@@ -4,7 +4,7 @@ VERSION=0.8.0
 ## Image URL to use all building/pushing image targets
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
 GOTAG?=1.21
-MAKEFILES_VERSION=9.0.1
+MAKEFILES_VERSION=9.0.3
 LINT_VERSION?=v1.55.2
 
 ADDITIONAL_CLEAN=dist-clean

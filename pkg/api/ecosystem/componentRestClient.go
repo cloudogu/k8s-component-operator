@@ -23,6 +23,10 @@ type ComponentInterface interface {
 	// Update takes the representation of a component and updates it. Returns the server's representation of the component, and an error, if there is any.
 	Update(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (*v1.Component, error)
 
+	// UpdateExpectedComponentVersion saves the given version as the expected version in the component and
+	// returns the server's representation of the component, and an error, if there is any.
+	UpdateExpectedComponentVersion(ctx context.Context, componentName, version string) (*v1.Component, error)
+
 	// UpdateStatus was generated because the type contains a Status member.
 	UpdateStatus(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (*v1.Component, error)
 
@@ -72,34 +76,34 @@ type componentClient struct {
 }
 
 // UpdateStatusInstalling sets the status of the component to "installing".
-func (d *componentClient) UpdateStatusInstalling(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusInstalling)
+func (client *componentClient) UpdateStatusInstalling(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	return client.updateStatusWithRetry(ctx, component, v1.ComponentStatusInstalling)
 }
 
 // UpdateStatusInstalled sets the status of the component to "installed".
-func (d *componentClient) UpdateStatusInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusInstalled)
+func (client *componentClient) UpdateStatusInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	return client.updateStatusWithRetry(ctx, component, v1.ComponentStatusInstalled)
 }
 
 // UpdateStatusUpgrading sets the status of the component to "upgrading".
-func (d *componentClient) UpdateStatusUpgrading(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusUpgrading)
+func (client *componentClient) UpdateStatusUpgrading(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	return client.updateStatusWithRetry(ctx, component, v1.ComponentStatusUpgrading)
 }
 
 // UpdateStatusDeleting sets the status of the component to "deleting".
-func (d *componentClient) UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusDeleting)
+func (client *componentClient) UpdateStatusDeleting(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	return client.updateStatusWithRetry(ctx, component, v1.ComponentStatusDeleting)
 }
 
 // UpdateStatusNotInstalled sets the status of the component to "".
-func (d *componentClient) UpdateStatusNotInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
-	return d.updateStatusWithRetry(ctx, component, v1.ComponentStatusNotInstalled)
+func (client *componentClient) UpdateStatusNotInstalled(ctx context.Context, component *v1.Component) (*v1.Component, error) {
+	return client.updateStatusWithRetry(ctx, component, v1.ComponentStatusNotInstalled)
 }
 
-func (d *componentClient) updateStatusWithRetry(ctx context.Context, component *v1.Component, targetStatus string) (*v1.Component, error) {
+func (client *componentClient) updateStatusWithRetry(ctx context.Context, component *v1.Component, targetStatus string) (*v1.Component, error) {
 	var resultComponent *v1.Component
 	err := retry.OnConflict(func() error {
-		updatedComponent, err := d.Get(ctx, component.GetName(), metav1.GetOptions{})
+		updatedComponent, err := client.Get(ctx, component.GetName(), metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -107,7 +111,7 @@ func (d *componentClient) updateStatusWithRetry(ctx context.Context, component *
 		// do not overwrite the whole status, so we do not lose other values from the Status object
 		// esp. a potentially set requeue time
 		updatedComponent.Status.Status = targetStatus
-		resultComponent, err = d.UpdateStatus(ctx, updatedComponent, metav1.UpdateOptions{})
+		resultComponent, err = client.UpdateStatus(ctx, updatedComponent, metav1.UpdateOptions{})
 		return err
 	})
 
@@ -115,9 +119,9 @@ func (d *componentClient) updateStatusWithRetry(ctx context.Context, component *
 }
 
 // AddFinalizer adds the given finalizer to the component.
-func (d *componentClient) AddFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error) {
+func (client *componentClient) AddFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error) {
 	controllerutil.AddFinalizer(component, finalizer)
-	result, err := d.Update(ctx, component, metav1.UpdateOptions{})
+	result, err := client.Update(ctx, component, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to add finalizer %s to component: %w", finalizer, err)
 	}
@@ -126,9 +130,9 @@ func (d *componentClient) AddFinalizer(ctx context.Context, component *v1.Compon
 }
 
 // RemoveFinalizer removes the given finalizer to the component.
-func (d *componentClient) RemoveFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error) {
+func (client *componentClient) RemoveFinalizer(ctx context.Context, component *v1.Component, finalizer string) (*v1.Component, error) {
 	controllerutil.RemoveFinalizer(component, finalizer)
-	result, err := d.Update(ctx, component, metav1.UpdateOptions{})
+	result, err := client.Update(ctx, component, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to remove finalizer %s from component: %w", finalizer, err)
 	}
@@ -137,10 +141,10 @@ func (d *componentClient) RemoveFinalizer(ctx context.Context, component *v1.Com
 }
 
 // Get takes name of the component, and returns the corresponding component object, and an error if there is any.
-func (d *componentClient) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.Component, err error) {
+func (client *componentClient) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.Component, err error) {
 	result = &v1.Component{}
-	err = d.client.Get().
-		Namespace(d.ns).
+	err = client.client.Get().
+		Namespace(client.ns).
 		Resource("components").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -150,14 +154,14 @@ func (d *componentClient) Get(ctx context.Context, name string, options metav1.G
 }
 
 // List takes label and field selectors, and returns the list of Components that match those selectors.
-func (d *componentClient) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ComponentList, err error) {
+func (client *componentClient) List(ctx context.Context, opts metav1.ListOptions) (result *v1.ComponentList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
 	result = &v1.ComponentList{}
-	err = d.client.Get().
-		Namespace(d.ns).
+	err = client.client.Get().
+		Namespace(client.ns).
 		Resource("components").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -167,14 +171,14 @@ func (d *componentClient) List(ctx context.Context, opts metav1.ListOptions) (re
 }
 
 // Watch returns a watch.Interface that watches the requested components.
-func (d *componentClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+func (client *componentClient) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
 	opts.Watch = true
-	return d.client.Get().
-		Namespace(d.ns).
+	return client.client.Get().
+		Namespace(client.ns).
 		Resource("components").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -182,10 +186,10 @@ func (d *componentClient) Watch(ctx context.Context, opts metav1.ListOptions) (w
 }
 
 // Create takes the representation of a component and creates it.  Returns the server's representation of the component, and an error, if there is any.
-func (d *componentClient) Create(ctx context.Context, component *v1.Component, opts metav1.CreateOptions) (result *v1.Component, err error) {
+func (client *componentClient) Create(ctx context.Context, component *v1.Component, opts metav1.CreateOptions) (result *v1.Component, err error) {
 	result = &v1.Component{}
-	err = d.client.Post().
-		Namespace(d.ns).
+	err = client.client.Post().
+		Namespace(client.ns).
 		Resource("components").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(component).
@@ -195,10 +199,10 @@ func (d *componentClient) Create(ctx context.Context, component *v1.Component, o
 }
 
 // Update takes the representation of a component and updates it. Returns the server's representation of the component, and an error, if there is any.
-func (d *componentClient) Update(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (result *v1.Component, err error) {
+func (client *componentClient) Update(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (result *v1.Component, err error) {
 	result = &v1.Component{}
-	err = d.client.Put().
-		Namespace(d.ns).
+	err = client.client.Put().
+		Namespace(client.ns).
 		Resource("components").
 		Name(component.Name).
 		VersionedParams(&opts, scheme.ParameterCodec).
@@ -208,12 +212,35 @@ func (d *componentClient) Update(ctx context.Context, component *v1.Component, o
 	return
 }
 
+func (client *componentClient) UpdateExpectedComponentVersion(ctx context.Context, componentName, version string) (*v1.Component, error) {
+	var updatedComponent *v1.Component
+	err := retry.OnConflict(func() error {
+		retryComponent, err := client.Get(ctx, componentName, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to get component %q for update: %w", componentName, err)
+		}
+
+		retryComponent.Spec.Version = version
+		retryComponent, err = client.Update(ctx, retryComponent, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		updatedComponent = retryComponent
+		return nil
+	})
+	if err != nil {
+		return updatedComponent, fmt.Errorf("failed to update version in component %q: %w", componentName, err)
+	}
+
+	return updatedComponent, nil
+}
+
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (d *componentClient) UpdateStatus(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (result *v1.Component, err error) {
+func (client *componentClient) UpdateStatus(ctx context.Context, component *v1.Component, opts metav1.UpdateOptions) (result *v1.Component, err error) {
 	result = &v1.Component{}
-	err = d.client.Put().
-		Namespace(d.ns).
+	err = client.client.Put().
+		Namespace(client.ns).
 		Resource("components").
 		Name(component.Name).
 		SubResource("status").
@@ -225,9 +252,9 @@ func (d *componentClient) UpdateStatus(ctx context.Context, component *v1.Compon
 }
 
 // Delete takes name of the component and deletes it. Returns an error if one occurs.
-func (d *componentClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return d.client.Delete().
-		Namespace(d.ns).
+func (client *componentClient) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return client.client.Delete().
+		Namespace(client.ns).
 		Resource("components").
 		Name(name).
 		Body(&opts).
@@ -236,13 +263,13 @@ func (d *componentClient) Delete(ctx context.Context, name string, opts metav1.D
 }
 
 // DeleteCollection deletes a collection of objects.
-func (d *componentClient) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+func (client *componentClient) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	var timeout time.Duration
 	if listOpts.TimeoutSeconds != nil {
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
-	return d.client.Delete().
-		Namespace(d.ns).
+	return client.client.Delete().
+		Namespace(client.ns).
 		Resource("components").
 		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
@@ -252,10 +279,10 @@ func (d *componentClient) DeleteCollection(ctx context.Context, opts metav1.Dele
 }
 
 // Patch applies the patch and returns the patched component.
-func (d *componentClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Component, err error) {
+func (client *componentClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.Component, err error) {
 	result = &v1.Component{}
-	err = d.client.Patch(pt).
-		Namespace(d.ns).
+	err = client.client.Patch(pt).
+		Namespace(client.ns).
 		Resource("components").
 		Name(name).
 		SubResource(subresources...).
