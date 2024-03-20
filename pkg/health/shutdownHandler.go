@@ -32,18 +32,6 @@ func (s *ShutdownHandler) Start(ctx context.Context) error {
 }
 
 func (s *ShutdownHandler) handle(ctx context.Context) error {
-	// set component operator health status to unavailable
-	componentOperator, err := s.repo.get(ctx, componentOperatorName)
-	if err != nil {
-		return fmt.Errorf("failed to get component for %q: %w", componentOperatorName, err)
-	}
-
-	err = s.repo.updateCondition(ctx, componentOperator, v1.UnavailableHealthStatus, noVersionChange)
-	if err != nil {
-		return fmt.Errorf("failed to set health status of %q to %q: %w", componentOperatorName, v1.UnavailableHealthStatus, err)
-	}
-
-	// set health status of other components to unknown
 	components, err := s.repo.list(ctx)
 	if err != nil {
 		return err
@@ -51,13 +39,17 @@ func (s *ShutdownHandler) handle(ctx context.Context) error {
 
 	var errs []error
 	for _, component := range components.Items {
+		// set health status of other components to unknown
+		var healthStatus = v1.UnknownHealthStatus
+
 		if component.Name == componentOperatorName {
-			continue
+			// set component operator health status to unavailable
+			healthStatus = v1.UnavailableHealthStatus
 		}
 
-		err := s.repo.updateCondition(ctx, &component, v1.UnknownHealthStatus, noVersionChange)
+		err := s.repo.updateCondition(ctx, &component, healthStatus, noVersionChange)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to set health status of %q to %q: %w", component.Name, v1.UnknownHealthStatus, err))
+			errs = append(errs, fmt.Errorf("failed to set health status of %q to %q: %w", component.Name, healthStatus, err))
 		}
 	}
 	return errors.Join(errs...)
