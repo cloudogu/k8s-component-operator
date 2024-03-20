@@ -172,3 +172,56 @@ func Test_defaultComponentRepo_updateCondition(t *testing.T) {
 		})
 	}
 }
+
+func Test_defaultComponentRepo_list(t *testing.T) {
+	tests := []struct {
+		name     string
+		clientFn func(t *testing.T) componentClient
+		want     *v1.ComponentList
+		wantErr  assert.ErrorAssertionFunc
+	}{
+		{
+			name: "should fail",
+			clientFn: func(t *testing.T) componentClient {
+				clientMock := newMockComponentClient(t)
+				clientMock.EXPECT().List(testCtx, metav1.ListOptions{}).Return(nil, assert.AnError)
+				return clientMock
+			},
+			want: nil,
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to list components", i)
+			},
+		},
+		{
+			name: "should succeed",
+			clientFn: func(t *testing.T) componentClient {
+				clientMock := newMockComponentClient(t)
+				clientMock.EXPECT().List(testCtx, metav1.ListOptions{}).Return(&v1.ComponentList{
+					Items: []v1.Component{{
+						ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
+						Spec:       v1.ComponentSpec{Name: "k8s-dogu-operator"},
+					}},
+				}, nil)
+				return clientMock
+			},
+			want: &v1.ComponentList{Items: []v1.Component{{
+				ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
+				Spec:       v1.ComponentSpec{Name: "k8s-dogu-operator"},
+			}}},
+			wantErr: assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cr := &defaultComponentRepo{
+				client: tt.clientFn(t),
+			}
+			got, err := cr.list(testCtx)
+			if !tt.wantErr(t, err) {
+				return
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

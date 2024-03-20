@@ -2,12 +2,12 @@ package v1
 
 import (
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -64,6 +64,7 @@ const (
 	PendingHealthStatus     HealthStatus = ""
 	AvailableHealthStatus   HealthStatus = "available"
 	UnavailableHealthStatus HealthStatus = "unavailable"
+	UnknownHealthStatus     HealthStatus = "unknown"
 )
 
 // ComponentStatus defines the observed state of a Component.
