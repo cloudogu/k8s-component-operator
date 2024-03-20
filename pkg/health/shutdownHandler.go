@@ -21,8 +21,8 @@ func NewShutdownHandler(client componentClient) *ShutdownHandler {
 }
 
 func (s *ShutdownHandler) Start(ctx context.Context) error {
-	logger := log.FromContext(ctx).WithName("shutdown handler")
-	logger.Info("waiting for shutdown")
+	logger := log.FromContext(ctx).WithName("health shutdown handler")
+	logger.Info("health shutdown handler registered, waiting for shutdown")
 	<-ctx.Done()
 	logger.Info("shutdown detected, handling health status")
 
