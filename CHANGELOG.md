@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v1.0.0] - 2024-03-21
 ### Added
 - [#54] Helm-Credentials can be stored in base64 encoding and clarified escaping rules if not
   (see [here](docs/development/developing_the_operator_en.md) or [here](.env.template))
