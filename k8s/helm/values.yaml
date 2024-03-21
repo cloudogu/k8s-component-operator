@@ -1,7 +1,7 @@
 manager:
   image:
     repository: cloudogu/k8s-component-operator
-    tag: 0.8.0
+    tag: 1.0.0
   imagePullPolicy: IfNotPresent
   env:
     logLevel: info

@@ -628,3 +628,82 @@ func TestClient_GetReleaseValues(t *testing.T) {
 		assert.Equal(t, "val", values["key"])
 	})
 }
+
+func TestClient_GetReleaseVersion(t *testing.T) {
+	t.Run("should get correct release version", func(t *testing.T) {
+		// given
+		releases := []*release.Release{
+			{
+				Name: "Test Release 1",
+				Chart: &chart.Chart{
+					Metadata: &chart.Metadata{AppVersion: "0.1.0"},
+				},
+			},
+			{
+				Name: "Test Release 2",
+				Chart: &chart.Chart{
+					Metadata: &chart.Metadata{AppVersion: "0.2.0"},
+				},
+			},
+		}
+
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(releases, nil)
+		sut := &Client{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		version, err := sut.GetDeployedReleaseVersion(testCtx, "Test Release 2")
+
+		require.NoError(t, err)
+		assert.Equal(t, "0.2.0", version)
+	})
+
+	t.Run("should return empty string if release is missing", func(t *testing.T) {
+		// given
+		releases := []*release.Release{
+			{
+				Name: "Test Release 1",
+				Chart: &chart.Chart{
+					Metadata: &chart.Metadata{AppVersion: "0.1.0"},
+				},
+			},
+			{
+				Name: "Test Release 2",
+				Chart: &chart.Chart{
+					Metadata: &chart.Metadata{AppVersion: "0.2.0"},
+				},
+			},
+		}
+
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(releases, nil)
+		sut := &Client{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		version, err := sut.GetDeployedReleaseVersion(testCtx, "Test Release 3")
+
+		require.NoError(t, err)
+		assert.Equal(t, "", version)
+	})
+
+	t.Run("should return error if list deployed releases errors", func(t *testing.T) {
+		// given
+
+		mockHelmClient := NewMockHelmClient(t)
+		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
+		sut := &Client{
+			helmClient: mockHelmClient,
+		}
+
+		// when
+		version, err := sut.GetDeployedReleaseVersion(testCtx, "Test Release 1")
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Equal(t, "", version)
+	})
+}

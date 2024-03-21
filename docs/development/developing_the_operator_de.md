@@ -21,10 +21,15 @@ Dieses Dokument beschreibt sowohl, wie man den Komponenten-Operator entwickelt a
    Umgebungsvariablendatei mit persönlichen Informationen anzulegen
 3. Löschen Sie eventuelle Komponenten-Operator-Deployments im Cluster, um Parallelisierungsfehler auszuschließen
    - `kubectl -n ecosystem delete deployment k8s-component-operator`
-4. Legen Sie eine neue Debug-Konfiguration (z. B. in IntelliJ) ans, um den Operator lokal auszuführen
-   - mit diesen Umgebungsvariablen:
-   - STAGE=production;NAMESPACE=ecosystem;KUBECONFIG=/pfad/zur/kubeconfig/.kube/k3ces.local
-5. Breakpoints setzen und ggf. ein Komponenten-CR auf den Cluster anwenden
+
+Nun haben Sie zwei Möglichkeiten den Operator lokal zu starten:
+1. mit `make run`
+2. mit IntelliJ (um den Code zu Debuggen)
+   - Generieren Sie die Configmap und die lokale config.json mit `make helm-repo-config-local`
+   - Legen Sie eine neue Debug-Konfiguration (z. B. in IntelliJ) an
+      - diese Umgebungsvariablen werden benötigt (kann mit `make print-debug-info` generiert werden):
+      - STAGE=production;NAMESPACE=ecosystem;KUBECONFIG=/path/to/kubeconfig/.kube/k3ces.local
+   - Breakpoints setzen und ggf. ein Komponenten-CR auf den Cluster anwenden
 
 ### Komponenten-Operator installieren
 

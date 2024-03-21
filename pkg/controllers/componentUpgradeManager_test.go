@@ -35,7 +35,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		Spec: k8sv1.ComponentSpec{
 			Namespace: "ecosystem",
 			Name:      "testComponent",
-			Version:   "1.0",
+			Version:   "0.1.0",
 		},
 		Status: k8sv1.ComponentStatus{Status: "installed"},
 	}
@@ -52,7 +52,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(mock.Anything, component.Spec.Name, "ecosystem").Return(nil)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(mock.Anything, component.Spec.Name, "ecosystem", "0.1.0").Return(nil)
 
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -194,7 +194,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			Spec: k8sv1.ComponentSpec{
 				Namespace: "ecosystem",
 				Name:      "testComponent",
-				Version:   "1.0",
+				Version:   "0.1.0",
 			},
 			Status: k8sv1.ComponentStatus{Status: "installed"},
 		}
@@ -208,7 +208,8 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
-		mockHealthManager.EXPECT().UpdateComponentHealth(mock.Anything, component.Spec.Name, "ecosystem").Return(assert.AnError)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(mock.Anything, component.Spec.Name, "ecosystem", "0.1.0").
+			Return(assert.AnError)
 
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,

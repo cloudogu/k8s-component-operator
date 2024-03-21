@@ -2,12 +2,12 @@ package v1
 
 import (
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+	"github.com/cloudogu/k8s-component-operator/pkg/labels"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -47,7 +47,7 @@ type ComponentSpec struct {
 	Namespace string `json:"namespace,omitempty"`
 	// Name of the component (e.g. k8s-dogu-operator)
 	Name string `json:"name,omitempty"`
-	// Version of the component (e.g. 2.4.48-3)
+	// Desired version of the component (e.g. 2.4.48-3)
 	Version string `json:"version,omitempty"`
 	// DeployNamespace is the namespace where the helm chart should be deployed in.
 	// This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
@@ -64,6 +64,7 @@ const (
 	PendingHealthStatus     HealthStatus = ""
 	AvailableHealthStatus   HealthStatus = "available"
 	UnavailableHealthStatus HealthStatus = "unavailable"
+	UnknownHealthStatus     HealthStatus = "unknown"
 )
 
 // ComponentStatus defines the observed state of a Component.
@@ -76,6 +77,8 @@ type ComponentStatus struct {
 	// A component becomes 'available' if its Status is 'installed',
 	// and all its deployments, stateful sets, and daemon sets are available.
 	Health HealthStatus `json:"health,omitempty"`
+	// Installed version of the component (e.g. 2.4.48-3)
+	InstalledVersion string `json:"installedVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true

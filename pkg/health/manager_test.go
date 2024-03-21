@@ -179,31 +179,10 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
-			name: "should fail to find applications",
-			fields: fields{
-				applicationFinderFn: func(t *testing.T) applicationFinder {
-					finder := newMockApplicationFinder(t)
-					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
-						Return(nil, nil, nil, assert.AnError)
-					return finder
-				},
-				componentRepoFn: func(t *testing.T) componentRepo {
-					repo := newMockComponentRepo(t)
-					return repo
-				},
-			},
-			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
-				return assert.ErrorIs(t, err, assert.AnError, i) &&
-					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i)
-			},
-		},
-		{
 			name: "should fail to get component",
 			fields: fields{
 				applicationFinderFn: func(t *testing.T) applicationFinder {
 					finder := newMockApplicationFinder(t)
-					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
-						Return(availableDeploymentList(), availableStatefulSetList(), availableDaemonSetList(), nil)
 					return finder
 				},
 				componentRepoFn: func(t *testing.T) componentRepo {
@@ -215,6 +194,27 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
 					assert.ErrorContains(t, err, fmt.Sprintf("failed to get component %q", testComponentName), i)
+			},
+		},
+		{
+			name: "should fail to find applications",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					finder := newMockApplicationFinder(t)
+					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
+						Return(nil, nil, nil, assert.AnError)
+					return finder
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repo := newMockComponentRepo(t)
+					repo.EXPECT().get(testCtx, testComponentName).
+						Return(&testComponent, nil)
+					return repo
+				},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i)
 			},
 		},
 		{
@@ -230,14 +230,14 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateHealthStatus(testCtx, &testComponent, v1.HealthStatus("available")).
+					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), noVersionChange).
 						Return(assert.AnError)
 					return repo
 				},
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
-					assert.ErrorContains(t, err, fmt.Sprintf("failed to update health status for component %q", testComponentName), i)
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to update health status and installed version for component %q", testComponentName), i)
 			},
 		},
 		{
@@ -253,7 +253,7 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateHealthStatus(testCtx, &testComponent, v1.HealthStatus("available")).
+					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), noVersionChange).
 						Return(nil)
 					return repo
 				},
@@ -268,6 +268,213 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 				componentRepo:     tt.fields.componentRepoFn(t),
 			}
 			tt.wantErr(t, m.UpdateComponentHealth(testCtx, testComponentName, testNamespace))
+		})
+	}
+}
+
+func Test_defaultManager_UpdateComponentHealthWithVersion(t *testing.T) {
+	testComponent := v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}, Status: v1.ComponentStatus{Status: v1.ComponentStatusInstalled}}
+	type fields struct {
+		applicationFinderFn func(t *testing.T) applicationFinder
+		componentRepoFn     func(t *testing.T) componentRepo
+	}
+	testVersion := "0.2.1"
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "should fail to get component",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					finder := newMockApplicationFinder(t)
+					return finder
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repo := newMockComponentRepo(t)
+					repo.EXPECT().get(testCtx, testComponentName).Return(nil, assert.AnError)
+					return repo
+				},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to get component %q", testComponentName), i)
+			},
+		},
+		{
+			name: "should fail to find applications",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					finder := newMockApplicationFinder(t)
+					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
+						Return(nil, nil, nil, assert.AnError)
+					return finder
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repo := newMockComponentRepo(t)
+					repo.EXPECT().get(testCtx, testComponentName).
+						Return(&testComponent, nil)
+					return repo
+				},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i)
+			},
+		},
+		{
+			name: "should fail to update component health",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					finder := newMockApplicationFinder(t)
+					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
+						Return(availableDeploymentList(), availableStatefulSetList(), availableDaemonSetList(), nil)
+					return finder
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repo := newMockComponentRepo(t)
+					repo.EXPECT().get(testCtx, testComponentName).
+						Return(&testComponent, nil)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), testVersion).
+						Return(assert.AnError)
+					return repo
+				},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to update health status and installed version for component %q", testComponentName), i)
+			},
+		},
+		{
+			name: "should succeed to update component health",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					finder := newMockApplicationFinder(t)
+					finder.EXPECT().findComponentApplications(testCtx, testComponentName, testNamespace).
+						Return(availableDeploymentList(), availableStatefulSetList(), availableDaemonSetList(), nil)
+					return finder
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repo := newMockComponentRepo(t)
+					repo.EXPECT().get(testCtx, testComponentName).
+						Return(&testComponent, nil)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), testVersion).
+						Return(nil)
+					return repo
+				},
+			},
+			wantErr: assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &DefaultManager{
+				applicationFinder: tt.fields.applicationFinderFn(t),
+				componentRepo:     tt.fields.componentRepoFn(t),
+			}
+			tt.wantErr(t, m.UpdateComponentHealthWithInstalledVersion(testCtx, testComponentName, testNamespace, testVersion))
+		})
+	}
+}
+
+func TestDefaultManager_UpdateComponentHealthAll(t *testing.T) {
+	type fields struct {
+		applicationFinderFn func(t *testing.T) applicationFinder
+		componentRepoFn     func(t *testing.T) componentRepo
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "should fail to list components",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					return newMockApplicationFinder(t)
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repoMock := newMockComponentRepo(t)
+					repoMock.EXPECT().list(testCtx).Return(nil, assert.AnError)
+					return repoMock
+				},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i)
+			},
+		},
+		{
+			name: "should fail to update health for multiple components",
+			fields: fields{
+				applicationFinderFn: func(t *testing.T) applicationFinder {
+					finderMock := newMockApplicationFinder(t)
+					finderMock.EXPECT().findComponentApplications(testCtx, "k8s-dogu-operator", testNamespace).
+						Return(nil, nil, nil, assert.AnError)
+					finderMock.EXPECT().findComponentApplications(testCtx, "k8s-blueprint-operator", testNamespace).
+						Return(&appsv1.DeploymentList{}, &appsv1.StatefulSetList{}, &appsv1.DaemonSetList{}, nil)
+					finderMock.EXPECT().findComponentApplications(testCtx, "k8s-longhorn", "longhorn-system").
+						Return(&appsv1.DeploymentList{}, &appsv1.StatefulSetList{}, &appsv1.DaemonSetList{}, nil)
+					return finderMock
+				},
+				componentRepoFn: func(t *testing.T) componentRepo {
+					repoMock := newMockComponentRepo(t)
+					repoMock.EXPECT().list(testCtx).Return(&v1.ComponentList{Items: []v1.Component{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
+							Spec: v1.ComponentSpec{
+								Name:            "k8s-dogu-operator",
+								DeployNamespace: testNamespace,
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "k8s-blueprint-operator"},
+							Spec: v1.ComponentSpec{
+								Name:            "k8s-blueprint-operator",
+								DeployNamespace: testNamespace,
+							},
+						},
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "k8s-longhorn"},
+							Spec: v1.ComponentSpec{
+								Name:            "k8s-longhorn",
+								DeployNamespace: "longhorn-system",
+							},
+						},
+					}}, nil)
+					repoMock.EXPECT().updateCondition(testCtx,
+						&v1.Component{
+							ObjectMeta: metav1.ObjectMeta{Name: "k8s-blueprint-operator"},
+							Spec: v1.ComponentSpec{
+								Name:            "k8s-blueprint-operator",
+								DeployNamespace: testNamespace,
+							},
+						}, v1.UnavailableHealthStatus, noVersionChange).Return(assert.AnError)
+					repoMock.EXPECT().updateCondition(testCtx,
+						&v1.Component{
+							ObjectMeta: metav1.ObjectMeta{Name: "k8s-longhorn"},
+							Spec: v1.ComponentSpec{
+								Name:            "k8s-longhorn",
+								DeployNamespace: "longhorn-system",
+							},
+						}, v1.UnavailableHealthStatus, noVersionChange).Return(nil)
+					return repoMock
+				},
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to find applications for component \"k8s-dogu-operator\"", i) &&
+					assert.ErrorContains(t, err, "failed to update health status and installed version for component \"k8s-blueprint-operator\"", i)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &DefaultManager{
+				applicationFinder: tt.fields.applicationFinderFn(t),
+				componentRepo:     tt.fields.componentRepoFn(t),
+			}
+			tt.wantErr(t, m.UpdateComponentHealthAll(testCtx))
 		})
 	}
 }
