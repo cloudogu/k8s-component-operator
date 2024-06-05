@@ -476,11 +476,11 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		assert.Equal(t, Upgrade, op)
 	})
 
-	t.Run("should return ignore-operation on downgrade if deploy namespace is not equal release namespace", func(t *testing.T) {
+	t.Run("should return error if deploy namespace is not the same as release namespace", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "deploy-namespace", "dogu-op", "0.0.1-2")
 		mockHelmClient := newMockHelmClient(t)
-		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1-1"}}}}
+		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1-2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
 		sut := ComponentReconciler{
@@ -488,11 +488,10 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		}
 
 		// when
-		op, err := sut.getChangeOperation(testCtx, component)
+		_, err := sut.getChangeOperation(testCtx, component)
 
 		// then
-		require.NoError(t, err)
-		assert.Equal(t, Ignore, op)
+		require.Error(t, err)
 	})
 
 	t.Run("should return upgrade-operation on upgrade", func(t *testing.T) {

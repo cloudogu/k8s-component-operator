@@ -264,6 +264,8 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
 			if existsReleaseInTargetNamespace {
 				return r.getChangeOperationForRelease(component, deployedRelease)
+			} else {
+				return "", fmt.Errorf("component does not exist in target namespace (%q), but in namespace %q", targetNamespace, deployedRelease.Namespace)
 			}
 		}
 	}
