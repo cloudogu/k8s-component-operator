@@ -264,6 +264,9 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
 			if existsReleaseInTargetNamespace {
 				return r.getChangeOperationForRelease(component, deployedRelease)
+			} else {
+				r.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Deploy namespace mismatch (CR: %q; deployed: %q). Deploy namespace declaration is only allowed on install. Revert deploy namespace change to prevent failing upgrade.", targetNamespace, deployedRelease.Namespace)
+				return "", fmt.Errorf("component does not exist in target namespace (%q), but in namespace %q", targetNamespace, deployedRelease.Namespace)
 			}
 		}
 	}

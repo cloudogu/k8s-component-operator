@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Throw error if the current deployment and the component target namespaces do not match
+- Upgrade to go 1.22
+- Upgrade to latest Makefiles, ces-build-lib and linter version
 
 ## [v1.0.0] - 2024-03-21
 ### Added
