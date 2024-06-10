@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.0.1] - 2024-06-10
+### Changed
+- Throw error if the current deployment and the component target namespaces do not match
+- Upgrade to go 1.22
+- Upgrade to latest Makefiles, ces-build-lib and linter version
+
 ## [v1.0.0] - 2024-03-21
 ### Added
 - [#54] Helm-Credentials can be stored in base64 encoding and clarified escaping rules if not
