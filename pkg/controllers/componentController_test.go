@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"testing"
 	"time"
@@ -480,11 +481,14 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "deploy-namespace", "dogu-op", "0.0.1-2")
 		mockHelmClient := newMockHelmClient(t)
+		mockRecorder := newMockEventRecorder(t)
+		mockRecorder.EXPECT().Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Deploy namespace mismatch (CR: %q; deployed: %q). Deploy namespace declaration is only allowed on install. Revert deploy namespace change to prevent failing upgrade.", "deploy-namespace", "ecosystem").Return()
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1-2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 
 		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
+			recorder:   mockRecorder,
 		}
 
 		// when
