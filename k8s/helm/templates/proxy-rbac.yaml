@@ -30,5 +30,5 @@ roleRef:
   name: '{{ include "k8s-component-operator.name" . }}-proxy-role'
 subjects:
   - kind: ServiceAccount
-    name: '{{ include "k8s-component-operator.name" . }}-controller-manager'
+    name: '{{ include "k8s-component-operator.name" . }}-sa'
     namespace: '{{ .Release.Namespace }}'

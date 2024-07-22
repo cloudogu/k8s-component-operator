@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "k8s-component-operator.name" . }}-controller-manager
+  name: {{ include "k8s-component-operator.name" . }}
   labels:
     control-plane: controller-manager
     {{- include "k8s-component-operator.labels" . | nindent 4 }}
@@ -81,7 +81,7 @@ spec:
               readOnly: true
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: {{ include "k8s-component-operator.name" . }}-controller-manager
+      serviceAccountName: {{ include "k8s-component-operator.name" . }}-sa
       terminationGracePeriodSeconds: 10
       volumes:
         - name: component-operator-helm-registry
