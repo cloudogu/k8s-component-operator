@@ -1,6 +1,6 @@
 # Set these to the desired values
 ARTIFACT_ID=k8s-component-operator
-VERSION=1.0.1
+VERSION=1.0.1-dev
 ## Image URL to use all building/pushing image targets
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
 GOTAG?=1.22.0
@@ -110,7 +110,7 @@ print-debug-info: ## Generates info and the list of environment variables requir
 .PHONY: upload-to-k8s-testing
 upload-to-k8s-testing: helm-package compile
 	gcloud auth configure-docker europe-west3-docker.pkg.dev -q
-	helm push target/k8s/helm/$(ARTIFACT_ID)-$(VERSION).tgz oci://europe-west3-docker.pkg.dev/ces-coder-workspaces/ces-test-docker-helm-repo/charts
+	#helm push target/k8s/helm/$(ARTIFACT_ID)-$(VERSION).tgz oci://europe-west3-docker.pkg.dev/ces-coder-workspaces/ces-test-docker-helm-repo/charts
 	helm push target/k8s/helm/$(ARTIFACT_ID)-$(VERSION).tgz oci://registry.cloudogu.com/k8s-testing
 	docker build . -t europe-west3-docker.pkg.dev/ces-coder-workspaces/ces-test-docker-helm-repo/images/$(ARTIFACT_ID):$(VERSION)
 	docker push europe-west3-docker.pkg.dev/ces-coder-workspaces/ces-test-docker-helm-repo/images/$(ARTIFACT_ID):$(VERSION)

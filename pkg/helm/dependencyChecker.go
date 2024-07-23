@@ -49,6 +49,9 @@ func (d *installedDependencyChecker) CheckSatisfied(dependencies []Dependency, d
 				errs = append(errs, err)
 
 				break
+			} else if strings.Contains(dependency.Name, "crd") {
+				isInstalled = true
+				break
 			}
 		}
 
