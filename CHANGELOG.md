@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.1.0] - 2024-09-19
+### Changed
+- Relicense to AGPL-3.0-only
+
 ## [v1.0.1] - 2024-06-10
 ### Changed
 - Throw error if the current deployment and the component target namespaces do not match
