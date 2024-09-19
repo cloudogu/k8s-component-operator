@@ -2,7 +2,7 @@ The files in this directory were copied from https://github.com/mittwald/go-helm
 
 Their original contents are [licensed MIT and copyrighted by Mittwald CM Service](./LICENSE) except stated otherwise.
 
-Modifications are licensed MIT under the [root license of this repository](../../../LICENSE).
+Modifications are licensed AGPL-3.0-only under the [root license of this repository](../../../LICENSE).
 Modifications include:
 - support for plain http registries
 - usage of the client's `action.Config` when getting charts
