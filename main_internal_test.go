@@ -9,8 +9,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	"testing"
 
-	"github.com/cloudogu/k8s-component-operator/pkg/mocks/external"
-
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -35,16 +33,18 @@ func getCopyMap(definitions map[string]mockDefinition) map[string]mockDefinition
 	return newCopyMap
 }
 
-func getNewMockManager(expectedErrorOnNewManager error, definitions map[string]mockDefinition) manager.Manager {
-	k8sManager := &external.Manager{}
+func getNewMockManager(t *testing.T, expectedErrorOnNewManager error, definitions map[string]mockDefinition) manager.Manager {
+	k8sManager := NewMockManager(t)
 	ctrl.NewManager = func(config *rest.Config, options manager.Options) (manager.Manager, error) {
+		skipNameValidation := true
+		options.Controller.SkipNameValidation = &skipNameValidation
 		for key, value := range definitions {
 			k8sManager.Mock.On(key, value.Arguments...).Return(value.ReturnValue)
 		}
 		return k8sManager, expectedErrorOnNewManager
 	}
 	ctrl.SetLogger = func(l logr.Logger) {
-		k8sManager.Mock.On("GetLogger").Return(l)
+		k8sManager.Mock.On("GetLogger").Return(l).Maybe()
 	}
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
@@ -102,7 +102,7 @@ func Test_startDoguOperator(t *testing.T) {
 	t.Run("Error on missing namespace environment variable", func(t *testing.T) {
 		// given
 		_ = os.Unsetenv("NAMESPACE")
-		getNewMockManager(nil, defaultMockDefinitions)
+		getNewMockManager(t, nil, defaultMockDefinitions)
 
 		// when
 		err := startOperator()
@@ -116,7 +116,7 @@ func Test_startDoguOperator(t *testing.T) {
 	t.Setenv("RUNTIME", "local")
 	t.Run("Test without logger environment variables", func(t *testing.T) {
 		// given
-		k8sManager := getNewMockManager(nil, defaultMockDefinitions)
+		k8sManager := getNewMockManager(t, nil, defaultMockDefinitions)
 
 		// when
 		err := startOperator()
@@ -130,7 +130,7 @@ func Test_startDoguOperator(t *testing.T) {
 
 	t.Run("Test with error on manager creation", func(t *testing.T) {
 		// given
-		getNewMockManager(expectedError, defaultMockDefinitions)
+		getNewMockManager(t, expectedError, map[string]mockDefinition{})
 
 		// when
 		err := startOperator()
@@ -145,16 +145,15 @@ func Test_startDoguOperator(t *testing.T) {
 		"AddReadyzCheck",
 		"Start",
 	}
-
 	for _, mockDefinitionName := range mockDefinitionsThatCanFail {
 		t.Run(fmt.Sprintf("fail setup when error on %s", mockDefinitionName), func(t *testing.T) {
 			// given
+			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 			adaptedMockDefinitions := getCopyMap(defaultMockDefinitions)
 			adaptedMockDefinitions[mockDefinitionName] = mockDefinition{
 				Arguments:   adaptedMockDefinitions[mockDefinitionName].Arguments,
 				ReturnValue: expectedError,
 			}
-			getNewMockManager(nil, adaptedMockDefinitions)
 
 			// when
 			err := startOperator()
