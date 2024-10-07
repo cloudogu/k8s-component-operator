@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -329,8 +331,16 @@ func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Comp
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	controllerOptions := mgr.GetControllerOptions()
+	options := controller.TypedOptions[reconcile.Request]{
+		SkipNameValidation: controllerOptions.SkipNameValidation,
+		RecoverPanic:       controllerOptions.RecoverPanic,
+		NeedLeaderElection: controllerOptions.NeedLeaderElection,
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
+		WithOptions(options).
 		For(&k8sv1.Component{}).
 		Complete(r)
 }

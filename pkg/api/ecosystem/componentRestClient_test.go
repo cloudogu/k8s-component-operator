@@ -36,7 +36,6 @@ func Test_componentClient_Get(t *testing.T) {
 			require.NoError(t, err)
 			_, err = writer.Write(componentBytes)
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -109,7 +108,6 @@ func Test_componentClient_Create(t *testing.T) {
 			writer.Header().Add("content-type", "application/json")
 			_, err = writer.Write(bytes)
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -146,7 +144,6 @@ func Test_componentClient_Update(t *testing.T) {
 			writer.Header().Add("content-type", "application/json")
 			_, err = writer.Write(bytes)
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -183,7 +180,6 @@ func Test_componentClient_UpdateStatus(t *testing.T) {
 			writer.Header().Add("content-type", "application/json")
 			_, err = writer.Write(bytes)
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -269,7 +265,6 @@ func Test_componentClient_Patch(t *testing.T) {
 			writer.Header().Add("content-type", "application/json")
 			_, err = writer.Write(result)
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -301,7 +296,6 @@ func Test_componentClient_Watch(t *testing.T) {
 			writer.Header().Add("content-type", "application/json")
 			_, err := writer.Write([]byte("egal"))
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -531,7 +525,6 @@ func Test_componentClient_AddFinalizer(t *testing.T) {
 			writer.Header().Add("content-type", "application/json")
 			_, err = writer.Write(bytes)
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -610,7 +603,6 @@ func Test_componentClient_RemoveFinalizer(t *testing.T) {
 			writer.Header().Add("content-type", "application/json")
 			_, err = writer.Write(bytes)
 			require.NoError(t, err)
-			writer.WriteHeader(200)
 		}))
 
 		config := rest.Config{
@@ -687,7 +679,6 @@ func mockClientForStatusUpdates(t *testing.T, expectedComponent *v1.Component, e
 		writer.Header().Add("content-type", "application/json")
 		_, err = writer.Write(componentJson)
 		require.NoError(t, err)
-		writer.WriteHeader(200)
 	}
 
 	assertUpdateStatusRequest := func(writer http.ResponseWriter, request *http.Request) {
@@ -705,7 +696,6 @@ func mockClientForStatusUpdates(t *testing.T, expectedComponent *v1.Component, e
 		writer.Header().Add("content-type", "application/json")
 		_, err = writer.Write(bytes)
 		require.NoError(t, err)
-		writer.WriteHeader(200)
 	}
 
 	conflictUpdateStatusRequest := func(writer http.ResponseWriter, request *http.Request) {
@@ -779,7 +769,6 @@ func Test_componentClient_UpdateExpectedComponentVersion(t *testing.T) {
 				require.NoError(t, err)
 				_, err = writer.Write(componentBytes)
 				require.NoError(t, err)
-				writer.WriteHeader(200)
 			} else {
 				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
 
@@ -793,7 +782,6 @@ func Test_componentClient_UpdateExpectedComponentVersion(t *testing.T) {
 				writer.Header().Add("content-type", "application/json")
 				_, err = writer.Write(bytes)
 				require.NoError(t, err)
-				writer.WriteHeader(200)
 			}
 		}))
 
@@ -843,7 +831,6 @@ func Test_componentClient_UpdateExpectedComponentVersion(t *testing.T) {
 				require.NoError(t, err)
 				_, err = writer.Write(componentBytes)
 				require.NoError(t, err)
-				writer.WriteHeader(200)
 			} else {
 				requestPutCounter++
 				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
@@ -858,7 +845,6 @@ func Test_componentClient_UpdateExpectedComponentVersion(t *testing.T) {
 					writer.Header().Add("content-type", "application/json")
 					_, err = writer.Write(bytes)
 					require.NoError(t, err)
-					writer.WriteHeader(200)
 				}
 			}
 		}))
@@ -946,7 +932,6 @@ func Test_componentClient_UpdateExpectedComponentVersion(t *testing.T) {
 				require.NoError(t, err)
 				_, err = writer.Write(componentBytes)
 				require.NoError(t, err)
-				writer.WriteHeader(200)
 			} else {
 				assert.Equal(t, "/apis/k8s.cloudogu.com/v1/namespaces/test/components/myComponent", request.URL.Path)
 
