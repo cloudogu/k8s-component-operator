@@ -1,11 +1,11 @@
 # Set these to the desired values
 ARTIFACT_ID=k8s-component-operator
-VERSION=1.1.0
+VERSION=1.1.1
 ## Image URL to use all building/pushing image targets
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
-GOTAG?=1.22.0
+GOTAG?=1.23.0
 MAKEFILES_VERSION=9.0.5
-LINT_VERSION?=v1.59.1
+LINT_VERSION?=v1.61.0
 
 ADDITIONAL_CLEAN=dist-clean
 
