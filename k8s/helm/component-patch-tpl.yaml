@@ -12,5 +12,6 @@ patches:
         tag: "{{ tagFrom .images.kubeRbacProxy }}"
     manager:
       image:
-        repository: "{{ registryFrom .images.componentOperator }}/{{ repositoryFrom .images.componentOperator }}"
+        registry: "{{ registryFrom .images.componentOperator }}"
+        repository: "{{ repositoryFrom .images.componentOperator }}"
         tag: "{{ tagFrom .images.componentOperator }}"
