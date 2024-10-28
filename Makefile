@@ -4,7 +4,7 @@ VERSION=1.1.1
 ## Image URL to use all building/pushing image targets
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
 GOTAG?=1.23.0
-MAKEFILES_VERSION=9.0.5
+MAKEFILES_VERSION=9.3.2
 LINT_VERSION?=v1.61.0
 
 ADDITIONAL_CLEAN=dist-clean
@@ -43,7 +43,8 @@ helm-values-update-image-version: $(BINARY_YQ)
 helm-values-replace-image-repo: $(BINARY_YQ)
 	@if [[ ${STAGE} == "development" ]]; then \
       		echo "Setting dev image repo in target value.yaml!" ;\
-    		$(BINARY_YQ) -i e ".manager.image.repository=\"${IMAGE_DEV}\"" ${K8S_COMPONENT_TARGET_VALUES} ;\
+    		$(BINARY_YQ) -i e ".manager.image.registry=\"$(shell echo '${IMAGE_DEV}' | sed 's/\([^\/]*\)\/\(.*\)/\1/')\"" ${K8S_COMPONENT_TARGET_VALUES} ;\
+    		$(BINARY_YQ) -i e ".manager.image.repository=\"$(shell echo '${IMAGE_DEV}' | sed 's/\([^\/]*\)\/\(.*\)/\2/')\"" ${K8S_COMPONENT_TARGET_VALUES} ;\
     	fi
 
 ##@ Deployment
