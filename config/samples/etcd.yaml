@@ -1,7 +1,0 @@
-apiVersion: k8s.cloudogu.com/v1
-kind: Component
-metadata:
-  name: k8s-etcd
-spec:
-  name: k8s-etcd
-  namespace: k8s

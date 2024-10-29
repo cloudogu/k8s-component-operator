@@ -5,3 +5,4 @@ metadata:
 spec:
   name: k8s-dogu-operator-crd
   namespace: k8s
+  version: 2.3.0

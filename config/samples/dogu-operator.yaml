@@ -5,3 +5,4 @@ metadata:
 spec:
   name: k8s-dogu-operator
   namespace: k8s
+  version: 3.0.0
