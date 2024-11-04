@@ -8,7 +8,8 @@ patches:
     additionalImages:
     kubeRbacProxy:
       image:
-        repository: "{{ registryFrom .images.kubeRbacProxy }}/{{ repositoryFrom .images.kubeRbacProxy }}"
+        registry: "{{ registryFrom .images.kubeRbacProxy }}"
+        repository: "{{ repositoryFrom .images.kubeRbacProxy }}"
         tag: "{{ tagFrom .images.kubeRbacProxy }}"
     manager:
       image:
