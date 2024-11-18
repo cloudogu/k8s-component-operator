@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - [#71] Remove unused ClusterRole for reading metrics
+- [#71] Remove unused leader-election along with its RBAC permissions
 
 ## [v1.2.1] - 2024-11-04
 ### Fixed
