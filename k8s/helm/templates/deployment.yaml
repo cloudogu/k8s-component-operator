@@ -57,6 +57,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: BACKOFF_TIME
+              value: {{ .Values.manager.env.backoffTime | default "15" }}
+            - name: ROLLBACK_TIMEOUT
+              value: {{ .Values.manager.env.rollbackTimeout | default "15" }}
           image: "{{ .Values.manager.image.registry }}/{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}"
           imagePullPolicy: {{ .Values.manager.imagePullPolicy | default "IfNotPresent"}}
           livenessProbe:

@@ -2,7 +2,11 @@ package client
 
 import (
 	"context"
+	"github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/cli"
+	"os"
+	"strconv"
+	"time"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -14,6 +18,8 @@ type provider struct {
 	plainHttp   bool
 	insecureTls bool
 }
+
+var defaultRollbackTimeout = 15
 
 func (p *provider) newInstall() installAction {
 	installAction := action.NewInstall(p.Configuration)
@@ -58,6 +64,14 @@ func (p *provider) newGetRelease() getReleaseAction {
 
 func (p *provider) newRollbackRelease() rollbackReleaseAction {
 	rollbackAction := action.NewRollback(p.Configuration)
+	const rollbackTimeoutEnv = "ROLLBACK_TIMEOUT"
+	rollbackTimeoutString, found := os.LookupEnv(rollbackTimeoutEnv)
+	rollbackTimeout, err := strconv.Atoi(rollbackTimeoutString)
+	if !found || err != nil {
+		logrus.Warningf("failed to read %s environment variable, using default value of %d", rollbackTimeoutEnv, defaultRollbackTimeout)
+		rollbackTimeout = defaultRollbackTimeout
+	}
+	rollbackAction.Timeout = time.Duration(rollbackTimeout) * time.Minute
 	return &rollbackRelease{Rollback: rollbackAction}
 }
 

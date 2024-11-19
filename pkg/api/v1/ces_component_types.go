@@ -2,6 +2,9 @@ package v1
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"os"
+	"strconv"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,6 +15,8 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+var defaultBackoffTime = 15
 
 const (
 	// ComponentStatusNotInstalled represents a status for a component that is not installed
@@ -101,6 +106,13 @@ func (c *Component) String() string {
 
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.
 func (c *Component) GetHelmChartSpec() *client.ChartSpec {
+	const backoffTimeEnv = "BACKOFF_TIME"
+	backoffTimeString, found := os.LookupEnv(backoffTimeEnv)
+	backoffTime, err := strconv.Atoi(backoffTimeString)
+	if !found || err != nil {
+		logrus.Warningf("failed to read %s environment variable, using default value of %d", backoffTimeEnv, defaultBackoffTime)
+		backoffTime = defaultBackoffTime
+	}
 	deployNamespace := ""
 
 	if c.Spec.DeployNamespace != "" {
@@ -118,7 +130,7 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		// Rollback to previous release on failure.
 		Atomic: true,
 		// This timeout prevents context exceeded errors from the used k8s client from the helm library.
-		Timeout: time.Second * 300,
+		Timeout: time.Minute * time.Duration(backoffTime),
 		// True would lead the client to delete a CRD on failure which could delete all Dogus.
 		CleanupOnFail: false,
 		// Create non-existent namespace so that the operator can install charts in other namespaces.
