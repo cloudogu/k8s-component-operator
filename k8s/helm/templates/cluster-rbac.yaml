@@ -1,4 +1,4 @@
-# The k8s-component-operator must be abel to install all components using Helm.
+# The k8s-component-operator must be able to install all components using Helm.
 # Since those components contain cluster-scoped resources (like CRDs, ClusterRoles, ClusterRoleBindings, ...)
 # the k8s-component-operator also needs permissions to manage the resources.
 
