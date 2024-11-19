@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [#73] Increase wait limit to prevent problems with slow internet connection
+### Added 
+- [#71] Add comments for RBAC permissions
+
+### Removed
+- [#71] Remove unused ClusterRole for reading metrics
+- [#71] Remove unused leader-election along with its RBAC permissions
 
 ## [v1.2.1] - 2024-11-04
 ### Fixed
