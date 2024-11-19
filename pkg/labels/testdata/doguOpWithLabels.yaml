@@ -41,9 +41,6 @@ data:
       bindAddress: 127.0.0.1:8080
     webhook:
       port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: 951e217a.cloudogu.com
 kind: ConfigMap
 metadata:
   labels:
@@ -136,53 +133,6 @@ metadata:
     helm.sh/chart: k8s-dogu-operator-0.40.0-dev
     k8s.cloudogu.com/component.name: k8s-dogu-operator
     k8s.cloudogu.com/component.version: 1.2.3-4
-  name: k8s-dogu-operator-leader-election-role
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  labels:
-    app: ces
-    app.kubernetes.io/instance: release-name
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: k8s-dogu-operator
-    app.kubernetes.io/version: 0.40.0-dev
-    helm.sh/chart: k8s-dogu-operator-0.40.0-dev
-    k8s.cloudogu.com/component.name: k8s-dogu-operator
-    k8s.cloudogu.com/component.version: 1.2.3-4
   name: k8s-dogu-operator-manager-role
 rules:
 - apiGroups:
@@ -221,27 +171,6 @@ rules:
   - create
 
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  labels:
-    app: ces
-    app.kubernetes.io/instance: release-name
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: k8s-dogu-operator
-    app.kubernetes.io/version: 0.40.0-dev
-    helm.sh/chart: k8s-dogu-operator-0.40.0-dev
-    k8s.cloudogu.com/component.name: k8s-dogu-operator
-    k8s.cloudogu.com/component.version: 1.2.3-4
-  name: k8s-dogu-operator-leader-election-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: k8s-dogu-operator-leader-election-role
-subjects:
-- kind: ServiceAccount
-  name: k8s-dogu-operator-controller-manager
-  namespace: ecosystem
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -370,7 +299,6 @@ spec:
       - args:
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
-        - --leader-elect
         env:
         - name: STAGE
           value: development

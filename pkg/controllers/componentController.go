@@ -335,7 +335,6 @@ func (r *ComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	options := controller.TypedOptions[reconcile.Request]{
 		SkipNameValidation: controllerOptions.SkipNameValidation,
 		RecoverPanic:       controllerOptions.RecoverPanic,
-		NeedLeaderElection: controllerOptions.NeedLeaderElection,
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).

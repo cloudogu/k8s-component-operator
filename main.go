@@ -35,10 +35,9 @@ var (
 	scheme = runtime.NewScheme()
 	// set up the logger before the actual logger is instantiated
 	// the logger will be replaced later-on with a more sophisticated instance
-	operatorLog          = ctrl.Log.WithName("component-operator")
-	metricsAddr          string
-	enableLeaderElection bool
-	probeAddr            string
+	operatorLog = ctrl.Log.WithName("component-operator")
+	metricsAddr string
+	probeAddr   string
 )
 
 var (
@@ -132,9 +131,6 @@ func addRunners(k8sManager manager.Manager, clientSet ecosystem.ComponentEcosyst
 func getK8sManagerOptions(operatorConfig *config.OperatorConfig) manager.Options {
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
 
 	options := ctrl.Options{
 		Scheme:  scheme,
@@ -148,8 +144,6 @@ func getK8sManagerOptions(operatorConfig *config.OperatorConfig) manager.Options
 		}},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "951e217a.cloudogu.com",
 	}
 
 	return options
