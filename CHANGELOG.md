@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [#73] Increase wait limit to prevent problems with slow internet connection
+
+## [v1.3.0] - 2024-11-19
 ### Added 
 - [#71] Add comments for RBAC permissions
 
