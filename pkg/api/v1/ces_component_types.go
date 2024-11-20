@@ -106,7 +106,7 @@ func (c *Component) String() string {
 
 // GetHelmChartSpec returns the helm chart for the component cr without custom values.
 func (c *Component) GetHelmChartSpec() *client.ChartSpec {
-	const backoffTimeEnv = "BACKOFF_TIME"
+	const backoffTimeEnv = "HELM_CLIENT_TIMEOUT_MINS"
 	backoffTimeString, found := os.LookupEnv(backoffTimeEnv)
 	backoffTime, err := strconv.Atoi(backoffTimeString)
 	if !found || err != nil {

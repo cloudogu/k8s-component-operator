@@ -10,8 +10,8 @@ manager:
   env:
     logLevel: info
     stage: production
-    backoffTime: "15"
-    rollbackTimeout: "15"
+    helmClientTimeoutMins: "15"
+    rollbackReleaseTimeoutMins: "15"
   resourceLimits:
     cpu: 500m
     memory: 128Mi

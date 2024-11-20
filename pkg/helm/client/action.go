@@ -64,7 +64,7 @@ func (p *provider) newGetRelease() getReleaseAction {
 
 func (p *provider) newRollbackRelease() rollbackReleaseAction {
 	rollbackAction := action.NewRollback(p.Configuration)
-	const rollbackTimeoutEnv = "ROLLBACK_TIMEOUT"
+	const rollbackTimeoutEnv = "ROLLBACK_RELEASE_TIMEOUT_MINS"
 	rollbackTimeoutString, found := os.LookupEnv(rollbackTimeoutEnv)
 	rollbackTimeout, err := strconv.Atoi(rollbackTimeoutString)
 	if !found || err != nil {
