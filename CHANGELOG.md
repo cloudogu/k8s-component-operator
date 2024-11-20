@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.3.0] - 2024-11-19
+### Added 
+- [#71] Add comments for RBAC permissions
+
+### Removed
+- [#71] Remove unused ClusterRole for reading metrics
+- [#71] Remove unused leader-election along with its RBAC permissions
+
 ## [v1.2.1] - 2024-11-04
 ### Fixed
 - [#69] Image path for rbac proxy registry in patch templates.
