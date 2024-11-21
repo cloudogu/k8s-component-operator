@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
+	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 
@@ -65,10 +66,11 @@ type ComponentReconciler struct {
 	helmClient       helmClient
 	requeueHandler   requeueHandler
 	namespace        string
+	timeout          time.Duration
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string) *ComponentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
 	return &ComponentReconciler{
 		clientSet: clientSet,
@@ -78,6 +80,7 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 			helmClient,
 			health.NewManager(namespace, clientSet),
 			recorder,
+			timeout,
 		),
 		helmClient:     helmClient,
 		requeueHandler: componentRequeueHandler,
@@ -282,9 +285,9 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
-	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpec())
+	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpecWithTimout(r.timeout))
 	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpec().ChartName, err)
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpecWithTimout(r.timeout).ChartName, err)
 	}
 
 	// if no additional values are set, the maps will look like this:

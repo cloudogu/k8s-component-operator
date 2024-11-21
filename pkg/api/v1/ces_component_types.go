@@ -2,9 +2,6 @@ package v1
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"os"
-	"strconv"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,8 +13,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-const helmClientTimeoutMinsEnv = "HELM_CLIENT_TIMEOUT_MINS"
-const defaultHelmClientTimeoutMins = time.Duration(15)
+const defaultHelmClientTimeoutMins = time.Duration(15) * time.Minute
 
 const (
 	// ComponentStatusNotInstalled represents a status for a component that is not installed
@@ -105,8 +101,12 @@ func (c *Component) String() string {
 	return fmt.Sprintf("%s/%s:%s", c.Spec.Namespace, c.Spec.Name, c.Spec.Version)
 }
 
-// GetHelmChartSpec returns the helm chart for the component cr without custom values.
 func (c *Component) GetHelmChartSpec() *client.ChartSpec {
+	return c.GetHelmChartSpecWithTimout(defaultHelmClientTimeoutMins)
+}
+
+// GetHelmChartSpecWithTimout returns the helm chart for the component cr without custom values.
+func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.ChartSpec {
 	deployNamespace := ""
 
 	if c.Spec.DeployNamespace != "" {
@@ -124,7 +124,7 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		// Rollback to previous release on failure.
 		Atomic: true,
 		// This timeout prevents context exceeded errors from the used k8s client from the helm library.
-		Timeout: time.Minute * readHelmClientTimeoutMinsEnv(),
+		Timeout: timeout,
 		// True would lead the client to delete a CRD on failure which could delete all Dogus.
 		CleanupOnFail: false,
 		// Create non-existent namespace so that the operator can install charts in other namespaces.
@@ -147,23 +147,4 @@ type ComponentList struct {
 
 func init() {
 	SchemeBuilder.Register(&Component{}, &ComponentList{})
-}
-
-func readHelmClientTimeoutMinsEnv() time.Duration {
-	helmClientTimeoutMinsString, found := os.LookupEnv(helmClientTimeoutMinsEnv)
-	if !found {
-		logrus.Debugf("failed to read %s environment variable, using default value of %d", helmClientTimeoutMinsEnv, defaultHelmClientTimeoutMins)
-		return defaultHelmClientTimeoutMins
-	}
-	helmClientTimeoutMinsParsed, err := strconv.Atoi(helmClientTimeoutMinsString)
-	if err != nil {
-		logrus.Warningf("failed to parse %s environment variable, using default value of %d", helmClientTimeoutMinsEnv, defaultHelmClientTimeoutMins)
-		return defaultHelmClientTimeoutMins
-	}
-	if helmClientTimeoutMinsParsed <= 0 {
-		logrus.Warningf("parsed value (%d) is smaller than 0, using default value of %d", helmClientTimeoutMinsParsed, defaultHelmClientTimeoutMins)
-		return defaultHelmClientTimeoutMins
-
-	}
-	return time.Duration(helmClientTimeoutMinsParsed)
 }

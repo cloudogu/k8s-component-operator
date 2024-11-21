@@ -7,6 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"time"
 )
 
 // ComponentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
@@ -15,15 +16,17 @@ type ComponentInstallManager struct {
 	helmClient      helmClient
 	healthManager   healthManager
 	recorder        record.EventRecorder
+	timeout         time.Duration
 }
 
 // NewComponentInstallManager creates a new instance of ComponentInstallManager.
-func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder) *ComponentInstallManager {
+func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration) *ComponentInstallManager {
 	return &ComponentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
 		healthManager:   healthManager,
 		recorder:        recorder,
+		timeout:         timeout,
 	}
 }
 
@@ -32,7 +35,7 @@ func NewComponentInstallManager(componentClient componentInterface, helmClient h
 func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	err := cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpec())
+	err := cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cim.timeout))
 	if err != nil {
 		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
@@ -61,7 +64,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// TODO: if no specific version is set, find the latest version here separately, not hidden in the client.
 	//  A client should have no business logic (but we can bundle it with e.g. `GetLatestChartVersion()`)
 	//  Then we don't have to load the installed version again with a helm call.
-	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpec()); err != nil {
+	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpecWithTimout(cim.timeout)); err != nil {
 		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 	}
 
