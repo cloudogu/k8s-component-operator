@@ -11,7 +11,7 @@ import (
 func TestNewComponentManager(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// when
-		sut := NewComponentManager(nil, nil, nil, nil)
+		sut := NewComponentManager(nil, nil, nil, nil, defaultHelmClientTimeoutMins)
 
 		// then
 		require.NotNil(t, sut)

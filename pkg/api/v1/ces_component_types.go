@@ -13,6 +13,8 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+const defaultHelmClientTimeoutMins = time.Duration(15) * time.Minute
+
 const (
 	// ComponentStatusNotInstalled represents a status for a component that is not installed
 	ComponentStatusNotInstalled = ""
@@ -99,8 +101,12 @@ func (c *Component) String() string {
 	return fmt.Sprintf("%s/%s:%s", c.Spec.Namespace, c.Spec.Name, c.Spec.Version)
 }
 
-// GetHelmChartSpec returns the helm chart for the component cr without custom values.
 func (c *Component) GetHelmChartSpec() *client.ChartSpec {
+	return c.GetHelmChartSpecWithTimout(defaultHelmClientTimeoutMins)
+}
+
+// GetHelmChartSpecWithTimout returns the helm chart for the component cr without custom values.
+func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.ChartSpec {
 	deployNamespace := ""
 
 	if c.Spec.DeployNamespace != "" {
@@ -118,7 +124,7 @@ func (c *Component) GetHelmChartSpec() *client.ChartSpec {
 		// Rollback to previous release on failure.
 		Atomic: true,
 		// This timeout prevents context exceeded errors from the used k8s client from the helm library.
-		Timeout: time.Second * 300,
+		Timeout: timeout,
 		// True would lead the client to delete a CRD on failure which could delete all Dogus.
 		CleanupOnFail: false,
 		// Create non-existent namespace so that the operator can install charts in other namespaces.

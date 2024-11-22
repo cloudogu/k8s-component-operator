@@ -38,7 +38,7 @@ func TestNewComponentReconciler(t *testing.T) {
 	mockRecorder := newMockEventRecorder(t)
 
 	// when
-	manager := NewComponentReconciler(clientSetMock, mockHelmClient, mockRecorder, testNamespace)
+	manager := NewComponentReconciler(clientSetMock, mockHelmClient, mockRecorder, testNamespace, defaultHelmClientTimeoutMins)
 
 	// then
 	require.NotNil(t, manager)
@@ -226,6 +226,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 			recorder:         mockRecorder,
 			componentManager: manager,
 			helmClient:       helmClient,
+			timeout:          defaultHelmClientTimeoutMins,
 		}
 		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
@@ -427,6 +428,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 
 		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
+			timeout:    defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -528,6 +530,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 
 		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
+			timeout:    defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -549,6 +552,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 
 		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
+			timeout:    defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -570,6 +574,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 
 		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
+			timeout:    defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -591,6 +596,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 
 		sut := ComponentReconciler{
 			helmClient: mockHelmClient,
+			timeout:    defaultHelmClientTimeoutMins,
 		}
 
 		// when

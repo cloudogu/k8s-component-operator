@@ -1,10 +1,13 @@
 package config
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -248,4 +251,81 @@ func TestHelmRepositoryData_URL(t *testing.T) {
 		Schema:   "oci",
 	}
 	assert.Equal(t, "oci://example.com", actual.URL())
+}
+
+func Test_readHelmClientTimeoutMinsEnv(t *testing.T) {
+	tests := []struct {
+		name        string
+		setEnvVar   bool
+		envVarValue string
+		want        time.Duration
+		wantLogs    bool
+		wantedLogs  string
+		logLevel    logrus.Level
+	}{
+		{
+			name:       "Environment variable not set",
+			setEnvVar:  false,
+			want:       15 * time.Minute,
+			wantLogs:   true,
+			wantedLogs: "failed to read HELM_CLIENT_TIMEOUT_MINS environment variable, using default value",
+			logLevel:   logrus.DebugLevel,
+		},
+		{
+			name:        "Environment variable not set correctly",
+			setEnvVar:   true,
+			envVarValue: "15//",
+			want:        15 * time.Minute,
+			wantLogs:    true,
+			wantedLogs:  "failed to parse HELM_CLIENT_TIMEOUT_MINS environment variable, using default value",
+			logLevel:    logrus.WarnLevel,
+		},
+		{
+			name:        "read negative environment variable",
+			setEnvVar:   true,
+			envVarValue: "-20",
+			want:        15 * time.Minute,
+			wantLogs:    true,
+			wantedLogs:  "parsed value (-20) is smaller than 0, using default value",
+			logLevel:    logrus.WarnLevel,
+		},
+		{
+			name:        "Successfully read environment variable",
+			setEnvVar:   true,
+			envVarValue: "20",
+			want:        20 * time.Minute,
+			wantLogs:    false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setEnvVar {
+				err := os.Setenv(envHelmClientTimeoutMins, tt.envVarValue)
+				require.NoError(t, err)
+			}
+			var result = time.Duration(0)
+
+			var logOutput bytes.Buffer
+
+			originalOutput := logrus.StandardLogger().Out
+			originalLevel := logrus.StandardLogger().Level
+			if tt.wantLogs {
+				logrus.StandardLogger().SetOutput(&logOutput)
+				logrus.StandardLogger().SetLevel(tt.logLevel)
+			}
+
+			result = readHelmClientTimeoutMinsEnv()
+
+			logrus.StandardLogger().SetOutput(originalOutput)
+			logrus.StandardLogger().SetLevel(originalLevel)
+
+			logs := logOutput.String()
+
+			assert.Equalf(t, tt.want, result, "readHelmClientTimeoutMinsEnv()")
+
+			if tt.wantLogs {
+				assert.Contains(t, logs, tt.wantedLogs)
+			}
+		})
+	}
 }

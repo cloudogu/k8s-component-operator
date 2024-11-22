@@ -175,7 +175,7 @@ func configureReconciler(ctx context.Context, k8sManager manager.Manager, client
 		return fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	componentReconciler := controllers.NewComponentReconciler(clientSet, helmClient, eventRecorder, operatorConfig.Namespace)
+	componentReconciler := controllers.NewComponentReconciler(clientSet, helmClient, eventRecorder, operatorConfig.Namespace, operatorConfig.HelmClientTimeoutMins)
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)

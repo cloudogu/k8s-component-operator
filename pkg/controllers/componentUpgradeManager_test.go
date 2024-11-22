@@ -2,11 +2,10 @@ package controllers
 
 import (
 	"context"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -18,7 +17,7 @@ func TestNewComponentUpgradeManager(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 		mockHelmClient := newMockHelmClient(t)
 
-		manager := NewComponentUpgradeManager(mockComponentClient, mockHelmClient, nil, nil)
+		manager := NewComponentUpgradeManager(mockComponentClient, mockHelmClient, nil, nil, defaultHelmClientTimeoutMins)
 
 		assert.NotNil(t, manager)
 		assert.Equal(t, mockHelmClient, manager.helmClient)
@@ -58,6 +57,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			healthManager:   mockHealthManager,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 		err := manager.Upgrade(ctx, component)
 
@@ -78,6 +78,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			recorder:        mockRecorder,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -110,6 +111,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 		err := manager.Upgrade(ctx, component)
 
@@ -139,6 +141,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 		err := manager.Upgrade(ctx, component)
 
@@ -176,6 +179,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			healthManager:   mockHealthManager,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 		err := manager.Upgrade(ctx, component)
 
@@ -215,6 +219,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			healthManager:   mockHealthManager,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 		err := manager.Upgrade(ctx, component)
 

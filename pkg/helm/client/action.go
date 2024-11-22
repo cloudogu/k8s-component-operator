@@ -2,7 +2,11 @@ package client
 
 import (
 	"context"
+	"github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/cli"
+	"os"
+	"strconv"
+	"time"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -14,6 +18,9 @@ type provider struct {
 	plainHttp   bool
 	insecureTls bool
 }
+
+const rollbackReleaseTimeoutMinsEnv = "ROLLBACK_RELEASE_TIMEOUT_MINS"
+const defaultRollbackReleaseTimeoutMins = time.Duration(15)
 
 func (p *provider) newInstall() installAction {
 	installAction := action.NewInstall(p.Configuration)
@@ -58,6 +65,7 @@ func (p *provider) newGetRelease() getReleaseAction {
 
 func (p *provider) newRollbackRelease() rollbackReleaseAction {
 	rollbackAction := action.NewRollback(p.Configuration)
+	rollbackAction.Timeout = readRollbackReleaseTimeoutMinsEnv() * time.Minute
 	return &rollbackRelease{Rollback: rollbackAction}
 }
 
@@ -152,4 +160,23 @@ func (r *rollbackRelease) rollbackRelease(releaseName string) error {
 
 func (r *rollbackRelease) raw() *action.Rollback {
 	return r.Rollback
+}
+
+func readRollbackReleaseTimeoutMinsEnv() time.Duration {
+	rollbackReleaseTimeoutMinsString, found := os.LookupEnv(rollbackReleaseTimeoutMinsEnv)
+	if !found {
+		logrus.Debugf("failed to read %s environment variable, using default value of %d", rollbackReleaseTimeoutMinsEnv, defaultRollbackReleaseTimeoutMins)
+		return defaultRollbackReleaseTimeoutMins
+	}
+	rollbackReleaseTimeoutMinsParsed, err := strconv.Atoi(rollbackReleaseTimeoutMinsString)
+	if err != nil {
+		logrus.Warningf("failed to parse %s environment variable, using default value of %d", rollbackReleaseTimeoutMinsEnv, defaultRollbackReleaseTimeoutMins)
+		return defaultRollbackReleaseTimeoutMins
+	}
+	if rollbackReleaseTimeoutMinsParsed <= 0 {
+		logrus.Warningf("parsed value (%d) is smaller than 0, using default value of %d", rollbackReleaseTimeoutMinsParsed, defaultRollbackReleaseTimeoutMins)
+		return defaultRollbackReleaseTimeoutMins
+
+	}
+	return time.Duration(rollbackReleaseTimeoutMinsParsed)
 }
