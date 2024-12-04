@@ -93,7 +93,7 @@ func (hrd *HelmRepositoryData) validate() error {
 	return nil
 }
 
-// OperatorConfig contains all configurable values for the dogu operator.
+// OperatorConfig contains all configurable values for the component operator.
 type OperatorConfig struct {
 	// Namespace specifies the namespace that the operator is deployed to.
 	Namespace string `json:"namespace"`
@@ -126,7 +126,7 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read namespace: %w", err)
 	}
-	log.Info(fmt.Sprintf("Deploying the k8s dogu operator in namespace %s", namespace))
+	log.Info(fmt.Sprintf("Deploying the k8s component operator in namespace %s", namespace))
 
 	return &OperatorConfig{
 		Namespace:             namespace,
