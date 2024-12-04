@@ -5,25 +5,18 @@ manager:
   image:
     registry: docker.io
     repository: cloudogu/k8s-component-operator
-    tag: 1.3.0
+    tag: 1.4.0
   imagePullPolicy: IfNotPresent
   env:
     logLevel: info
     stage: production
+    helmClientTimeoutMins: "15"
+    rollbackReleaseTimeoutMins: "15"
   resourceLimits:
     cpu: 500m
     memory: 128Mi
   resourceRequests:
     cpu: 10m
     memory: 64Mi
-kubeRbacProxy:
-  image:
-    registry: gcr.io
-    repository: kubebuilder/kube-rbac-proxy
-    tag: v0.14.1
-  resourceLimits:
-    cpu: 500m
-    memory: 128Mi
-  resourceRequests:
-    cpu: 5m
-    memory: 64Mi
+  networkPolicies:
+    enabled: true

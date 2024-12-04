@@ -3,9 +3,11 @@ package config
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 
@@ -36,8 +38,10 @@ var (
 )
 
 var (
-	envVarNamespace = "NAMESPACE"
-	log             = ctrl.Log.WithName("config")
+	envVarNamespace              = "NAMESPACE"
+	envHelmClientTimeoutMins     = "HELM_CLIENT_TIMEOUT_MINS"
+	defaultHelmClientTimeoutMins = time.Duration(15) * time.Minute
+	log                          = ctrl.Log.WithName("config")
 )
 
 const (
@@ -61,8 +65,8 @@ type HelmRepositoryData struct {
 	// Schema describes the way how clients communicate with the Helm registry endpoint.
 	Schema EndpointSchema `json:"schema" yaml:"schema"`
 	// PlainHttp indicates that the repository endpoint should be accessed using plain http
-	PlainHttp   bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
-        // InsecureTls allows invalid or selfsigned certificates to be used. This option may be overridden by PlainHttp which forces HTTP traffic.
+	PlainHttp bool `json:"plainHttp,omitempty" yaml:"plainHttp,omitempty"`
+	// InsecureTls allows invalid or selfsigned certificates to be used. This option may be overridden by PlainHttp which forces HTTP traffic.
 	InsecureTLS bool `json:"insecureTls" yaml:"insecureTls"`
 }
 
@@ -89,14 +93,15 @@ func (hrd *HelmRepositoryData) validate() error {
 	return nil
 }
 
-// OperatorConfig contains all configurable values for the dogu operator.
+// OperatorConfig contains all configurable values for the component operator.
 type OperatorConfig struct {
 	// Namespace specifies the namespace that the operator is deployed to.
 	Namespace string `json:"namespace"`
 	// Version contains the current version of the operator
 	Version *semver.Version `json:"version"`
 	// HelmRepositoryData contains all necessary data for the helm repository.
-	HelmRepositoryData *HelmRepositoryData `json:"helm_repository"`
+	HelmRepositoryData    *HelmRepositoryData `json:"helm_repository"`
+	HelmClientTimeoutMins time.Duration
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
@@ -121,11 +126,12 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read namespace: %w", err)
 	}
-	log.Info(fmt.Sprintf("Deploying the k8s dogu operator in namespace %s", namespace))
+	log.Info(fmt.Sprintf("Deploying the k8s component operator in namespace %s", namespace))
 
 	return &OperatorConfig{
-		Namespace: namespace,
-		Version:   parsedVersion,
+		Namespace:             namespace,
+		Version:               parsedVersion,
+		HelmClientTimeoutMins: readHelmClientTimeoutMinsEnv(),
 	}, nil
 }
 
@@ -222,4 +228,23 @@ func getEnvVar(name string) (string, error) {
 		return "", fmt.Errorf("environment variable %s must be set", name)
 	}
 	return ns, nil
+}
+
+func readHelmClientTimeoutMinsEnv() time.Duration {
+	helmClientTimeoutMinsString, err := getEnvVar(envHelmClientTimeoutMins)
+	if err != nil {
+		logrus.Debugf("failed to read %s environment variable, using default value", envHelmClientTimeoutMins)
+		return defaultHelmClientTimeoutMins
+	}
+	helmClientTimeoutMinsParsed, err := strconv.Atoi(helmClientTimeoutMinsString)
+	if err != nil {
+		logrus.Warningf("failed to parse %s environment variable, using default value", envHelmClientTimeoutMins)
+		return defaultHelmClientTimeoutMins
+	}
+	if helmClientTimeoutMinsParsed <= 0 {
+		logrus.Warningf("parsed value (%d) is smaller than 0, using default value", helmClientTimeoutMinsParsed)
+		return defaultHelmClientTimeoutMins
+
+	}
+	return time.Duration(helmClientTimeoutMinsParsed) * time.Minute
 }

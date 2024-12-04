@@ -3,16 +3,18 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var ctxWithoutCancel = context.WithoutCancel(testCtx)
+var defaultHelmClientTimeoutMins = 15 * time.Minute
 
 func TestNewComponentInstallManager(t *testing.T) {
 	// when
-	manager := NewComponentInstallManager(nil, nil, nil, nil)
+	manager := NewComponentInstallManager(nil, nil, nil, nil, defaultHelmClientTimeoutMins)
 
 	// then
 	require.NotNil(t, manager)
@@ -40,6 +42,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -63,6 +66,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			recorder:        mockRecorder,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -86,6 +90,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -110,6 +115,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -135,6 +141,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -164,6 +171,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -194,6 +202,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -227,6 +236,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -251,6 +261,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
@@ -279,6 +290,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
 		}
 
 		// when
