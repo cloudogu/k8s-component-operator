@@ -12,5 +12,7 @@ spec:
   podSelector:
     matchLabels:
       {{- include "k8s-component-operator.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
   ingress: []
 {{- end }}
