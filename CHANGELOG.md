@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - [#73] Increase wait limit to prevent problems with slow internet connection
 
+### Removed
+- [#75] Remove RBAC-Proxy along with k8s-metrics-service, because the metrics are currently no used and all incoming traffic is blocked by the network-policy
+- [#75] Remove unused `manager-config` ConfigMap
+- [#75] Remove unused WebHookServer
+
 ## [v1.3.0] - 2024-11-19
 ### Added 
 - [#71] Add comments for RBAC permissions
