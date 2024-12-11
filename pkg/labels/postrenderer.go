@@ -3,6 +3,7 @@ package labels
 import (
 	"bytes"
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
 	"maps"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,12 +52,25 @@ func (c *PostRenderer) Run(renderedManifests *bytes.Buffer) (modifiedManifests *
 		}
 
 		k8sObject := &unstructured.Unstructured{Object: unstructuredMap}
+		switch k8sObject.GetKind() {
+		case "Deployment":
+			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &appsv1.Deployment{}, func(a *appsv1.Deployment) objectWithLabels { return &a.Spec.Template })
+			if err != nil {
+				return nil, fmt.Errorf("failed to add labels to Deployment: %w", err)
+			}
+		case "StatefulSet":
+			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &appsv1.StatefulSet{}, func(a *appsv1.StatefulSet) objectWithLabels { return &a.Spec.Template })
+			if err != nil {
+				return nil, fmt.Errorf("failed to add labels to StatefulSet: %w", err)
+			}
+		case "DaemonSet":
+			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &appsv1.DaemonSet{}, func(a *appsv1.DaemonSet) objectWithLabels { return &a.Spec.Template })
+			if err != nil {
+				return nil, fmt.Errorf("failed to add labels to StatefulSet: %w", err)
+			}
+		}
 
-		originalLabels := k8sObject.GetLabels()
-		mergedLabels := make(map[string]string, len(c.labels)+len(originalLabels))
-		maps.Copy(mergedLabels, originalLabels)
-		maps.Copy(mergedLabels, c.labels)
-		k8sObject.SetLabels(mergedLabels)
+		addLabels(k8sObject, c.labels)
 
 		yamlBytes, err := c.serializer.Marshal(k8sObject)
 		if err != nil {
@@ -71,4 +85,32 @@ func (c *PostRenderer) Run(renderedManifests *bytes.Buffer) (modifiedManifests *
 	}
 
 	return modifiedManifests, nil
+}
+
+func addLabelsToStructured[k any](c *PostRenderer, unstructuredMap map[string]interface{}, obj k, getTemplate func(k) objectWithLabels) (*unstructured.Unstructured, error) {
+	if err := c.unstructuredConverter.FromUnstructured(unstructuredMap, obj); err != nil {
+		return nil, nil
+	}
+
+	addLabels(getTemplate(obj), c.labels)
+
+	newUnstructuredMap, err := c.unstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert resource to unstructured object: %w", err)
+	}
+
+	return &unstructured.Unstructured{Object: newUnstructuredMap}, nil
+}
+
+type objectWithLabels interface {
+	GetLabels() map[string]string
+	SetLabels(labels map[string]string)
+}
+
+func addLabels(obj objectWithLabels, labels map[string]string) {
+	originalLabels := obj.GetLabels()
+	mergedLabels := make(map[string]string, len(labels)+len(originalLabels))
+	maps.Copy(mergedLabels, originalLabels)
+	maps.Copy(mergedLabels, labels)
+	obj.SetLabels(mergedLabels)
 }

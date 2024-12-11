@@ -166,6 +166,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  creationTimestamp: null
   labels:
     app: ces
     app.kubernetes.io/instance: release-name
@@ -190,10 +191,13 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
+      creationTimestamp: null
       labels:
         app.kubernetes.io/instance: release-name
         app.kubernetes.io/name: k8s-dogu-operator
         control-plane: controller-manager
+        k8s.cloudogu.com/component.name: k8s-dogu-operator
+        k8s.cloudogu.com/component.version: 1.2.3-4
     spec:
       containers:
       - args:
@@ -280,5 +284,6 @@ spec:
         secret:
           optional: true
           secretName: dogu-registry-cert
+status: {}
 
 ---
