@@ -1,26 +1,30 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   creationTimestamp: null
   labels:
     k8s.cloudogu.com/component.name: k8s-test
     k8s.cloudogu.com/component.version: 1.2.3-4
-  name: hello
+  name: example-deployment
 spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: example
+  strategy: {}
   template:
     metadata:
       creationTimestamp: null
       labels:
+        app: example
         k8s.cloudogu.com/component.name: k8s-test
         k8s.cloudogu.com/component.version: 1.2.3-4
     spec:
       containers:
-      - command:
-        - sh
-        - -c
-        - echo "Hello, Kubernetes!" && sleep 3600
-        image: busybox
-        name: hello
+      - image: example-image
+        name: example-container
+        ports:
+        - containerPort: 8080
         resources: {}
 status: {}
 
