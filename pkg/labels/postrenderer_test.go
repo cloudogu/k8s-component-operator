@@ -4,6 +4,8 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +28,30 @@ var jobBytes []byte
 //go:embed testdata/jobWithLabels.yaml
 var jobWithLabelsBytes []byte
 
+//go:embed testdata/deployment.yaml
+var deploymentBytes []byte
+
+//go:embed testdata/deploymentWithLabels.yaml
+var deploymentWithLabelsString string
+
+//go:embed testdata/statefulSet.yaml
+var statefulSetBytes []byte
+
+//go:embed testdata/statefulSetWithLabels.yaml
+var statefulSetWithLabelsString string
+
+//go:embed testdata/daemonSet.yaml
+var daemonSetBytes []byte
+
+//go:embed testdata/daemonSetWithLabels.yaml
+var daemonSetWithLabelsString string
+
+//go:embed testdata/cronJob.yaml
+var cronJobBytes []byte
+
+//go:embed testdata/cronJobWithLabels.yaml
+var cronJobWithLabelsString string
+
 //go:embed testdata/doguOp.yaml
 var doguOpBytes []byte
 
@@ -45,6 +71,25 @@ func TestPostRenderer_Run(t *testing.T) {
 		Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{Spec: corev1.PodSpec{Containers: []corev1.Container{
 			{Name: "hello", Image: "busyboxy", Command: []string{"sh", "-c", `echo "Hello, Kubernetes!" && sleep 3600`}},
 		}}}},
+	}
+
+	testJobWithLabels := &batchv1.Job{
+		TypeMeta: metav1.TypeMeta{Kind: "Job", APIVersion: "batch/v1"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "hello",
+		},
+		Spec: batchv1.JobSpec{Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-blueprint-operator",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			Spec: corev1.PodSpec{Containers: []corev1.Container{
+				{Name: "hello", Image: "busyboxy", Command: []string{"sh", "-c", `echo "Hello, Kubernetes!" && sleep 3600`}},
+			}},
+		},
+		},
 	}
 
 	type fields struct {
@@ -184,7 +229,12 @@ func TestPostRenderer_Run(t *testing.T) {
 				},
 				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
 					uc := newMockUnstructuredConverter(t)
-					uc.EXPECT().ToUnstructured(testJob).Return(jobMap(), nil)
+					uc.EXPECT().ToUnstructured(testJob).Return(jobMap(), nil).Once()
+					uc.EXPECT().ToUnstructured(testJobWithLabels).Return(jobMap(), nil).Once()
+					uc.EXPECT().FromUnstructured(jobMap(), &batchv1.Job{}).Run(func(um map[string]interface{}, obj interface{}) {
+						job := obj.(*batchv1.Job)
+						*job = *testJob
+					}).Return(nil)
 					return uc
 				},
 				serializerFn: func(t *testing.T) genericYamlSerializer {
@@ -224,7 +274,12 @@ func TestPostRenderer_Run(t *testing.T) {
 				},
 				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
 					uc := newMockUnstructuredConverter(t)
-					uc.EXPECT().ToUnstructured(testJob).Return(jobMap(), nil)
+					uc.EXPECT().ToUnstructured(testJob).Return(jobMap(), nil).Once()
+					uc.EXPECT().ToUnstructured(testJobWithLabels).Return(jobMap(), nil).Once()
+					uc.EXPECT().FromUnstructured(jobMap(), &batchv1.Job{}).Run(func(um map[string]interface{}, obj interface{}) {
+						job := obj.(*batchv1.Job)
+						*job = *testJob
+					}).Return(nil)
 					return uc
 				},
 				serializerFn: func(t *testing.T) genericYamlSerializer {
@@ -240,6 +295,276 @@ func TestPostRenderer_Run(t *testing.T) {
 			renderedManifests:        bytes.NewBuffer(jobBytes),
 			wantModifiedManifestsStr: fmt.Sprintf("%s\n---\n", jobWithLabelsBytes),
 			wantErr:                  assert.NoError,
+		},
+		{
+			name: "labels for pod-template in deployment",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return runtime.DefaultUnstructuredConverter
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(deploymentBytes),
+			wantModifiedManifestsStr: deploymentWithLabelsString,
+			wantErr:                  assert.NoError,
+		},
+		{
+			name: "labels for pod-template in deployment with error",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(mock.Anything).RunAndReturn(runtime.DefaultUnstructuredConverter.ToUnstructured)
+					uc.EXPECT().FromUnstructured(mock.Anything, mock.Anything).Return(assert.AnError)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(deploymentBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to add labels to Deployment: failed to convert resource to structured object:", i)
+			},
+		},
+		{
+			name: "labels for pod-template in statefulSet",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return runtime.DefaultUnstructuredConverter
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(statefulSetBytes),
+			wantModifiedManifestsStr: statefulSetWithLabelsString,
+			wantErr:                  assert.NoError,
+		},
+		{
+			name: "labels for pod-template in statefulSet with error",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(mock.Anything).RunAndReturn(runtime.DefaultUnstructuredConverter.ToUnstructured)
+					uc.EXPECT().FromUnstructured(mock.Anything, mock.Anything).Return(assert.AnError)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(statefulSetBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to add labels to StatefulSet: failed to convert resource to structured object:", i)
+			},
+		},
+		{
+			name: "labels for pod-template in daemonSet",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return runtime.DefaultUnstructuredConverter
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(daemonSetBytes),
+			wantModifiedManifestsStr: daemonSetWithLabelsString,
+			wantErr:                  assert.NoError,
+		},
+		{
+			name: "labels for pod-template in daemonSet with error",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(mock.Anything).RunAndReturn(runtime.DefaultUnstructuredConverter.ToUnstructured)
+					uc.EXPECT().FromUnstructured(mock.Anything, mock.Anything).Return(assert.AnError)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(daemonSetBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to add labels to DaemonSet: failed to convert resource to structured object:", i)
+			},
+		},
+		{
+			name: "labels for pod-template in job",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return runtime.DefaultUnstructuredConverter
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(jobBytes),
+			wantModifiedManifestsStr: string(jobWithLabelsBytes),
+			wantErr:                  assert.NoError,
+		},
+		{
+			name: "labels for pod-template in job with error",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(mock.Anything).RunAndReturn(runtime.DefaultUnstructuredConverter.ToUnstructured)
+					uc.EXPECT().FromUnstructured(mock.Anything, mock.Anything).Return(assert.AnError)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(jobBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to add labels to Job: failed to convert resource to structured object:", i)
+			},
+		},
+		{
+			name: "labels for pod-template in cronJob",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					return runtime.DefaultUnstructuredConverter
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(cronJobBytes),
+			wantModifiedManifestsStr: cronJobWithLabelsString,
+			wantErr:                  assert.NoError,
+		},
+		{
+			name: "labels for pod-template in cronJob with error",
+			fields: fields{
+				documentSplitterFn: func(t *testing.T) documentSplitter {
+					return yamlutil.NewDocumentSplitter()
+				},
+				unstructuredSerializerFn: func(t *testing.T) unstructuredSerializer {
+					return yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+				},
+				unstructuredConverterFn: func(t *testing.T) unstructuredConverter {
+					uc := newMockUnstructuredConverter(t)
+					uc.EXPECT().ToUnstructured(mock.Anything).RunAndReturn(runtime.DefaultUnstructuredConverter.ToUnstructured)
+					uc.EXPECT().FromUnstructured(mock.Anything, mock.Anything).Return(assert.AnError)
+					return uc
+				},
+				serializerFn: func(t *testing.T) genericYamlSerializer {
+					return yamlutil.NewSerializer()
+				},
+				labels: map[string]string{
+					"k8s.cloudogu.com/component.name":    "k8s-test",
+					"k8s.cloudogu.com/component.version": "1.2.3-4",
+				},
+			},
+			renderedManifests:        bytes.NewBuffer(cronJobBytes),
+			wantModifiedManifestsStr: "<nil>",
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to add labels to CronJob: failed to convert resource to structured object:", i)
+			},
 		},
 		{
 			name: "test integration dogu-operator",
@@ -332,4 +657,23 @@ func TestNewPostRenderer(t *testing.T) {
 		"k8s.cloudogu.com/component.version": "1.2.3-4",
 	})
 	assert.NotEmpty(t, renderer)
+}
+
+func Test_addLabelsToStructured(t *testing.T) {
+	t.Run("should fail to convert to unstructured", func(t *testing.T) {
+		mockConverter := newMockUnstructuredConverter(t)
+		mockConverter.EXPECT().FromUnstructured(mock.Anything, &appsv1.DaemonSet{}).Return(nil)
+		mockConverter.EXPECT().ToUnstructured(mock.Anything).Return(nil, assert.AnError)
+
+		c := &PostRenderer{
+			unstructuredConverter: mockConverter,
+		}
+		_, err := addLabelsToStructured(c, nil, &appsv1.DaemonSet{}, func(a *appsv1.DaemonSet) objectWithLabels {
+			return &a.Spec.Template
+		})
+
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.ErrorContains(t, err, "failed to convert resource to unstructured object:")
+	})
 }

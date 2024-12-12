@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.5.0] - 2024-12-12
+### Added
+- [#77] Add labels with component name and version also to pod-templates of Deployments, StatefulSets, DaemonSets, Jobs & CronJobs 
+
 ## [v1.4.0] - 2024-12-04
 ### Fixed
 - [#73] Increase wait limit to prevent problems with slow internet connection

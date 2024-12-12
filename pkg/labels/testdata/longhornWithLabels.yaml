@@ -4615,6 +4615,7 @@ spec:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
+  creationTimestamp: null
   labels:
     app: longhorn-manager
     app.kubernetes.io/instance: release-name
@@ -4632,6 +4633,7 @@ spec:
       app: longhorn-manager
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app: longhorn-manager
         app.kubernetes.io/instance: release-name
@@ -4639,6 +4641,8 @@ spec:
         app.kubernetes.io/name: k8s-longhorn
         app.kubernetes.io/version: v1.5.1
         helm.sh/chart: longhorn-1.5.1
+        k8s.cloudogu.com/component.name: k8s-longhorn
+        k8s.cloudogu.com/component.version: 1.5.1-4
     spec:
       containers:
       - command:
@@ -4689,6 +4693,7 @@ spec:
             path: /v1/healthz
             port: 9501
             scheme: HTTPS
+        resources: {}
         volumeMounts:
         - mountPath: /host/dev/
           name: dev
@@ -4711,11 +4716,17 @@ spec:
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 100%
+status:
+  currentNumberScheduled: 0
+  desiredNumberScheduled: 0
+  numberMisscheduled: 0
+  numberReady: 0
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  creationTimestamp: null
   labels:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/managed-by: Helm
@@ -4731,8 +4742,10 @@ spec:
   selector:
     matchLabels:
       app: longhorn-driver-deployer
+  strategy: {}
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app: longhorn-driver-deployer
         app.kubernetes.io/instance: release-name
@@ -4740,6 +4753,8 @@ spec:
         app.kubernetes.io/name: k8s-longhorn
         app.kubernetes.io/version: v1.5.1
         helm.sh/chart: longhorn-1.5.1
+        k8s.cloudogu.com/component.name: k8s-longhorn
+        k8s.cloudogu.com/component.version: 1.5.1-4
     spec:
       containers:
       - command:
@@ -4778,6 +4793,7 @@ spec:
         image: longhornio/longhorn-manager:v1.5.1
         imagePullPolicy: IfNotPresent
         name: longhorn-driver-deployer
+        resources: {}
       initContainers:
       - command:
         - sh
@@ -4786,14 +4802,17 @@ spec:
           != "200" ]; do echo waiting; sleep 2; done
         image: longhornio/longhorn-manager:v1.5.1
         name: wait-longhorn-manager
+        resources: {}
       securityContext:
         runAsUser: 0
       serviceAccountName: longhorn-service-account
+status: {}
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  creationTimestamp: null
   labels:
     app: longhorn-ui
     app.kubernetes.io/instance: release-name
@@ -4810,8 +4829,10 @@ spec:
   selector:
     matchLabels:
       app: longhorn-ui
+  strategy: {}
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app: longhorn-ui
         app.kubernetes.io/instance: release-name
@@ -4819,6 +4840,8 @@ spec:
         app.kubernetes.io/name: k8s-longhorn
         app.kubernetes.io/version: v1.5.1
         helm.sh/chart: longhorn-1.5.1
+        k8s.cloudogu.com/component.name: k8s-longhorn
+        k8s.cloudogu.com/component.version: 1.5.1-4
     spec:
       affinity:
         podAntiAffinity:
@@ -4844,6 +4867,7 @@ spec:
         ports:
         - containerPort: 8000
           name: http
+        resources: {}
         volumeMounts:
         - mountPath: /var/cache/nginx/
           name: nginx-cache
@@ -4858,6 +4882,7 @@ spec:
         name: nginx-config
       - emptyDir: {}
         name: var-run
+status: {}
 
 ---
 apiVersion: batch/v1
@@ -4866,6 +4891,7 @@ metadata:
   annotations:
     helm.sh/hook: post-upgrade
     helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation
+  creationTimestamp: null
   labels:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/managed-by: Helm
@@ -4881,12 +4907,15 @@ spec:
   backoffLimit: 1
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app.kubernetes.io/instance: release-name
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: k8s-longhorn
         app.kubernetes.io/version: v1.5.1
         helm.sh/chart: longhorn-1.5.1
+        k8s.cloudogu.com/component.name: k8s-longhorn
+        k8s.cloudogu.com/component.version: 1.5.1-4
       name: longhorn-post-upgrade
     spec:
       containers:
@@ -4901,8 +4930,10 @@ spec:
         image: longhornio/longhorn-manager:v1.5.1
         imagePullPolicy: IfNotPresent
         name: longhorn-post-upgrade
+        resources: {}
       restartPolicy: OnFailure
       serviceAccountName: longhorn-service-account
+status: {}
 
 ---
 apiVersion: batch/v1
@@ -4911,6 +4942,7 @@ metadata:
   annotations:
     helm.sh/hook: pre-upgrade
     helm.sh/hook-delete-policy: hook-succeeded,before-hook-creation,hook-failed
+  creationTimestamp: null
   labels:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/managed-by: Helm
@@ -4926,12 +4958,15 @@ spec:
   backoffLimit: 1
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app.kubernetes.io/instance: release-name
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: k8s-longhorn
         app.kubernetes.io/version: v1.5.1
         helm.sh/chart: longhorn-1.5.1
+        k8s.cloudogu.com/component.name: k8s-longhorn
+        k8s.cloudogu.com/component.version: 1.5.1-4
       name: longhorn-pre-upgrade
     spec:
       containers:
@@ -4946,8 +4981,10 @@ spec:
         image: longhornio/longhorn-manager:v1.5.1
         imagePullPolicy: IfNotPresent
         name: longhorn-pre-upgrade
+        resources: {}
       restartPolicy: OnFailure
       serviceAccountName: longhorn-service-account
+status: {}
 
 ---
 apiVersion: batch/v1
@@ -4956,6 +4993,7 @@ metadata:
   annotations:
     helm.sh/hook: pre-delete
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+  creationTimestamp: null
   labels:
     app.kubernetes.io/instance: release-name
     app.kubernetes.io/managed-by: Helm
@@ -4971,12 +5009,15 @@ spec:
   backoffLimit: 1
   template:
     metadata:
+      creationTimestamp: null
       labels:
         app.kubernetes.io/instance: release-name
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: k8s-longhorn
         app.kubernetes.io/version: v1.5.1
         helm.sh/chart: longhorn-1.5.1
+        k8s.cloudogu.com/component.name: k8s-longhorn
+        k8s.cloudogu.com/component.version: 1.5.1-4
       name: longhorn-uninstall
     spec:
       containers:
@@ -4992,7 +5033,9 @@ spec:
         image: longhornio/longhorn-manager:v1.5.1
         imagePullPolicy: IfNotPresent
         name: longhorn-uninstall
+        resources: {}
       restartPolicy: Never
       serviceAccountName: longhorn-service-account
+status: {}
 
 ---
