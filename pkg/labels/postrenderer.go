@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	"maps"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -12,6 +13,12 @@ import (
 
 	yamlutil "github.com/cloudogu/k8s-component-operator/pkg/yaml"
 )
+
+const deploymentKind = "apps/v1/Deployment"
+const statefulSetKind = "apps/v1/StatefulSet"
+const daemonSetKind = "apps/v1/DaemonSet"
+const jobKind = "batch/v1/Job"
+const cronJobKind = "batch/v1/CronJob"
 
 type PostRenderer struct {
 	documentSplitter       documentSplitter
@@ -52,21 +59,33 @@ func (c *PostRenderer) Run(renderedManifests *bytes.Buffer) (modifiedManifests *
 		}
 
 		k8sObject := &unstructured.Unstructured{Object: unstructuredMap}
-		switch k8sObject.GetKind() {
-		case "Deployment":
+		kind := fmt.Sprintf("%s/%s", k8sObject.GetAPIVersion(), k8sObject.GetKind())
+
+		switch kind {
+		case deploymentKind:
 			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &appsv1.Deployment{}, func(a *appsv1.Deployment) objectWithLabels { return &a.Spec.Template })
 			if err != nil {
 				return nil, fmt.Errorf("failed to add labels to Deployment: %w", err)
 			}
-		case "StatefulSet":
+		case statefulSetKind:
 			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &appsv1.StatefulSet{}, func(a *appsv1.StatefulSet) objectWithLabels { return &a.Spec.Template })
 			if err != nil {
 				return nil, fmt.Errorf("failed to add labels to StatefulSet: %w", err)
 			}
-		case "DaemonSet":
+		case daemonSetKind:
 			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &appsv1.DaemonSet{}, func(a *appsv1.DaemonSet) objectWithLabels { return &a.Spec.Template })
 			if err != nil {
-				return nil, fmt.Errorf("failed to add labels to StatefulSet: %w", err)
+				return nil, fmt.Errorf("failed to add labels to DaemonSet: %w", err)
+			}
+		case jobKind:
+			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &batchv1.Job{}, func(a *batchv1.Job) objectWithLabels { return &a.Spec.Template })
+			if err != nil {
+				return nil, fmt.Errorf("failed to add labels to Job: %w", err)
+			}
+		case cronJobKind:
+			k8sObject, err = addLabelsToStructured(c, unstructuredMap, &batchv1.CronJob{}, func(a *batchv1.CronJob) objectWithLabels { return &a.Spec.JobTemplate.Spec.Template })
+			if err != nil {
+				return nil, fmt.Errorf("failed to add labels to CronJob: %w", err)
 			}
 		}
 
@@ -89,7 +108,7 @@ func (c *PostRenderer) Run(renderedManifests *bytes.Buffer) (modifiedManifests *
 
 func addLabelsToStructured[k any](c *PostRenderer, unstructuredMap map[string]interface{}, obj k, getTemplate func(k) objectWithLabels) (*unstructured.Unstructured, error) {
 	if err := c.unstructuredConverter.FromUnstructured(unstructuredMap, obj); err != nil {
-		return nil, nil
+		return nil, fmt.Errorf("failed to convert resource to structured object: %w", err)
 	}
 
 	addLabels(getTemplate(obj), c.labels)

@@ -1,27 +1,32 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: DaemonSet
 metadata:
   creationTimestamp: null
   labels:
     k8s.cloudogu.com/component.name: k8s-test
     k8s.cloudogu.com/component.version: 1.2.3-4
-  name: hello
+  name: fluentd
 spec:
+  selector:
+    matchLabels:
+      name: fluentd
   template:
     metadata:
       creationTimestamp: null
       labels:
         k8s.cloudogu.com/component.name: k8s-test
         k8s.cloudogu.com/component.version: 1.2.3-4
+        name: fluentd
     spec:
       containers:
-      - command:
-        - sh
-        - -c
-        - echo "Hello, Kubernetes!" && sleep 3600
-        image: busybox
-        name: hello
+      - image: quay.io/fluentd_elasticsearch/fluentd:latest
+        name: fluentd-elasticsearch
         resources: {}
-status: {}
+  updateStrategy: {}
+status:
+  currentNumberScheduled: 0
+  desiredNumberScheduled: 0
+  numberMisscheduled: 0
+  numberReady: 0
 
 ---
