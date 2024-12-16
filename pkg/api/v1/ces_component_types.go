@@ -117,7 +117,7 @@ func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.Ch
 
 	return &client.ChartSpec{
 		ReleaseName: c.Spec.Name,
-		ChartName:   fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name),
+		ChartName:   c.GetHelmChartName(),
 		Namespace:   deployNamespace,
 		Version:     c.Spec.Version,
 		ValuesYaml:  c.Spec.ValuesYamlOverwrite,
@@ -134,6 +134,10 @@ func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.Ch
 			ComponentVersionLabelKey: c.Spec.Version,
 		}),
 	}
+}
+
+func (c *Component) GetHelmChartName() string {
+	return fmt.Sprintf("%s/%s", c.Spec.Namespace, c.Spec.Name)
 }
 
 // +kubebuilder:object:root=true

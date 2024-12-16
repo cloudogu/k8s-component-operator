@@ -55,6 +55,8 @@ type helmClient interface {
 	// indicates that all dependencies (if any) meet the requirements, so that the client may conduct an installation or
 	// upgrade.
 	SatisfiesDependencies(ctx context.Context, chart *client.ChartSpec) error
+	// GetLatestVersion tries to get the latest version identifier for the chart with the given name.
+	GetLatestVersion(chartName string) (string, error)
 }
 
 // eventRecorder embeds the record.EventRecorder interface for usage in this package.
