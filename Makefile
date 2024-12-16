@@ -3,7 +3,7 @@ ARTIFACT_ID=k8s-component-operator
 VERSION=1.5.0
 ## Image URL to use all building/pushing image targets
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
-GOTAG?=1.23.0
+GOTAG?=1.23.4
 MAKEFILES_VERSION=9.3.2
 LINT_VERSION?=v1.61.0
 
