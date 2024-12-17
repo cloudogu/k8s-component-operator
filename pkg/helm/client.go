@@ -70,10 +70,10 @@ func (c *Client) InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) 
 	// This helm-client currently only works with OCI-Helm-Repositories.
 	// Therefore, the chartName has to include the FQDN of the repository (e.g. "oci://my.repo/...")
 	// If in the future non-oci-repositories need to be used, this should be done here...
-	c.patchOciEndpoint(chart)
+	chart.ChartName = c.patchOciEndpoint(chart.ChartName)
 
-	if err := c.patchChartVersion(chart); err != nil {
-		return fmt.Errorf("error patching chart-version for chart %s: %w", chart.ChartName, err)
+	if chart.Version == "" {
+		return fmt.Errorf("cannot install chart %q without version", chart.ChartName)
 	}
 
 	_, err := c.helmClient.InstallOrUpgradeChart(ctx, chart)
@@ -89,10 +89,10 @@ func (c *Client) SatisfiesDependencies(ctx context.Context, chart *client.ChartS
 	logger := log.FromContext(ctx)
 	logger.Info("Checking if components dependencies are satisfied", "component", chart.ChartName)
 
-	c.patchOciEndpoint(chart)
+	chart.ChartName = c.patchOciEndpoint(chart.ChartName)
 
-	if err := c.patchChartVersion(chart); err != nil {
-		return fmt.Errorf("error patching chart-version for chart %s: %w", chart.ChartName, err)
+	if chart.Version == "" {
+		return fmt.Errorf("cannot install chart %q without version", chart.ChartName)
 	}
 
 	componentChart, err := c.getChart(ctx, chart)
@@ -176,36 +176,30 @@ func (c *Client) GetChartSpecValues(spec *client.ChartSpec) (map[string]interfac
 	return c.helmClient.GetChartSpecValues(spec)
 }
 
-func (c *Client) patchOciEndpoint(chart *client.ChartSpec) {
-	if strings.HasPrefix(chart.ChartName, ociSchemePrefix) {
-		return
+func (c *Client) patchOciEndpoint(chartName string) string {
+	if strings.HasPrefix(chartName, ociSchemePrefix) {
+		return chartName
 	}
 
-	chart.ChartName = fmt.Sprintf("%s/%s", c.helmRepoData.URL(), chart.ChartName)
+	return fmt.Sprintf("%s/%s", c.helmRepoData.URL(), chartName)
 }
 
-func (c *Client) patchChartVersion(chart *client.ChartSpec) error {
-	if chart.Version != "" {
-		return nil
-	}
-
-	ref := strings.TrimPrefix(chart.ChartName, ociSchemePrefix)
+func (c *Client) GetLatestVersion(chartName string) (string, error) {
+	ref := strings.TrimPrefix(c.patchOciEndpoint(chartName), ociSchemePrefix)
 	tags, err := c.helmClient.Tags(ref)
 	if err != nil {
-		return fmt.Errorf("error resolving tags for chart %s: %w", chart.ChartName, err)
+		return "", fmt.Errorf("error resolving tags for chart %s: %w", chartName, err)
 	}
 
 	//sort tags by version
 	sortedTags := sortByVersionDescending(tags)
 
 	if len(sortedTags) <= 0 {
-		return fmt.Errorf("could not find any tags for chart %s", chart.ChartName)
+		return "", fmt.Errorf("could not find any tags for chart %s", chartName)
 	}
 
 	// set version to the latest tag
-	chart.Version = sortedTags[0]
-
-	return nil
+	return sortedTags[0], nil
 }
 
 func sortByVersionDescending(tags []string) []string {

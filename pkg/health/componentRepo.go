@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/retry"
+	"github.com/cloudogu/retry-lib/retry"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const noVersionChange = "##NO_VERSION_CHANGE##"

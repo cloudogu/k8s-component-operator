@@ -35,7 +35,24 @@ func NewComponentInstallManager(componentClient componentInterface, helmClient h
 func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	err := cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cim.timeout))
+	var err error
+	// set the installed version in the component CR to use it for version-comparison in future upgrades
+	var version string
+	if component.Spec.Version == "" {
+		version, err = cim.helmClient.GetLatestVersion(component.GetHelmChartName())
+		if err != nil {
+			return &genericRequeueableError{fmt.Sprintf("failed to get latest version for component %q", component.Spec.Name), err}
+		}
+
+		component, err = cim.componentClient.UpdateExpectedComponentVersion(ctx, component.Spec.Name, version)
+		if err != nil {
+			return &genericRequeueableError{fmt.Sprintf("failed to update expected version for component %q", component.Spec.Name), err}
+		}
+	} else {
+		version = component.Spec.Version
+	}
+
+	err = cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cim.timeout))
 	if err != nil {
 		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
@@ -60,27 +77,8 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.WithoutCancel(ctx)
 
-	// if no version is set in the component CR, this will find the latest version and install it
-	// TODO: if no specific version is set, find the latest version here separately, not hidden in the client.
-	//  A client should have no business logic (but we can bundle it with e.g. `GetLatestChartVersion()`)
-	//  Then we don't have to load the installed version again with a helm call.
 	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpecWithTimout(cim.timeout)); err != nil {
 		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
-	}
-
-	// set the installed version in the component CR to use it for version-comparison in future upgrades
-	var installedVersion string
-	if component.Spec.Version == "" {
-		installedVersion, err = cim.helmClient.GetDeployedReleaseVersion(ctx, component.Spec.Name)
-		if err != nil {
-			return &genericRequeueableError{fmt.Sprintf("failed to get release version for component %q", component.Spec.Name), err}
-		}
-		component, err = cim.componentClient.UpdateExpectedComponentVersion(helmCtx, component.Spec.Name, installedVersion)
-		if err != nil {
-			return &genericRequeueableError{fmt.Sprintf("failed to update expected version for component %q", component.Spec.Name), err}
-		}
-	} else {
-		installedVersion = component.Spec.Version
 	}
 
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)
@@ -88,7 +86,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		return &genericRequeueableError{fmt.Sprintf("failed to update status-installed for component %q", component.Spec.Name), err}
 	}
 
-	err = cim.healthManager.UpdateComponentHealthWithInstalledVersion(ctx, component.Spec.Name, component.Namespace, installedVersion)
+	err = cim.healthManager.UpdateComponentHealthWithInstalledVersion(ctx, component.Spec.Name, component.Namespace, version)
 	if err != nil {
 		return fmt.Errorf("failed to update health status and installed version for component %q: %w", component.Spec.Name, err)
 	}

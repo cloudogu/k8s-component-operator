@@ -6,7 +6,7 @@ import (
 	"time"
 
 	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/retry"
+	"github.com/cloudogu/retry-lib/retry"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
