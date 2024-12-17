@@ -36,7 +36,24 @@ func NewComponentUpgradeManager(componentClient componentInterface, helmClient h
 func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
-	err := cum.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cum.timeout))
+	var err error
+	// set the installed version in the component CR to use it for version-comparison in future upgrades
+	var version string
+	if component.Spec.Version == "" {
+		version, err = cum.helmClient.GetLatestVersion(component.GetHelmChartName())
+		if err != nil {
+			return &genericRequeueableError{fmt.Sprintf("failed to get latest version for component %q", component.Spec.Name), err}
+		}
+
+		component, err = cum.componentClient.UpdateExpectedComponentVersion(ctx, component.Spec.Name, version)
+		if err != nil {
+			return &genericRequeueableError{fmt.Sprintf("failed to update expected version for component %q", component.Spec.Name), err}
+		}
+	} else {
+		version = component.Spec.Version
+	}
+
+	err = cum.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cum.timeout))
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
@@ -61,8 +78,6 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	if err != nil {
 		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-installed for component %s", component.Spec.Name), err: err}
 	}
-
-	version := component.Spec.Version
 
 	err = cum.healthManager.UpdateComponentHealthWithInstalledVersion(helmCtx, component.Spec.Name, component.Namespace, version)
 	if err != nil {

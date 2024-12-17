@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/retry"
+	"github.com/cloudogu/retry-lib/retry"
 )
 
 // componentDeleteManager is a central unit in the process of handling the deletion process of a custom component resource.

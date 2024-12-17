@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -11,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/retry"
+	"github.com/cloudogu/retry-lib/retry"
 )
 
 // componentRequeueHandler is responsible to requeue a component resource after it failed.

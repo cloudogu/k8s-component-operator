@@ -219,15 +219,15 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
 		componentWithVersion := getComponent(namespace, "k8s", "", "dogu-op", "4.8.3")
 		mockComponentClient := newMockComponentInterface(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, componentWithoutVersion).Return(componentWithoutVersion, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, componentWithVersion).Return(componentWithVersion, nil)
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctxWithoutCancel, componentWithVersion).Return(componentWithVersion, nil)
-		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithoutVersion, "component-finalizer").Return(componentWithoutVersion, nil)
-		mockComponentClient.EXPECT().UpdateExpectedComponentVersion(ctxWithoutCancel, componentWithVersion.Name, componentWithVersion.Spec.Version).Return(componentWithVersion, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithVersion, "component-finalizer").Return(componentWithVersion, nil)
+		mockComponentClient.EXPECT().UpdateExpectedComponentVersion(testCtx, componentWithVersion.Name, componentWithVersion.Spec.Version).Return(componentWithVersion, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return(componentWithVersion.Spec.Version, nil)
+		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("4.8.3", nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithVersion.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, componentWithVersion.GetHelmChartSpec()).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, componentWithVersion.Spec.Version).Return(nil)
@@ -246,17 +246,13 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("should fail to update version of component on error while getting the release version", func(t *testing.T) {
+	t.Run("should fail to update version of component on error while getting the latest version", func(t *testing.T) {
 		// given
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
 		mockComponentClient := newMockComponentInterface(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, componentWithoutVersion).Return(componentWithoutVersion, nil)
-		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithoutVersion, "component-finalizer").Return(componentWithoutVersion, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return("", assert.AnError)
+		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("", assert.AnError)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -271,21 +267,17 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, assert.AnError)
 		assert.IsType(t, err, &genericRequeueableError{})
-		assert.ErrorContains(t, err, "failed to get release version for component")
+		assert.ErrorContains(t, err, "failed to get latest version for component \"dogu-op\"")
 	})
 
 	t.Run("should fail to update expected version of component", func(t *testing.T) {
 		// given
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
 		mockComponentClient := newMockComponentInterface(t)
-		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, componentWithoutVersion).Return(componentWithoutVersion, nil)
-		mockComponentClient.EXPECT().AddFinalizer(testCtx, componentWithoutVersion, "component-finalizer").Return(componentWithoutVersion, nil)
-		mockComponentClient.EXPECT().UpdateExpectedComponentVersion(ctxWithoutCancel, component.Name, "4.8.3").Return(componentWithoutVersion, assert.AnError)
+		mockComponentClient.EXPECT().UpdateExpectedComponentVersion(testCtx, component.Name, "4.8.3").Return(componentWithoutVersion, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, componentWithoutVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().GetDeployedReleaseVersion(testCtx, component.Spec.Name).Return("4.8.3", nil)
+		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("4.8.3", nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
