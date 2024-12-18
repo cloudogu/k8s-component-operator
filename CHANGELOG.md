@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [#81] Components' status after rolling update of component operator deployment is not `unknown` any more
+   - When we detect a change in the component operator deployment, the status of *ALL* components is updated, instead of just that of the component operator.
 
 ## [v1.6.0] - 2024-12-17
 ### Fixed
