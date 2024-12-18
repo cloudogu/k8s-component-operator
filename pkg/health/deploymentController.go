@@ -38,7 +38,7 @@ func (dr *deploymentReconciler) Reconcile(ctx context.Context, request reconcile
 
 	if componentName == "k8s-component-operator" {
 		// This special case is necessary because components' status might be 'unknown' after we do a rolling update of the component operator deployment
-		logger.Info("Special case of change in component operator deployment detected; updating health of all components...")
+		logger.Info("Component operator deployment change detected; updating health of all components...")
 		err := dr.manager.UpdateComponentHealthAll(ctx)
 		if err != nil {
 			return finishOrRequeue(logger, fmt.Errorf("failed to update health of all components after operator update: %w", err))
