@@ -36,6 +36,17 @@ func (dr *deploymentReconciler) Reconcile(ctx context.Context, request reconcile
 	componentName := componentName(deployment)
 	logger.Info(fmt.Sprintf("Found deployment %q for component %q", deployment.Name, componentName))
 
+	if componentName == "k8s-component-operator" {
+		// This special case is necessary because components' status might be 'unknown' after we do a rolling update of the component operator deployment
+		logger.Info("Component operator deployment change detected; updating health of all components...")
+		err := dr.manager.UpdateComponentHealthAll(ctx)
+		if err != nil {
+			return finishOrRequeue(logger, fmt.Errorf("failed to update health of all components after operator update: %w", err))
+		}
+
+		return finishOperation()
+	}
+
 	err = dr.manager.UpdateComponentHealth(ctx, componentName, request.Namespace)
 	if err != nil {
 		return finishOrRequeue(logger, fmt.Errorf("failed to update component health for deployment %q: %w", request.NamespacedName, err))
