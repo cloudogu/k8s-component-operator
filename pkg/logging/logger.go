@@ -7,7 +7,6 @@ import (
 
 	"github.com/bombsimon/logrusr/v2"
 	"github.com/cloudogu/k8s-apply-lib/apply"
-	"github.com/go-logr/logr"
 	"github.com/sirupsen/logrus"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -30,7 +29,7 @@ var (
 )
 
 type libraryLogger struct {
-	logger logr.LogSink
+	logger logSink
 	name   string
 }
 
