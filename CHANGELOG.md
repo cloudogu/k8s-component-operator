@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.6.2] - 2024-12-19
+### Fixed
+- [#83] CVE-2024-45337 by updating dependencies
+
 ## [v1.6.1] - 2024-12-18
 ### Fixed
 - [#81] Components' status after rolling update of component operator deployment is not `unknown` any more
