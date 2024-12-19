@@ -6,11 +6,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cloudogu/k8s-apply-lib/apply"
-	"github.com/cloudogu/k8s-component-operator/pkg/mocks/external"
 )
 
 func TestConfigureLogger(t *testing.T) {
@@ -69,7 +67,7 @@ func TestConfigureLogger(t *testing.T) {
 
 func Test_libraryLogger_Debug(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", debugLevel, "[testLogger] test debug call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -77,12 +75,12 @@ func Test_libraryLogger_Debug(t *testing.T) {
 	logger.Debug("test debug call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func Test_libraryLogger_Debugf(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", debugLevel, "[testLogger] myText - test debug call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -91,12 +89,12 @@ func Test_libraryLogger_Debugf(t *testing.T) {
 	logger.Debugf("%s - %s", text, "test debug call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func Test_libraryLogger_Error(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", errorLevel, "[testLogger] test error call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -104,12 +102,12 @@ func Test_libraryLogger_Error(t *testing.T) {
 	logger.Error("test error call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func Test_libraryLogger_Errorf(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", errorLevel, "[testLogger] myText - test error call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -118,12 +116,12 @@ func Test_libraryLogger_Errorf(t *testing.T) {
 	logger.Errorf("%s - %s", text, "test error call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func Test_libraryLogger_Info(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", infoLevel, "[testLogger] test info call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -131,12 +129,12 @@ func Test_libraryLogger_Info(t *testing.T) {
 	logger.Info("test info call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func Test_libraryLogger_Infof(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", infoLevel, "[testLogger] myText - test info call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -145,12 +143,12 @@ func Test_libraryLogger_Infof(t *testing.T) {
 	logger.Infof("%s - %s", text, "test info call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func Test_libraryLogger_Warning(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", warningLevel, "[testLogger] test warning call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -158,12 +156,12 @@ func Test_libraryLogger_Warning(t *testing.T) {
 	logger.Warning("test warning call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func Test_libraryLogger_Warningf(t *testing.T) {
 	// given
-	loggerSink := &external.LogSink{}
+	loggerSink := newMockLogSink(t)
 	loggerSink.On("Info", warningLevel, "[testLogger] myText - test warning call")
 	logger := libraryLogger{name: "testLogger", logger: loggerSink}
 
@@ -172,7 +170,7 @@ func Test_libraryLogger_Warningf(t *testing.T) {
 	logger.Warningf("%s - %s", text, "test warning call")
 
 	// then
-	mock.AssertExpectationsForObjects(t, loggerSink)
+	// expectations asserted by mocks
 }
 
 func TestFormattingLoggerWithName(t *testing.T) {
