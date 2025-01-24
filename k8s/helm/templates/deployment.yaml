@@ -40,6 +40,12 @@ spec:
               value: "{{ .Values.manager.env.helmClientTimeoutMins | default "15" }}"
             - name: ROLLBACK_RELEASE_TIMEOUT_MINS
               value: "{{ .Values.manager.env.rollbackReleaseTimeoutMins | default "15" }}"
+            - name: PROXY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: ces-proxy
+                  key: url
+                  optional: true
           image: "{{ .Values.manager.image.registry }}/{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}"
           imagePullPolicy: {{ .Values.manager.imagePullPolicy | default "IfNotPresent"}}
           livenessProbe:

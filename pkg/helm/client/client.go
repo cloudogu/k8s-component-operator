@@ -5,11 +5,13 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/spf13/pflag"
-	"log"
-	"net/http"
-	"os"
-
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"log"
+	"net"
+	"net/http"
+	"net/url"
+	"os"
+	"time"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -95,16 +97,81 @@ func createRegistryClient(options *Options, settings *cli.EnvSettings) (*registr
 		registry.ClientOptCredentialsFile(settings.RegistryConfig),
 	}
 
+	var err error
+	clientOpts, err = configureHttpRegistryClientOptions(options, clientOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	return registry.NewClient(clientOpts...)
+}
+
+func configureHttpRegistryClientOptions(options *Options, clientOpts []registry.ClientOption) ([]registry.ClientOption, error) {
 	if options.PlainHttp {
 		clientOpts = append(clientOpts, registry.ClientOptPlainHTTP())
 	}
 
-	if !options.PlainHttp && options.InsecureTls {
-		insecureHttpsClient := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
-		httpClientOpt := registry.ClientOptHTTPClient(insecureHttpsClient)
-		clientOpts = append(clientOpts, httpClientOpt)
+	var httpTransport *http.Transport
+	var err error
+	httpTransport, err = getProxyTransportIfConfigured()
+	if err != nil {
+		return nil, err
 	}
-	return registry.NewClient(clientOpts...)
+
+	httpTransport = configureTls(options, httpTransport)
+
+	if httpTransport != nil {
+		clientOpts = append(clientOpts, registry.ClientOptHTTPClient(&http.Client{Timeout: time.Second * 10, Transport: httpTransport}))
+	}
+
+	return clientOpts, nil
+}
+
+func configureTls(options *Options, transport *http.Transport) *http.Transport {
+	if !options.PlainHttp && options.InsecureTls {
+		tlsConfig := &tls.Config{InsecureSkipVerify: true}
+		if transport != nil {
+			transport.TLSClientConfig = tlsConfig
+		} else {
+			transport = &http.Transport{TLSClientConfig: tlsConfig}
+		}
+	}
+
+	return transport
+}
+
+func getProxyTransportIfConfigured() (*http.Transport, error) {
+	proxyURL, found := os.LookupEnv("PROXY_URL")
+	if !found || len(proxyURL) < 1 {
+		return nil, nil
+	}
+
+	parsedProxy, err := url.Parse(proxyURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse proxy: %w", err)
+	}
+
+	proxyFn := func(request *http.Request) (*url.URL, error) {
+		return parsedProxy, nil
+	}
+
+	return &http.Transport{
+		// From https://github.com/google/go-containerregistry/blob/31786c6cbb82d6ec4fb8eb79cd9387905130534e/pkg/v1/remote/options.go#L87
+		DisableCompression: true,
+		DialContext: (&net.Dialer{
+			// By default we wrap the transport in retries, so reduce the
+			// default dial timeout to 5s to avoid 5x 30s of connection
+			// timeouts when doing the "ping" on certain http registries.
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		Proxy:                 proxyFn,
+	}, nil
 }
 
 // setEnvSettings sets the client's environment settings based on the provided client configuration.
