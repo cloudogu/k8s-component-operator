@@ -156,12 +156,9 @@ func getProxyTransportIfConfigured() (*http.Transport, error) {
 	}
 
 	return &http.Transport{
-		// From https://github.com/google/go-containerregistry/blob/31786c6cbb82d6ec4fb8eb79cd9387905130534e/pkg/v1/remote/options.go#L87
+		// From https://github.com/google/go-containerregistry/blob/c4dd792fa06c1f8b780ad90c8ab4f38b4eac05bd/pkg/v1/remote/options.go#L113
 		DisableCompression: true,
 		DialContext: (&net.Dialer{
-			// By default we wrap the transport in retries, so reduce the
-			// default dial timeout to 5s to avoid 5x 30s of connection
-			// timeouts when doing the "ping" on certain http registries.
 			Timeout:   5 * time.Second,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
