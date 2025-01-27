@@ -2,10 +2,14 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/chart"
 	"log"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -1162,4 +1166,127 @@ func TestHelmClient_GetChart(t *testing.T) {
 		assert.NotEmpty(t, actualChart)
 		assert.Equal(t, "testdata/deprecated-chart", chartPath)
 	})
+}
+
+func Test_getProxyTransportIfConfigured(t *testing.T) {
+	testProxy := "http://user:pass@host:3128"
+
+	parsedProxy, err := url.Parse(testProxy)
+	require.NoError(t, err)
+
+	testProxyFn := func(request *http.Request) (*url.URL, error) {
+		return parsedProxy, nil
+	}
+
+	expectedTransport := &http.Transport{
+		// From https://github.com/google/go-containerregistry/blob/31786c6cbb82d6ec4fb8eb79cd9387905130534e/pkg/v1/remote/options.go#L87
+		DisableCompression: true,
+		DialContext: (&net.Dialer{
+			// By default we wrap the transport in retries, so reduce the
+			// default dial timeout to 5s to avoid 5x 30s of connection
+			// timeouts when doing the "ping" on certain http registries.
+			Timeout:   5 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		Proxy:                 testProxyFn,
+	}
+
+	tests := []struct {
+		name     string
+		wantErr  assert.ErrorAssertionFunc
+		setEnv   func(t *testing.T)
+		expectFn func(t *testing.T, got *http.Transport)
+	}{
+		{
+			name: "return with proxy if configured",
+			expectFn: func(t *testing.T, got *http.Transport) {
+				assert.Equalf(t, expectedTransport.DisableCompression, got.DisableCompression, "getProxyTransportIfConfigured()")
+				assert.Equalf(t, expectedTransport.ForceAttemptHTTP2, got.ForceAttemptHTTP2, "getProxyTransportIfConfigured()")
+				assert.Equalf(t, expectedTransport.MaxIdleConns, got.MaxIdleConns, "getProxyTransportIfConfigured()")
+				assert.Equalf(t, expectedTransport.IdleConnTimeout, got.IdleConnTimeout, "getProxyTransportIfConfigured()")
+				assert.Equalf(t, expectedTransport.TLSHandshakeTimeout, got.TLSHandshakeTimeout, "getProxyTransportIfConfigured()")
+				assert.Equalf(t, expectedTransport.ExpectContinueTimeout, got.ExpectContinueTimeout, "getProxyTransportIfConfigured()")
+
+				gotProxy, err := got.Proxy(nil)
+				require.NoError(t, err)
+
+				wantProxy, err := expectedTransport.Proxy(nil)
+				require.NoError(t, err)
+
+				assert.Equal(t, wantProxy, gotProxy)
+			},
+			wantErr: assert.NoError,
+			setEnv: func(t *testing.T) {
+				t.Setenv("PROXY_URL", testProxy)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setEnv != nil {
+				tt.setEnv(t)
+			}
+
+			got, err := getProxyTransportIfConfigured()
+			if !tt.wantErr(t, err, fmt.Sprintf("getProxyTransportIfConfigured()")) {
+				return
+			}
+
+			tt.expectFn(t, got)
+		})
+	}
+}
+
+func Test_configureTls(t *testing.T) {
+	type args struct {
+		options   *Options
+		transport *http.Transport
+		expectFn  func(t *testing.T, transport *http.Transport)
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expectFn func(t *testing.T, transport *http.Transport)
+	}{
+		{
+			name: "should set tls config in existing transport",
+			args: args{
+				options: &Options{
+					PlainHttp:   false,
+					InsecureTls: true,
+				},
+				transport: http.DefaultTransport.(*http.Transport),
+			},
+			expectFn: func(t *testing.T, transport *http.Transport) {
+				require.NotNil(t, transport.TLSClientConfig)
+				assert.Equal(t, true, transport.TLSClientConfig.InsecureSkipVerify)
+			},
+		},
+		{
+			name: "should create tls config in non existing transport",
+			args: args{
+				options: &Options{
+					PlainHttp:   false,
+					InsecureTls: true,
+				},
+				transport: nil,
+			},
+			expectFn: func(t *testing.T, transport *http.Transport) {
+				require.NotNil(t, transport.TLSClientConfig)
+				assert.Equal(t, true, transport.TLSClientConfig.InsecureSkipVerify)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := configureTls(tt.args.options, tt.args.transport)
+
+			tt.expectFn(t, got)
+		})
+	}
 }
