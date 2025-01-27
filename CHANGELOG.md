@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.7.0] - 2025-01-27
+### Added
+- [#85] Proxy support for the registry http client in helm. The proxy will be used from the secret `ces-proxy` which will be created by the setup.
+
 ## [v1.6.2] - 2024-12-19
 ### Fixed
 - [#83] CVE-2024-45337 by updating dependencies

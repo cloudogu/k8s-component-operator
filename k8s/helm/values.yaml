@@ -5,7 +5,7 @@ manager:
   image:
     registry: docker.io
     repository: cloudogu/k8s-component-operator
-    tag: 1.6.2
+    tag: 1.7.0
   imagePullPolicy: IfNotPresent
   env:
     logLevel: info
