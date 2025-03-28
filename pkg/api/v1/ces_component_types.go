@@ -86,6 +86,12 @@ type ComponentStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels=app=ces;app.kubernetes.io/name=k8s-component-operator;k8s.cloudogu.com/component.name=k8s-component-operator-crd
+// +kubebuilder:resource:shortName="comp"
+// +kubebuilder:printcolumn:name="Spec-Version",type="string",JSONPath=".spec.version",description="The desired version of the component"
+// +kubebuilder:printcolumn:name="Installed Version",type="string",JSONPath=".status.installedVersion",description="The current version of the component"
+// +kubebuilder:printcolumn:name="Health",type="string",JSONPath=".status.health",description="The current health state of the component"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="The current status of the component"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="The age of the component"
 
 // Component is the Schema for the ces component API
 type Component struct {
