@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - [#87] Add additional print columns and aliases to CRD
 
+### Changed
+- [#87] Upgrade Golang to v1.24.1
+
 ## [v1.7.0] - 2025-01-27
 ### Added
 - [#85] Proxy support for the registry http client in helm. The proxy will be used from the secret `ces-proxy` which will be created by the setup.
