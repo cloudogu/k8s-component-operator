@@ -13,7 +13,6 @@ manager:
     helmClientTimeoutMins: "15"
     rollbackReleaseTimeoutMins: "15"
   resourceLimits:
-    cpu: 15m
     memory: 105M
   resourceRequests:
     cpu: 15m
