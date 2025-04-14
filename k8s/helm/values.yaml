@@ -13,10 +13,10 @@ manager:
     helmClientTimeoutMins: "15"
     rollbackReleaseTimeoutMins: "15"
   resourceLimits:
-    cpu: 500m
-    memory: 128Mi
+    cpu: 15m
+    memory: 105M
   resourceRequests:
-    cpu: 10m
-    memory: 64Mi
+    cpu: 15m
+    memory: 105M
   networkPolicies:
     enabled: true
