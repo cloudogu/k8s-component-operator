@@ -6,7 +6,7 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.14.0
   labels:
     app: ces
-    app.kubernetes.io/name: k8s-component-operator
+    app.kubernetes.io/name: k8s-component-operator-crd
     k8s.cloudogu.com/component.name: k8s-component-operator-crd
   name: components.k8s.cloudogu.com
 spec:
@@ -71,6 +71,11 @@ spec:
                     DeployNamespace is the namespace where the helm chart should be deployed in.
                     This value is optional. If it is empty the operator deploys the helm chart in the namespace where the operator is deployed.
                   type: string
+                mappedValues:
+                  additionalProperties:
+                    type: string
+                  description: Mapped values from component cr to specific component attributes, usually log levels
+                  type: object
                 name:
                   description: Name of the component (e.g. k8s-dogu-operator)
                   type: string
