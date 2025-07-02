@@ -1,10 +1,12 @@
 package health
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -209,12 +211,20 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, mock.Anything, noVersionChange).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							_, err := statusFn()
+							assert.Error(t, err)
+
+							return err
+						})
 					return repo
 				},
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
-					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i)
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i) &&
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to update health status and installed version for component %q", testComponentName), i)
 			},
 		},
 		{
@@ -230,8 +240,13 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), noVersionChange).
-						Return(assert.AnError)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, mock.Anything, noVersionChange).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							_, err := statusFn()
+							assert.NoError(t, err)
+
+							return assert.AnError
+						})
 					return repo
 				},
 			},
@@ -253,8 +268,14 @@ func Test_defaultManager_UpdateComponentHealth(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), noVersionChange).
-						Return(nil)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, mock.Anything, noVersionChange).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							status, err := statusFn()
+							assert.NoError(t, err)
+							assert.Equal(t, v1.HealthStatus("available"), status)
+
+							return err
+						})
 					return repo
 				},
 			},
@@ -315,12 +336,20 @@ func Test_defaultManager_UpdateComponentHealthWithVersion(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, mock.Anything, testVersion).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							_, err := statusFn()
+							assert.Error(t, err)
+
+							return err
+						})
 					return repo
 				},
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
-					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i)
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to find applications for component %q", testComponentName), i) &&
+					assert.ErrorContains(t, err, fmt.Sprintf("failed to update health status and installed version for component %q", testComponentName), i)
 			},
 		},
 		{
@@ -336,8 +365,13 @@ func Test_defaultManager_UpdateComponentHealthWithVersion(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), testVersion).
-						Return(assert.AnError)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, mock.Anything, testVersion).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							_, err := statusFn()
+							assert.NoError(t, err)
+
+							return assert.AnError
+						})
 					return repo
 				},
 			},
@@ -359,8 +393,14 @@ func Test_defaultManager_UpdateComponentHealthWithVersion(t *testing.T) {
 					repo := newMockComponentRepo(t)
 					repo.EXPECT().get(testCtx, testComponentName).
 						Return(&testComponent, nil)
-					repo.EXPECT().updateCondition(testCtx, &testComponent, v1.HealthStatus("available"), testVersion).
-						Return(nil)
+					repo.EXPECT().updateCondition(testCtx, &testComponent, mock.Anything, testVersion).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							status, err := statusFn()
+							assert.NoError(t, err)
+							assert.Equal(t, v1.HealthStatus("available"), status)
+
+							return err
+						})
 					return repo
 				},
 			},
@@ -444,12 +484,33 @@ func TestDefaultManager_UpdateComponentHealthAll(t *testing.T) {
 					}}, nil)
 					repoMock.EXPECT().updateCondition(testCtx,
 						&v1.Component{
+							ObjectMeta: metav1.ObjectMeta{Name: "k8s-dogu-operator"},
+							Spec: v1.ComponentSpec{
+								Name:            "k8s-dogu-operator",
+								DeployNamespace: testNamespace,
+							},
+						}, mock.Anything, noVersionChange).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							_, err := statusFn()
+							assert.Error(t, err)
+
+							return err
+						})
+					repoMock.EXPECT().updateCondition(testCtx,
+						&v1.Component{
 							ObjectMeta: metav1.ObjectMeta{Name: "k8s-blueprint-operator"},
 							Spec: v1.ComponentSpec{
 								Name:            "k8s-blueprint-operator",
 								DeployNamespace: testNamespace,
 							},
-						}, v1.UnavailableHealthStatus, noVersionChange).Return(assert.AnError)
+						}, mock.Anything, noVersionChange).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							status, err := statusFn()
+							assert.NoError(t, err)
+							assert.Equal(t, v1.UnavailableHealthStatus, status)
+
+							return assert.AnError
+						})
 					repoMock.EXPECT().updateCondition(testCtx,
 						&v1.Component{
 							ObjectMeta: metav1.ObjectMeta{Name: "k8s-longhorn"},
@@ -457,7 +518,14 @@ func TestDefaultManager_UpdateComponentHealthAll(t *testing.T) {
 								Name:            "k8s-longhorn",
 								DeployNamespace: "longhorn-system",
 							},
-						}, v1.UnavailableHealthStatus, noVersionChange).Return(nil)
+						}, mock.Anything, noVersionChange).
+						RunAndReturn(func(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
+							status, err := statusFn()
+							assert.NoError(t, err)
+							assert.Equal(t, v1.UnavailableHealthStatus, status)
+
+							return err
+						})
 					return repoMock
 				},
 			},

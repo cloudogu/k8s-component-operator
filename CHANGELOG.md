@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [#93] Component health occasionally wouldn't be set to `available` after installation.  
+  This was due to a race condition between two processes setting `available` and `unavailable` at the same time.
+  If the health had first been set to `available`, the other process would reset it to `unavailable` without reevaluating the actual health state.
+### Changed
+- [#93] When setting component health, reevaluate health state on conflict 
 
 ## [v1.9.0] - 2025-04-23
 ### Changed

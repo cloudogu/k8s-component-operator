@@ -47,7 +47,9 @@ func (s *ShutdownHandler) handle(ctx context.Context) error {
 			healthStatus = v1.UnavailableHealthStatus
 		}
 
-		err := s.repo.updateCondition(ctx, &component, healthStatus, noVersionChange)
+		err := s.repo.updateCondition(ctx, &component, func() (v1.HealthStatus, error) {
+			return healthStatus, nil
+		}, noVersionChange)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("failed to set health status of %q to %q: %w", component.Name, healthStatus, err))
 		}
