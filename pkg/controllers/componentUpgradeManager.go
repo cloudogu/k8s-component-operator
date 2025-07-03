@@ -55,7 +55,6 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 
 	chartSpec := component.GetHelmChartSpecWithTimout(cum.timeout)
 	fmt.Println("=====asdasdasd")
-	fmt.Println(cum.helmClient.GetChartSpecValues(chartSpec))
 	err = cum.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
