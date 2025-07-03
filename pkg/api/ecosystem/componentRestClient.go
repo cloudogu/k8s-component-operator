@@ -111,6 +111,8 @@ func (client *componentClient) updateStatusWithRetry(ctx context.Context, compon
 		// do not overwrite the whole status, so we do not lose other values from the Status object
 		// esp. a potentially set requeue time
 		updatedComponent.Status.Status = targetStatus
+		// Make sure the updated values are not lost on update
+		updatedComponent.Spec.MappedValuesYamlOverwrite = component.Spec.MappedValuesYamlOverwrite
 		resultComponent, err = client.UpdateStatus(ctx, updatedComponent, metav1.UpdateOptions{})
 		return err
 	})

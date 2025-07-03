@@ -58,6 +58,7 @@ type helmClient interface {
 	SatisfiesDependencies(ctx context.Context, chart *client.ChartSpec) error
 	// GetLatestVersion tries to get the latest version identifier for the chart with the given name.
 	GetLatestVersion(chartName string) (string, error)
+	// GetChart returns the helm chart for a chart spec
 	GetChart(ctx context.Context, spec *client.ChartSpec) (*chart.Chart, error)
 }
 

@@ -144,12 +144,6 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return finishOperation()
 	}
 
-	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
 	spec := component.GetHelmChartSpec()
 	chart, err := r.helmClient.GetChart(ctx, spec)
 	if err != nil {
@@ -168,14 +162,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	mappingYaml2 := map[string]interface{}{}
-	//if mv, ok := component.Spec.MappedValues["mainLogLevel"]; ok {
-	//	for k, v := range mappings.Metavalues {
-	//		for _, key := range v.Keys {
-	//			mappingYaml2 = values.MergeMaps(mappingYaml2, pathToNestedYAML(key.Path, key.Mapping[mv]))
-	//		}
-	//	}
-	//}
+	mappingYaml := map[string]interface{}{}
 
 	for k, v := range component.Spec.MappedValues {
 		if _, ok := mappings.Metavalues[k]; !ok {
@@ -186,36 +173,26 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			fmt.Printf("checking key %s...\n", key)
 			if value, ok := key.Mapping[v]; ok {
 				fmt.Println("merging maps...")
-				mappingYaml2 = values.MergeMaps(mappingYaml2, pathToNestedYAML(key.Path, value))
-				fmt.Println(mappingYaml2)
+				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, value))
+				fmt.Println(mappingYaml)
 			} else {
 				logger.Error(fmt.Errorf("no mapping found for key %s", v), "")
 			}
 		}
 	}
 
-	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
-	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
-	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
-	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
-	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
-
-	serialized, err := r.yamlSerializer.Marshal(mappingYaml2)
+	serialized, err := r.yamlSerializer.Marshal(mappingYaml)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to marshal yaml: %w", err)
 	}
 
-	component.Spec.ValuesYamlOverwrite2 = string(serialized)
-
-	fmt.Printf("===================>>>\n%s\n<<<<==============\n", component.Spec.ValuesYamlOverwrite2)
+	component.Spec.MappedValuesYamlOverwrite = string(serialized)
 
 	operation, err := r.evaluateRequiredOperation(ctx, component)
 	if err != nil {
 		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
 	}
 	logger.Info(fmt.Sprintf("Required operation is %s", operation))
-
-	fmt.Printf("=============>>>>>%s<<<<<========\n", operation)
 
 	switch operation {
 	case Install:

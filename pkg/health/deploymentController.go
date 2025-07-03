@@ -19,17 +19,6 @@ type deploymentReconciler struct {
 
 func (dr *deploymentReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	logger := log.FromContext(ctx)
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
-	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
 
 	deployment, err := dr.clientSet.
 		AppsV1().Deployments(request.Namespace).

@@ -28,7 +28,7 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 	result := values.MergeMaps(valuesYaml, valuesOptions)
 
 	valuesYaml2 := map[string]interface{}{}
-	err = yaml.Unmarshal([]byte(spec.ValuesYaml2), &valuesYaml2)
+	err = yaml.Unmarshal([]byte(spec.MappedValuesYaml), &valuesYaml2)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Parse ValuesYaml")
 	}
