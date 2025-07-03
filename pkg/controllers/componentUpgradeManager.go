@@ -53,7 +53,10 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		version = component.Spec.Version
 	}
 
-	err = cum.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cum.timeout))
+	chartSpec := component.GetHelmChartSpecWithTimout(cum.timeout)
+	fmt.Println("=====asdasdasd")
+	fmt.Println(cum.helmClient.GetChartSpecValues(chartSpec))
+	err = cum.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
@@ -70,7 +73,7 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// this allows self-upgrades
 	helmCtx := context.WithoutCancel(ctx)
 
-	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpecWithTimout(cum.timeout)); err != nil {
+	if err := cum.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
 		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
 	}
 

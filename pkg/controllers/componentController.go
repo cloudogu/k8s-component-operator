@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -22,6 +24,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+)
+
+const (
+	mappingMetadataFileName = "component-values-metadata.yaml"
 )
 
 type operation string
@@ -51,6 +57,22 @@ const (
 	Ignore = operation("Ignore")
 )
 
+type mapping struct {
+	Path    string            `yaml:"path"`
+	Mapping map[string]string `yaml:"mapping"`
+}
+
+type metaValue struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Keys        []mapping
+}
+
+type metadataMapping struct {
+	ApiVersion string               `yaml:"apiVersion"`
+	Metavalues map[string]metaValue `yaml:"metavalues"`
+}
+
 // ComponentManager abstracts the simple component operations in a k8s CES.
 type ComponentManager interface {
 	installManager
@@ -67,10 +89,11 @@ type ComponentReconciler struct {
 	requeueHandler   requeueHandler
 	namespace        string
 	timeout          time.Duration
+	yamlSerializer   yaml.Serializer
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration) *ComponentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
 	return &ComponentReconciler{
 		clientSet: clientSet,
@@ -85,7 +108,22 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 		helmClient:     helmClient,
 		requeueHandler: componentRequeueHandler,
 		namespace:      namespace,
+		yamlSerializer: yamlSerializer,
 	}
+}
+
+func pathToNestedYAML(path string, value any) map[string]any {
+	parts := strings.Split(path, ".")
+	n := len(parts)
+
+	result := value
+	for i := n - 1; i >= 0; i-- {
+		result = map[string]any{
+			parts[i]: result,
+		}
+	}
+
+	return result.(map[string]any)
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -124,8 +162,42 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		logger.Error(err, "")
 	}
 
+	var mappings metadataMapping
 	for _, file := range chart.Files {
-		logger.Info(fmt.Sprintf("%v", file.Name))
+		logger.Info(fmt.Sprintf("Found file %s in component %s", file.Name, component.Name))
+		if file.Name == mappingMetadataFileName {
+			logger.Info("Serializing metadata-file...")
+			err = r.yamlSerializer.Unmarshal(file.Data, &mappings)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to parse mapping metadata: %w", err)
+			}
+		}
+	}
+
+	mappingYaml2 := map[string]interface{}{}
+	//if mv, ok := component.Spec.MappedValues["mainLogLevel"]; ok {
+	//	for k, v := range mappings.Metavalues {
+	//		for _, key := range v.Keys {
+	//			mappingYaml2 = values.MergeMaps(mappingYaml2, pathToNestedYAML(key.Path, key.Mapping[mv]))
+	//		}
+	//	}
+	//}
+
+	for k, v := range component.Spec.MappedValues {
+		if _, ok := mappings.Metavalues[k]; !ok {
+			fmt.Printf("key %s not found in metaValues\n", k)
+			continue
+		}
+		for _, key := range mappings.Metavalues[k].Keys {
+			fmt.Printf("checking key %s...\n", key)
+			if value, ok := key.Mapping[v]; ok {
+				fmt.Println("merging maps...")
+				mappingYaml2 = values.MergeMaps(mappingYaml2, pathToNestedYAML(key.Path, value))
+				fmt.Println(mappingYaml2)
+			} else {
+				logger.Error(fmt.Errorf("no mapping found for key %s", v), "")
+			}
+		}
 	}
 
 	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
@@ -133,6 +205,23 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
 	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
 	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
+
+	serialized, err := r.yamlSerializer.Marshal(mappingYaml2)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to marshal yaml: %w", err)
+	}
+
+	component.Spec.ValuesYamlOverwrite2 = string(serialized)
+
+	fmt.Printf("===================>>>\n%s\n<<<<==============\n", component.Spec.ValuesYamlOverwrite2)
+
+	operation, err = r.evaluateRequiredOperation(ctx, component)
+	if err != nil {
+		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
+	}
+	logger.Info(fmt.Sprintf("Required operation is %s", operation))
+
+	fmt.Printf("=============>>>>>%s<<<<<========\n", operation)
 
 	switch operation {
 	case Install:
@@ -307,10 +396,14 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
-	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpecWithTimout(r.timeout))
+	chartSpec := component.GetHelmChartSpecWithTimout(r.timeout)
+	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
 	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpecWithTimout(r.timeout).ChartName, err)
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
 	}
+
+	fmt.Println("=====asdf1>>>")
+	fmt.Println(chartSpecValues)
 
 	// if no additional values are set, the maps will look like this:
 	// deployedValues=map[string]interface {}(nil)                                                                                                                                        │
@@ -319,6 +412,12 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 	if len(deployedValues) == 0 && len(chartSpecValues) == 0 {
 		return false, nil
 	}
+
+	fmt.Println("=====>>>")
+	fmt.Println(deployedValues)
+	fmt.Println("||")
+	fmt.Println(chartSpecValues)
+	fmt.Println("<<<=====")
 
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
 }

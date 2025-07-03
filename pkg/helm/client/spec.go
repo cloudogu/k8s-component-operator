@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/pkg/errors"
 
@@ -24,5 +25,23 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 		return nil, errors.Wrap(err, "Failed to Parse ValuesOptions")
 	}
 
-	return values.MergeMaps(valuesYaml, valuesOptions), nil
+	result := values.MergeMaps(valuesYaml, valuesOptions)
+
+	valuesYaml2 := map[string]interface{}{}
+	err = yaml.Unmarshal([]byte(spec.ValuesYaml2), &valuesYaml2)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Parse ValuesYaml")
+	}
+
+	fmt.Println("==================================================adasds=>>")
+
+	fmt.Printf("%v\n", valuesYaml2)
+	fmt.Println("====>")
+	fmt.Printf("%v\n", result)
+
+	finalResult := values.MergeMaps(valuesYaml2, result)
+	fmt.Println("====>")
+	fmt.Printf("%v\n", finalResult)
+
+	return finalResult, nil
 }

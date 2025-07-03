@@ -84,7 +84,8 @@ type ChartSpec struct {
 	// https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
 	// and https://github.com/kubernetes-sigs/controller-tools/pull/317
 	// +optional
-	ValuesYaml string `json:"valuesYaml,omitempty"`
+	ValuesYaml  string `json:"valuesYaml,omitempty"`
+	ValuesYaml2 string `json:"valuesYaml2,omitempty"`
 	// Specify values similar to the cli
 	// +optional
 	ValuesOptions values.Options `json:"valuesOptions,omitempty"`

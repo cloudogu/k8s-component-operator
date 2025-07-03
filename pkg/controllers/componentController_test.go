@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"testing"
@@ -38,7 +39,7 @@ func TestNewComponentReconciler(t *testing.T) {
 	mockRecorder := newMockEventRecorder(t)
 
 	// when
-	manager := NewComponentReconciler(clientSetMock, mockHelmClient, mockRecorder, testNamespace, defaultHelmClientTimeoutMins)
+	manager := NewComponentReconciler(clientSetMock, mockHelmClient, mockRecorder, testNamespace, defaultHelmClientTimeoutMins, yaml.NewSerializer())
 
 	// then
 	require.NotNil(t, manager)
