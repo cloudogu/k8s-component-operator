@@ -396,14 +396,10 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
-	chartSpec := component.GetHelmChartSpecWithTimout(r.timeout)
-	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
+	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpecWithTimout(r.timeout))
 	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpecWithTimout(r.timeout).ChartName, err)
 	}
-
-	fmt.Println("=====asdf1>>>")
-	fmt.Println(chartSpecValues)
 
 	// if no additional values are set, the maps will look like this:
 	// deployedValues=map[string]interface {}(nil)                                                                                                                                        │
@@ -412,12 +408,6 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 	if len(deployedValues) == 0 && len(chartSpecValues) == 0 {
 		return false, nil
 	}
-
-	fmt.Println("=====>>>")
-	fmt.Println(deployedValues)
-	fmt.Println("||")
-	fmt.Println(chartSpecValues)
-	fmt.Println("<<<=====")
 
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
 }
