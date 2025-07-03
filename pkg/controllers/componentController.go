@@ -144,12 +144,6 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return finishOperation()
 	}
 
-	operation, err := r.evaluateRequiredOperation(ctx, component)
-	if err != nil {
-		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
-	}
-	logger.Info(fmt.Sprintf("Required operation is %s", operation))
-
 	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
@@ -215,7 +209,7 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	fmt.Printf("===================>>>\n%s\n<<<<==============\n", component.Spec.ValuesYamlOverwrite2)
 
-	operation, err = r.evaluateRequiredOperation(ctx, component)
+	operation, err := r.evaluateRequiredOperation(ctx, component)
 	if err != nil {
 		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
 	}
