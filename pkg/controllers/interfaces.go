@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	"helm.sh/helm/v3/pkg/chart"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	"time"
 
@@ -57,6 +58,7 @@ type helmClient interface {
 	SatisfiesDependencies(ctx context.Context, chart *client.ChartSpec) error
 	// GetLatestVersion tries to get the latest version identifier for the chart with the given name.
 	GetLatestVersion(chartName string) (string, error)
+	GetChart(ctx context.Context, spec *client.ChartSpec) (*chart.Chart, error)
 }
 
 // eventRecorder embeds the record.EventRecorder interface for usage in this package.

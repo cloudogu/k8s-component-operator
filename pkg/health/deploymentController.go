@@ -4,7 +4,6 @@ package health
 import (
 	"context"
 	"fmt"
-
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -20,6 +19,17 @@ type deploymentReconciler struct {
 
 func (dr *deploymentReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	logger := log.FromContext(ctx)
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling!")
+	logger.Error(fmt.Errorf(""), "===========================================> Reconciling")
 
 	deployment, err := dr.clientSet.
 		AppsV1().Deployments(request.Namespace).

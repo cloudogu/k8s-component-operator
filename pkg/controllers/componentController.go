@@ -12,7 +12,7 @@ import (
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 
-	semver "github.com/Masterminds/semver/v3"
+	"github.com/Masterminds/semver/v3"
 
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
@@ -111,6 +111,28 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
 	}
 	logger.Info(fmt.Sprintf("Required operation is %s", operation))
+
+	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	logger.Info("===========================================================>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+	spec := component.GetHelmChartSpec()
+	chart, err := r.helmClient.GetChart(ctx, spec)
+	if err != nil {
+		logger.Error(err, "")
+	}
+
+	for _, file := range chart.Files {
+		logger.Info(fmt.Sprintf("%v", file.Name))
+	}
+
+	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
+	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
+	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
+	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
+	logger.Info("<<<<<<<<<<<<<<<<<<<<<<<<<<<===========================================================")
 
 	switch operation {
 	case Install:
