@@ -30,7 +30,8 @@ func TestComponent_GetHelmChartSpec(t *testing.T) {
 				Spec:       tt.fields.Spec,
 				Status:     tt.fields.Status,
 			}
-			if got := c.GetHelmChartSpec(context.Background()).Namespace; !reflect.DeepEqual(got, tt.want) {
+			spec, _ := c.GetHelmChartSpec(context.Background())
+			if got := spec.Namespace; !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetHelmChartSpec() = %v, want %v", got, tt.want)
 			}
 		})

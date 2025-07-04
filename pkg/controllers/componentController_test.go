@@ -220,7 +220,8 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: testNamespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		helmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
-		helmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec(context.Background())).Return(map[string]interface{}{}, nil)
+		helmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
+		helmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
@@ -228,6 +229,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 			componentManager: manager,
 			helmClient:       helmClient,
 			timeout:          defaultHelmClientTimeoutMins,
+			yamlSerializer:   yaml.NewSerializer(),
 		}
 		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
@@ -425,11 +427,13 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
-		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec(context.Background())).Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
-			helmClient: mockHelmClient,
-			timeout:    defaultHelmClientTimeoutMins,
+			helmClient:     mockHelmClient,
+			timeout:        defaultHelmClientTimeoutMins,
+			yamlSerializer: yaml.NewSerializer(),
 		}
 
 		// when
@@ -527,11 +531,13 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
-		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec(context.Background())).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
+		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
-			helmClient: mockHelmClient,
-			timeout:    defaultHelmClientTimeoutMins,
+			helmClient:     mockHelmClient,
+			timeout:        defaultHelmClientTimeoutMins,
+			yamlSerializer: yaml.NewSerializer(),
 		}
 
 		// when
@@ -549,11 +555,13 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
-		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec(context.Background())).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
+		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
-			helmClient: mockHelmClient,
-			timeout:    defaultHelmClientTimeoutMins,
+			helmClient:     mockHelmClient,
+			timeout:        defaultHelmClientTimeoutMins,
+			yamlSerializer: yaml.NewSerializer(),
 		}
 
 		// when
@@ -571,11 +579,13 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}(nil), nil)
-		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec(context.Background())).Return(map[string]interface{}{}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
+		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
-			helmClient: mockHelmClient,
-			timeout:    defaultHelmClientTimeoutMins,
+			helmClient:     mockHelmClient,
+			timeout:        defaultHelmClientTimeoutMins,
+			yamlSerializer: yaml.NewSerializer(),
 		}
 
 		// when
@@ -593,11 +603,13 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
-		mockHelmClient.EXPECT().GetChartSpecValues(component.GetHelmChartSpec(context.Background())).Return(map[string]interface{}{}, nil)
+		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
+		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
-			helmClient: mockHelmClient,
-			timeout:    defaultHelmClientTimeoutMins,
+			helmClient:     mockHelmClient,
+			timeout:        defaultHelmClientTimeoutMins,
+			yamlSerializer: yaml.NewSerializer(),
 		}
 
 		// when

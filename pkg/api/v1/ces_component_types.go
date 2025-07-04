@@ -183,7 +183,7 @@ func (c *Component) GetHelmChartSpec(ctx context.Context, opts ...HelmChartCreat
 
 	if len(opts) > 0 {
 		var err error
-		chartSpec.MappedValuesYaml, err = GetMappedValuesYaml(ctx, c, chartSpec, chartGetter, yamlSerializer)
+		chartSpec.MappedValuesYaml, err = getMappedValuesYaml(ctx, c, chartSpec, chartGetter, yamlSerializer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create mapped values: %w", err)
 		}
@@ -206,7 +206,7 @@ func pathToNestedYAML(path string, value any) map[string]any {
 	return result.(map[string]any)
 }
 
-func GetMappedValuesYaml(ctx context.Context, component *Component, spec *client.ChartSpec, helmClient ChartGetter, yamlSerializer yaml.Serializer) (string, error) {
+func getMappedValuesYaml(ctx context.Context, component *Component, spec *client.ChartSpec, helmClient ChartGetter, yamlSerializer yaml.Serializer) (string, error) {
 	logger := log.FromContext(ctx)
 
 	hChart, err := helmClient.GetChart(ctx, spec)
