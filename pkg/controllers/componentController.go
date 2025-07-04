@@ -144,50 +144,6 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return finishOperation()
 	}
 
-	spec := component.GetHelmChartSpec()
-	chart, err := r.helmClient.GetChart(ctx, spec)
-	if err != nil {
-		logger.Error(err, "")
-	}
-
-	var mappings metadataMapping
-	for _, file := range chart.Files {
-		logger.Info(fmt.Sprintf("Found file %s in component %s", file.Name, component.Name))
-		if file.Name == mappingMetadataFileName {
-			logger.Info("Serializing metadata-file...")
-			err = r.yamlSerializer.Unmarshal(file.Data, &mappings)
-			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to parse mapping metadata: %w", err)
-			}
-		}
-	}
-
-	mappingYaml := map[string]interface{}{}
-
-	for k, v := range component.Spec.MappedValues {
-		if _, ok := mappings.Metavalues[k]; !ok {
-			fmt.Printf("key %s not found in metaValues\n", k)
-			continue
-		}
-		for _, key := range mappings.Metavalues[k].Keys {
-			fmt.Printf("checking key %s...\n", key)
-			if value, ok := key.Mapping[v]; ok {
-				fmt.Println("merging maps...")
-				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, value))
-				fmt.Println(mappingYaml)
-			} else {
-				logger.Error(fmt.Errorf("no mapping found for key %s", v), "")
-			}
-		}
-	}
-
-	serialized, err := r.yamlSerializer.Marshal(mappingYaml)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to marshal yaml: %w", err)
-	}
-
-	component.Spec.MappedValuesYamlOverwrite = string(serialized)
-
 	operation, err := r.evaluateRequiredOperation(ctx, component)
 	if err != nil {
 		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
@@ -350,7 +306,7 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 			logger.Info("Found existing release for reconciled component",
 				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
 			if existsReleaseInTargetNamespace {
-				return r.getChangeOperationForRelease(component, deployedRelease)
+				return r.getChangeOperationForRelease(ctx, component, deployedRelease)
 			} else {
 				r.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Deploy namespace mismatch (CR: %q; deployed: %q). Deploy namespace declaration is only allowed on install. Revert deploy namespace change to prevent failing upgrade.", targetNamespace, deployedRelease.Namespace)
 				return "", fmt.Errorf("component does not exist in target namespace (%q), but in namespace %q", targetNamespace, deployedRelease.Namespace)
@@ -361,13 +317,18 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 	return Ignore, nil
 }
 
-func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
+func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
 	deployedValues, err := r.helmClient.GetReleaseValues(deployedRelease.Name, false)
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
-	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpecWithTimout(r.timeout))
+	chartSpec := component.GetHelmChartSpecWithTimout(r.timeout)
+	chartSpec.MappedValuesYaml, err = GetMappedValuesYaml(ctx, component, r.helmClient, r.yamlSerializer)
+	if err != nil {
+		return false, err
+	}
+	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpecWithTimout(r.timeout).ChartName, err)
 	}
@@ -382,8 +343,53 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
 }
+func GetMappedValuesYaml(ctx context.Context, component *k8sv1.Component, helmClient helmClient, yamlSerializer yaml.Serializer) (string, error) {
+	logger := log.FromContext(ctx)
 
-func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
+	spec := component.GetHelmChartSpec()
+	chart, err := helmClient.GetChart(ctx, spec)
+	if err != nil {
+		logger.Error(err, "")
+	}
+
+	var mappings metadataMapping
+	for _, file := range chart.Files {
+		logger.Info(fmt.Sprintf("Found file %s in component %s", file.Name, component.Name))
+		if file.Name == mappingMetadataFileName {
+			logger.Info("Serializing metadata-file...")
+			err = yamlSerializer.Unmarshal(file.Data, &mappings)
+			if err != nil {
+				return "", fmt.Errorf("failed to parse mapping metadata: %w", err)
+			}
+		}
+	}
+
+	mappingYaml := map[string]interface{}{}
+
+	for k, v := range component.Spec.MappedValues {
+		if _, ok := mappings.Metavalues[k]; !ok {
+			fmt.Printf("key %s not found in metaValues\n", k)
+			continue
+		}
+		for _, key := range mappings.Metavalues[k].Keys {
+			fmt.Printf("checking key %s...\n", key)
+			if value, ok := key.Mapping[v]; ok {
+				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, value))
+			} else {
+				logger.Error(fmt.Errorf("no mapping found for key %s", v), "")
+			}
+		}
+	}
+
+	serialized, err := yamlSerializer.Marshal(mappingYaml)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal yaml: %w", err)
+	}
+
+	return string(serialized), nil
+}
+
+func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
@@ -403,7 +409,7 @@ func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Comp
 		return Downgrade, nil
 	}
 
-	isValuesChanged, err := r.isValuesChanged(release, component)
+	isValuesChanged, err := r.isValuesChanged(ctx, release, component)
 	if err != nil {
 		return "", fmt.Errorf("failed to compare Values.yaml files of component %s: %w", component.Name, err)
 	}

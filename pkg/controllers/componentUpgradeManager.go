@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -54,7 +55,10 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	}
 
 	chartSpec := component.GetHelmChartSpecWithTimout(cum.timeout)
-	fmt.Println("=====asdasdasd")
+	chartSpec.MappedValuesYaml, err = GetMappedValuesYaml(ctx, component, cum.helmClient, yaml.NewSerializer())
+	if err != nil {
+		return &genericRequeueableError{fmt.Sprintf("failed to get mapped values yaml %q", component.Spec.Name), err}
+	}
 	err = cum.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
