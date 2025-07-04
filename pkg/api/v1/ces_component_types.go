@@ -107,6 +107,7 @@ type ComponentStatus struct {
 // +kubebuilder:printcolumn:name="Health",type="string",JSONPath=".status.health",description="The current health state of the component"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="The current status of the component"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="The age of the component"
+// +kubebuilder:webhook:path=/validate-k8s-cloudogu-com-component,mutating=false,failurePolicy=fail,groups=k8s.cloudgou.com,resources=Component,verbs=create;update,versions=v1,name=validatecomponent.kb.io,admissionReviewVersions=v1,sideEffects=None
 
 // Component is the Schema for the ces component API
 type Component struct {
@@ -241,6 +242,10 @@ func getMappedValuesYaml(ctx context.Context, component *Component, spec *client
 		}
 		for _, key := range mappings.Metavalues[k].Keys {
 			fmt.Printf("checking key %s...\n", key)
+			if key.Mapping == nil {
+				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, v))
+				continue
+			}
 			if value, ok := key.Mapping[v]; ok {
 				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, value))
 			} else {
