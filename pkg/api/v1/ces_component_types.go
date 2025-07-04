@@ -60,10 +60,6 @@ type ComponentSpec struct {
 	// It can be used to overwrite specific configurations. Lists are overwritten, maps are merged.
 	// +optional
 	ValuesYamlOverwrite string `json:"valuesYamlOverwrite,omitempty"`
-	// MappedValuesYamlOverwrite is a multiline-yaml string that is applied alongside the original values.yaml-file of the component.
-	// It can be used to overwrite specific configurations. Lists are overwritten, maps are merged.
-	// Generated from component-values-metadata.yaml file, which optionally exists in components
-	MappedValuesYamlOverwrite string `json:"mappedValuesYamlOverwrite,omitempty"`
 }
 
 type HealthStatus string
@@ -128,12 +124,11 @@ func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.Ch
 	}
 
 	return &client.ChartSpec{
-		ReleaseName:      c.Spec.Name,
-		ChartName:        c.GetHelmChartName(),
-		Namespace:        deployNamespace,
-		Version:          c.Spec.Version,
-		ValuesYaml:       c.Spec.ValuesYamlOverwrite,
-		MappedValuesYaml: c.Spec.MappedValuesYamlOverwrite,
+		ReleaseName: c.Spec.Name,
+		ChartName:   c.GetHelmChartName(),
+		Namespace:   deployNamespace,
+		Version:     c.Spec.Version,
+		ValuesYaml:  c.Spec.ValuesYamlOverwrite,
 		// Rollback to previous release on failure.
 		Atomic: true,
 		// This timeout prevents context exceeded errors from the used k8s client from the helm library.
