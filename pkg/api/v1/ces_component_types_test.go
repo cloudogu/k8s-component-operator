@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
 	"testing"
@@ -29,7 +30,7 @@ func TestComponent_GetHelmChartSpec(t *testing.T) {
 				Spec:       tt.fields.Spec,
 				Status:     tt.fields.Status,
 			}
-			if got := c.GetHelmChartSpec().Namespace; !reflect.DeepEqual(got, tt.want) {
+			if got := c.GetHelmChartSpec(context.Background()).Namespace; !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetHelmChartSpec() = %v, want %v", got, tt.want)
 			}
 		})

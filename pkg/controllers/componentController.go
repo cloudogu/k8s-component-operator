@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -24,10 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-)
-
-const (
-	mappingMetadataFileName = "component-values-metadata.yaml"
 )
 
 type operation string
@@ -56,22 +51,6 @@ const (
 	// Ignore represents the ignore-operation
 	Ignore = operation("Ignore")
 )
-
-type mapping struct {
-	Path    string            `yaml:"path"`
-	Mapping map[string]string `yaml:"mapping"`
-}
-
-type metaValue struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-	Keys        []mapping
-}
-
-type metadataMapping struct {
-	ApiVersion string               `yaml:"apiVersion"`
-	Metavalues map[string]metaValue `yaml:"metavalues"`
-}
 
 // ComponentManager abstracts the simple component operations in a k8s CES.
 type ComponentManager interface {
@@ -110,20 +89,6 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 		namespace:      namespace,
 		yamlSerializer: yamlSerializer,
 	}
-}
-
-func pathToNestedYAML(path string, value any) map[string]any {
-	parts := strings.Split(path, ".")
-	n := len(parts)
-
-	result := value
-	for i := n - 1; i >= 0; i-- {
-		result = map[string]any{
-			parts[i]: result,
-		}
-	}
-
-	return result.(map[string]any)
 }
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -323,14 +288,17 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
-	chartSpec := component.GetHelmChartSpecWithTimout(r.timeout)
-	chartSpec.MappedValuesYaml, err = GetMappedValuesYaml(ctx, component, r.helmClient, r.yamlSerializer)
+	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+		HelmClient:     r.helmClient,
+		Timeout:        r.timeout,
+		YamlSerializer: r.yamlSerializer,
+	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
 	}
 	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
 	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpecWithTimout(r.timeout).ChartName, err)
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
 	}
 
 	// if no additional values are set, the maps will look like this:
@@ -342,51 +310,6 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 	}
 
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
-}
-func GetMappedValuesYaml(ctx context.Context, component *k8sv1.Component, helmClient helmClient, yamlSerializer yaml.Serializer) (string, error) {
-	logger := log.FromContext(ctx)
-
-	spec := component.GetHelmChartSpec()
-	chart, err := helmClient.GetChart(ctx, spec)
-	if err != nil {
-		logger.Error(err, "")
-	}
-
-	var mappings metadataMapping
-	for _, file := range chart.Files {
-		logger.Info(fmt.Sprintf("Found file %s in component %s", file.Name, component.Name))
-		if file.Name == mappingMetadataFileName {
-			logger.Info("Serializing metadata-file...")
-			err = yamlSerializer.Unmarshal(file.Data, &mappings)
-			if err != nil {
-				return "", fmt.Errorf("failed to parse mapping metadata: %w", err)
-			}
-		}
-	}
-
-	mappingYaml := map[string]interface{}{}
-
-	for k, v := range component.Spec.MappedValues {
-		if _, ok := mappings.Metavalues[k]; !ok {
-			fmt.Printf("key %s not found in metaValues\n", k)
-			continue
-		}
-		for _, key := range mappings.Metavalues[k].Keys {
-			fmt.Printf("checking key %s...\n", key)
-			if value, ok := key.Mapping[v]; ok {
-				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, value))
-			} else {
-				logger.Error(fmt.Errorf("no mapping found for key %s", v), "")
-			}
-		}
-	}
-
-	serialized, err := yamlSerializer.Marshal(mappingYaml)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal yaml: %w", err)
-	}
-
-	return string(serialized), nil
 }
 
 func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release) (operation, error) {

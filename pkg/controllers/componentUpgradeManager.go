@@ -54,11 +54,15 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		version = component.Spec.Version
 	}
 
-	chartSpec := component.GetHelmChartSpecWithTimout(cum.timeout)
-	chartSpec.MappedValuesYaml, err = GetMappedValuesYaml(ctx, component, cum.helmClient, yaml.NewSerializer())
+	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+		HelmClient:     cum.helmClient,
+		Timeout:        cum.timeout,
+		YamlSerializer: yaml.NewSerializer(),
+	})
 	if err != nil {
-		return &genericRequeueableError{fmt.Sprintf("failed to get mapped values yaml %q", component.Spec.Name), err}
+		return fmt.Errorf("failed to get helm chart spec: %w", err)
 	}
+
 	err = cum.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())

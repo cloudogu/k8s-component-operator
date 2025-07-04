@@ -47,8 +47,8 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(mock.Anything, component.Spec.Name, "ecosystem", "0.1.0").Return(nil)
@@ -69,7 +69,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(assert.AnError)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(assert.AnError)
 
 		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Eventf(component, "Warning", "Upgrade", "Dependency check failed: %s", assert.AnError.Error()).Return()
@@ -106,7 +106,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -135,8 +135,8 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(assert.AnError)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec(context.Background())).Return(assert.AnError)
 
 		manager := &ComponentUpgradeManager{
 			componentClient: mockComponentClient,
@@ -170,8 +170,8 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 
@@ -208,8 +208,8 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(mock.Anything, component.Spec.Name, "ecosystem", "0.1.0").

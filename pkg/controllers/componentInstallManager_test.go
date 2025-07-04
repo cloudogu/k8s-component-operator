@@ -32,8 +32,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(nil)
@@ -57,7 +57,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(assert.AnError)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(assert.AnError)
 
 		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Eventf(component, "Warning", "Installation", "Dependency check failed: %s", assert.AnError.Error()).Return()
@@ -85,7 +85,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(nil, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -110,7 +110,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(nil, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -135,8 +135,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(assert.AnError)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec(context.Background())).Return(assert.AnError)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -162,8 +162,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 
@@ -192,8 +192,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec(context.Background())).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(assert.AnError)
@@ -226,8 +226,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("4.8.3", nil)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, componentWithVersion.GetHelmChartSpec()).Return(nil)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithVersion.GetHelmChartSpec(context.Background())).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, componentWithVersion.GetHelmChartSpec(context.Background())).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, componentWithVersion.Spec.Version).Return(nil)

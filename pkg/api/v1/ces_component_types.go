@@ -1,7 +1,13 @@
 package v1
 
 import (
+	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"helm.sh/helm/v3/pkg/chart"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,6 +75,7 @@ const (
 	AvailableHealthStatus   HealthStatus = "available"
 	UnavailableHealthStatus HealthStatus = "unavailable"
 	UnknownHealthStatus     HealthStatus = "unknown"
+	mappingMetadataFileName              = "component-values-metadata.yaml"
 )
 
 // ComponentStatus defines the observed state of a Component.
@@ -104,17 +111,39 @@ type Component struct {
 	Status ComponentStatus `json:"status,omitempty"`
 }
 
+type ChartGetter interface {
+	GetChart(ctx context.Context, spec *client.ChartSpec) (*chart.Chart, error)
+}
+
+type HelmChartCreationOpts struct {
+	HelmClient     ChartGetter
+	Timeout        time.Duration
+	YamlSerializer yaml.Serializer
+}
+
+type Mapping struct {
+	Path    string            `yaml:"path"`
+	Mapping map[string]string `yaml:"Mapping"`
+}
+
+type MetaValue struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Keys        []Mapping
+}
+
+type MetadataMapping struct {
+	ApiVersion string               `yaml:"apiVersion"`
+	Metavalues map[string]MetaValue `yaml:"metavalues"`
+}
+
 // String returns a string representation of this component.
 func (c *Component) String() string {
 	return fmt.Sprintf("%s/%s:%s", c.Spec.Namespace, c.Spec.Name, c.Spec.Version)
 }
 
-func (c *Component) GetHelmChartSpec() *client.ChartSpec {
-	return c.GetHelmChartSpecWithTimout(defaultHelmClientTimeoutMins)
-}
-
-// GetHelmChartSpecWithTimout returns the helm chart for the component cr without custom values.
-func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.ChartSpec {
+// GetHelmChartSpec returns the helm chart for the component cr without custom values.
+func (c *Component) GetHelmChartSpec(ctx context.Context, opts ...HelmChartCreationOpts) (*client.ChartSpec, error) {
 	deployNamespace := ""
 
 	if c.Spec.DeployNamespace != "" {
@@ -123,7 +152,16 @@ func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.Ch
 		deployNamespace = c.Namespace
 	}
 
-	return &client.ChartSpec{
+	timeout := defaultHelmClientTimeoutMins
+	var chartGetter ChartGetter
+	var yamlSerializer yaml.Serializer
+	if len(opts) > 0 {
+		timeout = opts[0].Timeout
+		chartGetter = opts[0].HelmClient
+		yamlSerializer = opts[0].YamlSerializer
+	}
+
+	chartSpec := &client.ChartSpec{
 		ReleaseName: c.Spec.Name,
 		ChartName:   c.GetHelmChartName(),
 		Namespace:   deployNamespace,
@@ -142,6 +180,75 @@ func (c *Component) GetHelmChartSpecWithTimout(timeout time.Duration) *client.Ch
 			ComponentVersionLabelKey: c.Spec.Version,
 		}),
 	}
+
+	if len(opts) > 0 {
+		var err error
+		chartSpec.MappedValuesYaml, err = GetMappedValuesYaml(ctx, c, chartSpec, chartGetter, yamlSerializer)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create mapped values: %w", err)
+		}
+	}
+
+	return chartSpec, nil
+}
+
+func pathToNestedYAML(path string, value any) map[string]any {
+	parts := strings.Split(path, ".")
+	n := len(parts)
+
+	result := value
+	for i := n - 1; i >= 0; i-- {
+		result = map[string]any{
+			parts[i]: result,
+		}
+	}
+
+	return result.(map[string]any)
+}
+
+func GetMappedValuesYaml(ctx context.Context, component *Component, spec *client.ChartSpec, helmClient ChartGetter, yamlSerializer yaml.Serializer) (string, error) {
+	logger := log.FromContext(ctx)
+
+	hChart, err := helmClient.GetChart(ctx, spec)
+	if err != nil {
+		logger.Error(err, "")
+	}
+
+	var mappings MetadataMapping
+	for _, file := range hChart.Files {
+		logger.Info(fmt.Sprintf("Found file %s in component %s", file.Name, component.Name))
+		if file.Name == mappingMetadataFileName {
+			logger.Info("Serializing metadata-file...")
+			err = yamlSerializer.Unmarshal(file.Data, &mappings)
+			if err != nil {
+				return "", fmt.Errorf("failed to parse Mapping metadata: %w", err)
+			}
+		}
+	}
+
+	mappingYaml := map[string]interface{}{}
+
+	for k, v := range component.Spec.MappedValues {
+		if _, ok := mappings.Metavalues[k]; !ok {
+			fmt.Printf("key %s not found in metaValues\n", k)
+			continue
+		}
+		for _, key := range mappings.Metavalues[k].Keys {
+			fmt.Printf("checking key %s...\n", key)
+			if value, ok := key.Mapping[v]; ok {
+				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, value))
+			} else {
+				logger.Error(fmt.Errorf("no Mapping found for key %s", v), "")
+			}
+		}
+	}
+
+	serialized, err := yamlSerializer.Marshal(mappingYaml)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal yaml: %w", err)
+	}
+
+	return string(serialized), nil
 }
 
 func (c *Component) GetHelmChartName() string {

@@ -53,10 +53,13 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		version = component.Spec.Version
 	}
 
-	chartSpec := component.GetHelmChartSpecWithTimout(cim.timeout)
-	chartSpec.MappedValuesYaml, err = GetMappedValuesYaml(ctx, component, cim.helmClient, yaml.NewSerializer())
+	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+		HelmClient:     cim.helmClient,
+		Timeout:        cim.timeout,
+		YamlSerializer: yaml.NewSerializer(),
+	})
 	if err != nil {
-		return &genericRequeueableError{fmt.Sprintf("failed to get mapped values yaml %q", component.Spec.Name), err}
+		return fmt.Errorf("failed to get helm chart spec: %w", err)
 	}
 	err = cim.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
