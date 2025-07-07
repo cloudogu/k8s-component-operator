@@ -8,6 +8,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"reflect"
+	originalyaml "sigs.k8s.io/yaml"
 	"testing"
 )
 
@@ -125,6 +126,42 @@ metavalues:
 		assert.Equal(t, expectedYaml, mappedValuesYaml)
 		assert.NoError(t, err)
 	})
+	t.Run("success no matching mapping", func(t *testing.T) {
+		component := &Component{
+			Spec: ComponentSpec{
+				MappedValues: map[string]string{
+					"someOtherKey": "value",
+				},
+			},
+		}
+
+		doguOpMetaData := `apiVersion: v1
+metavalues:
+  mainLogLevel:
+    name: Log-Level
+    description: The central configuration value to set the log level for this component
+    keys:
+      - path: controllerManager.env.loglevel`
+
+		spec := &client.ChartSpec{}
+		helmChart := &chart.Chart{
+			Files: []*chart.File{
+				{
+					Name: mappingMetadataFileName,
+					Data: []byte(doguOpMetaData),
+				},
+			},
+		}
+
+		expectedYaml := `{}
+`
+
+		mockChartGetter := NewMockChartGetter(t)
+		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(helmChart, nil)
+		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
+		assert.Equal(t, expectedYaml, mappedValuesYaml)
+		assert.NoError(t, err)
+	})
 	t.Run("success with multiple path", func(t *testing.T) {
 		component := &Component{
 			Spec: ComponentSpec{
@@ -177,4 +214,154 @@ your:
 		assert.Equal(t, expectedYaml, mappedValuesYaml)
 		assert.NoError(t, err)
 	})
+	t.Run("success invalid mapping value", func(t *testing.T) {
+		component := &Component{
+			Spec: ComponentSpec{
+				MappedValues: map[string]string{
+					"mainLogLevel": "panic",
+				},
+			},
+		}
+
+		doguOpMetaData := `apiVersion: v1
+metavalues:
+  mainLogLevel:
+    name: Log-Level
+    description: The central configuration value to set the log level for this component
+    keys:
+      - path: controllerManager.env.loglevel        
+        mapping:
+          debug: trace
+          info: info
+          warn: warn
+          error: error`
+
+		spec := &client.ChartSpec{}
+		helmChart := &chart.Chart{
+			Files: []*chart.File{
+				{
+					Name: mappingMetadataFileName,
+					Data: []byte(doguOpMetaData),
+				},
+			},
+		}
+
+		expectedYaml := `{}
+`
+
+		mockChartGetter := NewMockChartGetter(t)
+		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(helmChart, nil)
+		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
+		assert.Equal(t, expectedYaml, mappedValuesYaml)
+		assert.NoError(t, err)
+	})
+	t.Run("error getting helm chart", func(t *testing.T) {
+		component := &Component{
+			Spec: ComponentSpec{
+				MappedValues: map[string]string{
+					"mainLogLevel": "debug",
+				},
+			},
+		}
+
+		spec := &client.ChartSpec{}
+
+		mockChartGetter := NewMockChartGetter(t)
+		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(nil, assert.AnError)
+		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
+		assert.Equal(t, "", mappedValuesYaml)
+		assert.Error(t, err)
+	})
+	t.Run("error parsing yaml", func(t *testing.T) {
+		component := &Component{
+			Spec: ComponentSpec{
+				MappedValues: map[string]string{
+					"mainLogLevel": "debug",
+				},
+			},
+		}
+
+		doguOpMetaData := `apiVersion: v1
+metavalues:
+  mainLogLevel
+something
+invalid
+        here`
+
+		spec := &client.ChartSpec{}
+		helmChart := &chart.Chart{
+			Files: []*chart.File{
+				{
+					Name: mappingMetadataFileName,
+					Data: []byte(doguOpMetaData),
+				},
+			},
+		}
+
+		mockChartGetter := NewMockChartGetter(t)
+		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(helmChart, nil)
+		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
+		assert.Equal(t, "", mappedValuesYaml)
+		assert.Error(t, err)
+	})
+	t.Run("error unmarshaling", func(t *testing.T) {
+		component := &Component{
+			Spec: ComponentSpec{
+				MappedValues: map[string]string{
+					"mainLogLevel": "debug",
+				},
+			},
+		}
+
+		doguOpMetaData := `apiVersion: v1
+metavalues:
+  mainLogLevel:
+    name: Log-Level
+    description: The central configuration value to set the log level for this component
+    keys:
+      - path: controllerManager.env.loglevel
+        mapping:
+          debug: trace`
+
+		spec := &client.ChartSpec{}
+		helmChart := &chart.Chart{
+			Files: []*chart.File{
+				{
+					Name: mappingMetadataFileName,
+					Data: []byte(doguOpMetaData),
+				},
+			},
+		}
+
+		mockChartGetter := NewMockChartGetter(t)
+		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(helmChart, nil)
+		marshaller := &InvalidMarshaller{
+			orignalMarshaler: yaml.NewSerializer(),
+			failMarshal:      true,
+			failUnmarshal:    false,
+		}
+		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, marshaller)
+		assert.Equal(t, "", mappedValuesYaml)
+		assert.Error(t, err)
+	})
+}
+
+type InvalidMarshaller struct {
+	failMarshal      bool
+	failUnmarshal    bool
+	orignalMarshaler yaml.Serializer
+}
+
+func (s *InvalidMarshaller) Marshal(o interface{}) ([]byte, error) {
+	if s.failMarshal {
+		return nil, assert.AnError
+	}
+	return s.orignalMarshaler.Marshal(o)
+}
+
+func (s *InvalidMarshaller) Unmarshal(y []byte, o interface{}, opts ...originalyaml.JSONOpt) error {
+	if s.failUnmarshal {
+		return assert.AnError
+	}
+	return s.orignalMarshaler.Unmarshal(y, opts)
 }

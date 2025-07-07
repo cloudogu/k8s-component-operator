@@ -218,7 +218,7 @@ func getMappedValuesYaml(ctx context.Context, component *Component, spec *client
 
 	hChart, err := helmClient.GetChart(ctx, spec)
 	if err != nil {
-		logger.Error(err, "")
+		return "", fmt.Errorf("failed to get helm chart: %w", err)
 	}
 
 	var mappings MetadataMapping
