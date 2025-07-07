@@ -170,14 +170,8 @@ func NewHelmRepoDataFromCluster(ctx context.Context, configMapClient configMapIn
 			return nil, fmt.Errorf("failed to parse field %s from configMap %s", configMapInsecureTls, helmRepositoryConfigMapName)
 		}
 	}
-	var schema string
-	var schemaExists bool
-	if schema, schemaExists = configMap.Data[configMapSchema]; schemaExists {
-		if !schemaExists {
-			return nil, fmt.Errorf("field %s does not exist in configMap %s", configMapSchema, helmRepositoryConfigMapName)
-		}
-	}
 
+	schema := configMap.Data[configMapSchema]
 	repoData := &HelmRepositoryData{
 		Endpoint:    configMap.Data["endpoint"],
 		Schema:      EndpointSchema(schema),
