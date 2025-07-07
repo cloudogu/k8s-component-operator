@@ -38,10 +38,14 @@ var (
 )
 
 var (
-	envVarNamespace              = "NAMESPACE"
-	envHelmClientTimeoutMins     = "HELM_CLIENT_TIMEOUT_MINS"
-	defaultHelmClientTimeoutMins = time.Duration(15) * time.Minute
-	log                          = ctrl.Log.WithName("config")
+	envVarNamespace = "NAMESPACE"
+
+	envHelmClientTimeoutMins      = "HELM_CLIENT_TIMEOUT_MINS"
+	defaultHelmClientTimeoutMins  = time.Duration(15) * time.Minute
+	envHealthSyncIntervalMins     = "HEALTH_SYNC_INTERVAL_MINS"
+	defaultHealthSyncIntervalMins = time.Duration(2) * time.Minute
+
+	log = ctrl.Log.WithName("config")
 )
 
 const (
@@ -100,8 +104,9 @@ type OperatorConfig struct {
 	// Version contains the current version of the operator
 	Version *semver.Version `json:"version"`
 	// HelmRepositoryData contains all necessary data for the helm repository.
-	HelmRepositoryData    *HelmRepositoryData `json:"helm_repository"`
-	HelmClientTimeoutMins time.Duration
+	HelmRepositoryData     *HelmRepositoryData `json:"helm_repository"`
+	HelmClientTimeoutMins  time.Duration
+	HealthSyncIntervalMins time.Duration
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
@@ -129,9 +134,10 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 	log.Info(fmt.Sprintf("Deploying the k8s component operator in namespace %s", namespace))
 
 	return &OperatorConfig{
-		Namespace:             namespace,
-		Version:               parsedVersion,
-		HelmClientTimeoutMins: readHelmClientTimeoutMinsEnv(),
+		Namespace:              namespace,
+		Version:                parsedVersion,
+		HelmClientTimeoutMins:  readMinuteDurationEnv(envHelmClientTimeoutMins, defaultHelmClientTimeoutMins),
+		HealthSyncIntervalMins: readMinuteDurationEnv(envHealthSyncIntervalMins, defaultHealthSyncIntervalMins),
 	}, nil
 }
 
@@ -224,21 +230,23 @@ func getEnvVar(name string) (string, error) {
 	return ns, nil
 }
 
-func readHelmClientTimeoutMinsEnv() time.Duration {
-	helmClientTimeoutMinsString, err := getEnvVar(envHelmClientTimeoutMins)
+func readMinuteDurationEnv(env string, defaultValue time.Duration) time.Duration {
+	valueString, err := getEnvVar(env)
 	if err != nil {
-		logrus.Debugf("failed to read %s environment variable, using default value", envHelmClientTimeoutMins)
-		return defaultHelmClientTimeoutMins
+		logrus.Warningf("failed to read %s environment variable, using default value", env)
+		return defaultValue
 	}
-	helmClientTimeoutMinsParsed, err := strconv.Atoi(helmClientTimeoutMinsString)
-	if err != nil {
-		logrus.Warningf("failed to parse %s environment variable, using default value", envHelmClientTimeoutMins)
-		return defaultHelmClientTimeoutMins
-	}
-	if helmClientTimeoutMinsParsed <= 0 {
-		logrus.Warningf("parsed value (%d) is smaller than 0, using default value", helmClientTimeoutMinsParsed)
-		return defaultHelmClientTimeoutMins
 
+	valueParsed, err := strconv.Atoi(valueString)
+	if err != nil {
+		logrus.Warningf("failed to parse %s environment variable, using default value", env)
+		return defaultValue
 	}
-	return time.Duration(helmClientTimeoutMinsParsed) * time.Minute
+
+	if valueParsed <= 0 {
+		logrus.Warningf("parsed value (%d) of %s is smaller than 0, using default value", valueParsed, env)
+		return defaultValue
+	}
+
+	return time.Duration(valueParsed) * time.Minute
 }

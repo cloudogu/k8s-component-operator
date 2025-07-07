@@ -253,7 +253,7 @@ func TestHelmRepositoryData_URL(t *testing.T) {
 	assert.Equal(t, "oci://example.com", actual.URL())
 }
 
-func Test_readHelmClientTimeoutMinsEnv(t *testing.T) {
+func Test_readMinuteDurationEnv(t *testing.T) {
 	tests := []struct {
 		name        string
 		setEnvVar   bool
@@ -286,7 +286,7 @@ func Test_readHelmClientTimeoutMinsEnv(t *testing.T) {
 			envVarValue: "-20",
 			want:        15 * time.Minute,
 			wantLogs:    true,
-			wantedLogs:  "parsed value (-20) is smaller than 0, using default value",
+			wantedLogs:  "parsed value (-20) of HELM_CLIENT_TIMEOUT_MINS is smaller than 0, using default value",
 			logLevel:    logrus.WarnLevel,
 		},
 		{
@@ -314,14 +314,14 @@ func Test_readHelmClientTimeoutMinsEnv(t *testing.T) {
 				logrus.StandardLogger().SetLevel(tt.logLevel)
 			}
 
-			result = readHelmClientTimeoutMinsEnv()
+			result = readMinuteDurationEnv(envHelmClientTimeoutMins, defaultHelmClientTimeoutMins)
 
 			logrus.StandardLogger().SetOutput(originalOutput)
 			logrus.StandardLogger().SetLevel(originalLevel)
 
 			logs := logOutput.String()
 
-			assert.Equalf(t, tt.want, result, "readHelmClientTimeoutMinsEnv()")
+			assert.Equalf(t, tt.want, result, "readMinuteDurationEnv(%s, %s)", envHelmClientTimeoutMins, defaultHelmClientTimeoutMins)
 
 			if tt.wantLogs {
 				assert.Contains(t, logs, tt.wantedLogs)
