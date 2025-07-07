@@ -188,13 +188,6 @@ func configureReconciler(ctx context.Context, k8sManager manager.Manager, client
 		return fmt.Errorf("failed to setup health reconcilers with manager: %w", err)
 	}
 
-	err = k8sv1.SetupComponentValidatorForManager(k8sManager)
-	if err != nil {
-		return fmt.Errorf("failed to register component validator: %w", err)
-	}
-
-	ctrl.NewWebhookManagedBy(k8sManager)
-
 	return nil
 }
 

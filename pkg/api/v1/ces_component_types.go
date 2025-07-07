@@ -6,11 +6,7 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"helm.sh/helm/v3/pkg/chart"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"strings"
 	"time"
 
@@ -45,8 +41,6 @@ const (
 	// In this state the component can be healthy.
 	ComponentStatusTryToDelete = "tryToDelete"
 )
-
-var _ webhook.Validator = &Component{}
 
 const FinalizerName = "component-finalizer"
 
@@ -107,7 +101,6 @@ type ComponentStatus struct {
 // +kubebuilder:printcolumn:name="Health",type="string",JSONPath=".status.health",description="The current health state of the component"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="The current status of the component"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="The age of the component"
-// +kubebuilder:webhook:path=/validate-k8s-cloudogu-com-component,mutating=false,failurePolicy=fail,groups=k8s.cloudgou.com,resources=Component,verbs=create;update,versions=v1,name=validatecomponent.kb.io,admissionReviewVersions=v1,sideEffects=None
 
 // Component is the Schema for the ces component API
 type Component struct {
@@ -277,34 +270,4 @@ type ComponentList struct {
 
 func init() {
 	SchemeBuilder.Register(&Component{}, &ComponentList{})
-}
-
-func (c *Component) ValidateCreate() (admission.Warnings, error) {
-	fmt.Println("===================================>")
-	fmt.Println("===================================>")
-	fmt.Println("===================================>")
-	fmt.Println("Created new component")
-	return nil, fmt.Errorf("Validate create")
-}
-
-func (c *Component) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	fmt.Println("===================================>")
-	fmt.Println("===================================>")
-	fmt.Println("===================================>")
-	fmt.Println("Update component")
-	return nil, fmt.Errorf("Validate update")
-}
-
-func (c *Component) ValidateDelete() (admission.Warnings, error) {
-	fmt.Println("===================================>")
-	fmt.Println("===================================>")
-	fmt.Println("===================================>")
-	fmt.Println("Delete component")
-	return nil, nil
-}
-
-func SetupComponentValidatorForManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&Component{}).
-		Complete()
 }
