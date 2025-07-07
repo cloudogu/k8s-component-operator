@@ -60,6 +60,8 @@ spec:
   namespace: k8s
   version: 1.5.1-1
   deployNamespace: longhorn-system
+  mappedValues:
+    mainLogLevel: debug
   valuesYamlOverwrite: |
     longhorn:
       defaultSettings:
@@ -91,7 +93,11 @@ Ein Komponenten-CR besteht aus unterschiedlichen Feldern. Dieser Abschnitt erlä
   - Es handelt sich hierbei _nicht_ um den Cluster-Namespace.
 - `.spec.version`: Die Version der Komponente in der Helm-Registry.
 - `.spec.deployNamespace`: (optional) Der k8s-Namespace, in dem alle Ressourcen der Komponente deployed werden sollen. Wenn dieser leer ist, wird der Namespace des Komponenten-Operators verwendet.
+- `.spec.mappedValues`: (optional) Helm-Werte zum Überschreiben von Konfigurationen aus der Helm-Datei values.yaml. Diese Werte werden durch die Konfiguration in component-values-metadata.yaml gemappt. 
 - `.spec.valuesYamlOverwrite`: (optional) Helm-Werte zum Überschreiben von Konfigurationen aus der Helm-Datei values.yaml. Sollte aus Gründen der Lesbarkeit als [multiline-yaml](https://yaml-multiline.info/) geschrieben werden.
+
+> [!WARNING]
+> `.spec.mappedValues` und `.spec.valuesYamlOverwrite` sollten nicht gleichzeitig verwendet werden. Sind beide Werte konfiguriert, so bekommen die mappedValues den Vorzug. 
 
 ## Komponenten deinstallieren
 
@@ -117,3 +123,46 @@ $ kubectl -n ecosystem describe component k8s-dogu-operator
 In diesem Fall müssen die betroffenen Komponenten manuell [nachinstalliert oder aktualisiert](#Komponenten-installieren-oder-aktualisieren) werden.
 
 Die Versionen zu Abhängigkeiten werden während der Komponentenentwicklung im Helm-Chart hinterlegt. Diese können i. d. R. nicht zum Installationszeitpunkt geändert werden.
+
+## Konfigurationswerte mappen
+
+Um zur Laufzeit Werte der values.yaml überschreiben zu können, kann das Feld `.spec.mappedValues` verwendet werden. Dies setzt jedoch vorraus, dass die entsprechende 
+Komponente auch eine `component-values-metadata.yaml` Datei im Helm-Chart bereitstellt.
+
+Eine Konfiguration innerhalb einer CR sieht beispiel haft wie folgt aus:
+
+```yaml
+spec:
+  mappedValues:
+    mainLogLevel: debug
+```
+
+Eine dazugehörige Mapping-Datei muss den gemappten Wert aufgreifen und entsprechend konfigurieren.
+
+```yaml
+apiVersion: v1
+metavalues:
+  mainLogLevel:
+    name: Log-Level
+    description: The central configuration value to set the log level for this component
+    keys:
+      - path: controllerManager.env.logLevel
+        mapping:
+          debug: trace
+          info: info
+          warn: warn
+          error: error
+      - path: manager.env.logLevel
+        mapping:
+          debug: debug
+          panic: error
+```
+
+Hier wird nun der ursprüngliche Helm-Wert `.controllerManager.env.logLevel` durch den Wert aus dem CR für mainLogLevel ersetzt.
+Dabei wird der Wert noch gegen ein Liste von Value-Mappings verglichen und entsprechend angepasst.
+
+Der finale Eintrag für `.controllerManager.env.logLevel` in obrigen Beispiel, enthält somit den Wert `trace`.
+Es kann für einen Mapping-Eintrag auch mehrere zumappenden Schlüssel geben. Dabei muss jeder Schlüssel sein eigenes Value-Mapping definieren.
+
+
+
