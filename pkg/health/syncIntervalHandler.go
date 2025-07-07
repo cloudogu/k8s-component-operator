@@ -28,7 +28,7 @@ func NewSyncIntervalHandler(namespace string, clientSet ecosystemClientSet, heal
 
 func (s *SyncIntervalHandler) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx).
-		WithName("health startup handler")
+		WithName("health sync interval handler")
 	logger.Info(fmt.Sprintf("started regularly syncing health of all components with interval %s", s.healthSyncInterval))
 
 	ticker := time.NewTicker(s.healthSyncInterval)
