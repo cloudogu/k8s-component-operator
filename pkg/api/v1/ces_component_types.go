@@ -219,11 +219,9 @@ func getMappedValuesYaml(ctx context.Context, component *Component, spec *client
 
 	for k, v := range component.Spec.MappedValues {
 		if _, ok := mappings.Metavalues[k]; !ok {
-			fmt.Printf("key %s not found in metaValues\n", k)
 			continue
 		}
 		for _, key := range mappings.Metavalues[k].Keys {
-			fmt.Printf("checking key %s...\n", key)
 			if key.Mapping == nil {
 				nestedYaml, e := yaml.PathToYAML(key.Path, v, yamlSerializer)
 				if e != nil {
