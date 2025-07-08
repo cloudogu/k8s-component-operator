@@ -34,9 +34,14 @@ func (cr *defaultComponentRepo) get(ctx context.Context, name string) (*v1.Compo
 	return component, nil
 }
 
-func (cr *defaultComponentRepo) updateCondition(ctx context.Context, component *v1.Component, status v1.HealthStatus, version string) error {
+func (cr *defaultComponentRepo) updateCondition(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error {
 	return retry.OnConflict(func() error {
 		component, err := cr.get(ctx, component.Name)
+		if err != nil {
+			return err
+		}
+
+		status, err := statusFn()
 		if err != nil {
 			return err
 		}

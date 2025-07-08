@@ -40,6 +40,8 @@ spec:
               value: "{{ .Values.manager.env.helmClientTimeoutMins | default "15" }}"
             - name: ROLLBACK_RELEASE_TIMEOUT_MINS
               value: "{{ .Values.manager.env.rollbackReleaseTimeoutMins | default "15" }}"
+            - name: HEALTH_SYNC_INTERVAL_MINS
+              value: "{{ .Values.manager.env.healthSyncIntervalMins | default "2" }}"
             - name: PROXY_URL
               valueFrom:
                 secretKeyRef:

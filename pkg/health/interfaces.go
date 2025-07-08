@@ -49,7 +49,7 @@ type applicationFinder interface {
 type componentRepo interface {
 	get(ctx context.Context, name string) (*v1.Component, error)
 	list(ctx context.Context) (*v1.ComponentList, error)
-	updateCondition(ctx context.Context, component *v1.Component, status v1.HealthStatus, version string) error
+	updateCondition(ctx context.Context, component *v1.Component, statusFn func() (v1.HealthStatus, error), version string) error
 }
 
 // interfaces for mocks

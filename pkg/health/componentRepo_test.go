@@ -77,7 +77,7 @@ func Test_defaultComponentRepo_updateCondition(t *testing.T) {
 	}
 	type args struct {
 		component *v1.Component
-		status    v1.HealthStatus
+		statusFn  func() (v1.HealthStatus, error)
 		version   string
 	}
 	tests := []struct {
@@ -95,12 +95,33 @@ func Test_defaultComponentRepo_updateCondition(t *testing.T) {
 			},
 			args: args{
 				component: &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}},
-				status:    "available",
-				version:   noVersionChange,
+				statusFn: func() (v1.HealthStatus, error) {
+					return "available", nil
+				},
+				version: noVersionChange,
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
 					assert.ErrorContains(t, err, fmt.Sprintf("failed to get component %q", testComponentName), i)
+			},
+		},
+		{
+			name: "should fail to get status",
+			mockValues: mockValues{
+				getComponent: nil,
+				getErr:       nil,
+				shouldUpdate: false,
+			},
+			args: args{
+				component: &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}},
+				statusFn: func() (v1.HealthStatus, error) {
+					return "", fmt.Errorf("failed to get status: %w", assert.AnError)
+				},
+				version: noVersionChange,
+			},
+			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+				return assert.ErrorIs(t, err, assert.AnError, i) &&
+					assert.ErrorContains(t, err, "failed to get status", i)
 			},
 		},
 		{
@@ -115,8 +136,10 @@ func Test_defaultComponentRepo_updateCondition(t *testing.T) {
 			},
 			args: args{
 				component: &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}},
-				status:    "available",
-				version:   noVersionChange,
+				statusFn: func() (v1.HealthStatus, error) {
+					return "available", nil
+				},
+				version: noVersionChange,
 			},
 			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
 				return assert.ErrorIs(t, err, assert.AnError, i) &&
@@ -135,8 +158,10 @@ func Test_defaultComponentRepo_updateCondition(t *testing.T) {
 			},
 			args: args{
 				component: &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}},
-				status:    "available",
-				version:   noVersionChange,
+				statusFn: func() (v1.HealthStatus, error) {
+					return "available", nil
+				},
+				version: noVersionChange,
 			},
 			wantErr: assert.NoError,
 		},
@@ -152,8 +177,10 @@ func Test_defaultComponentRepo_updateCondition(t *testing.T) {
 			},
 			args: args{
 				component: &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Namespace: testNamespace}},
-				status:    "available",
-				version:   "0.3.0",
+				statusFn: func() (v1.HealthStatus, error) {
+					return "available", nil
+				},
+				version: "0.3.0",
 			},
 			wantErr: assert.NoError,
 		},
@@ -168,7 +195,7 @@ func Test_defaultComponentRepo_updateCondition(t *testing.T) {
 					Return(tt.mockValues.updateComponentOut, tt.mockValues.updateErr)
 			}
 			cr := &defaultComponentRepo{client: clientMock}
-			tt.wantErr(t, cr.updateCondition(testCtx, tt.args.component, tt.args.status, tt.args.version))
+			tt.wantErr(t, cr.updateCondition(testCtx, tt.args.component, tt.args.statusFn, tt.args.version))
 		})
 	}
 }
