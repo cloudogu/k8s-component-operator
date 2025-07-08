@@ -12,6 +12,7 @@ manager:
     stage: production
     helmClientTimeoutMins: "15"
     rollbackReleaseTimeoutMins: "15"
+    healthSyncIntervalMins: "2"
   resourceLimits:
     memory: 105M
   resourceRequests:
