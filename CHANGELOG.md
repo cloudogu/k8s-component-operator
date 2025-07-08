@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v1.9.1] - 2025-07-08
 ### Fixed
 - [#93] Component health occasionally wouldn't be set to `available` after installation.  
   This was due to a race condition between two processes setting `available` and `unavailable` at the same time.
