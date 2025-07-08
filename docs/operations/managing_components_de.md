@@ -126,8 +126,9 @@ Die Versionen zu Abhängigkeiten werden während der Komponentenentwicklung im H
 
 ## Konfigurationswerte mappen
 
-Um zur Laufzeit Werte der values.yaml überschreiben zu können, kann das Feld `.spec.mappedValues` verwendet werden. Dies setzt jedoch vorraus, dass die entsprechende 
-Komponente auch eine `component-values-metadata.yaml` Datei im Helm-Chart bereitstellt.
+Um zur Laufzeit Werte der values.yaml überschreiben zu können, kann das Feld `.spec.mappedValues` verwendet werden. 
+Dies setzt jedoch vorraus, dass die entsprechende Komponente auch eine `component-values-metadata.yaml` 
+Datei im Helm-Chart bereitstellt.
 
 Eine Konfiguration innerhalb einer CR sieht beispiel haft wie folgt aus:
 
@@ -163,6 +164,13 @@ Dabei wird der Wert noch gegen ein Liste von Value-Mappings verglichen und entsp
 
 Der finale Eintrag für `.controllerManager.env.logLevel` in obrigen Beispiel, enthält somit den Wert `trace`.
 Es kann für einen Mapping-Eintrag auch mehrere zumappenden Schlüssel geben. Dabei muss jeder Schlüssel sein eigenes Value-Mapping definieren.
+
+### Besonderheiten
+Da durch diesen Mechanismus sowohl durch `mappedValues` als auch durch `valuesYamlOverwrite` die selben Werte gesetzt werden können, kann es zu
+Konflikten kommen.
+In diesem Fall wird vom component-operator automatisch geprüft, ob es einen Konflikt gibt und eine entsprechende Fehlermeldung ausgegeben.
+Dann hat der Wert, der in `mappedValues` eingetragen wurde Priorität gegenüber dem Wert aus `valuesYamlOverwrite`.
+Es führt darüber hinaus aber nicht zu einem Fehlverhalten, der Konflikt wird lediglich im Log sichtbar.
 
 
 

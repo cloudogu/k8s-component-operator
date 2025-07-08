@@ -161,3 +161,11 @@ The value is then checked against a list of value mappings and adjusted accordin
 
 The final entry for `.controllerManager.env.logLevel` in the example above would therefore contain the value `trace`.
 A mapping entry can also have multiple keys to be mapped. Each key must define its own value mapping.
+
+
+### Special features
+As this mechanism allows the same values to be set by both `mappedValues` and `valuesYamlOverwrite`,
+conflicts may occur.
+In this case, the component operator automatically checks whether there is a conflict and issues a corresponding error message.
+In this case, the value entered in `mappedValues` has priority over the value from `valuesYamlOverwrite`.
+However, this does not lead to any further misbehavior; the conflict is only visible in the log.
