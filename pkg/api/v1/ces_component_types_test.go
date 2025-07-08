@@ -88,8 +88,14 @@ metavalues:
 		assert.Equal(t, expectedYaml, mappedValuesYaml)
 		assert.NoError(t, err)
 	})
-	t.Run("success without mappedValues", func(t *testing.T) {
-		component := &Component{}
+	t.Run("success with mapping in lists", func(t *testing.T) {
+		component := &Component{
+			Spec: ComponentSpec{
+				MappedValues: map[string]string{
+					"mainLogLevel": "debug",
+				},
+			},
+		}
 
 		doguOpMetaData := `apiVersion: v1
 metavalues:
@@ -97,7 +103,7 @@ metavalues:
     name: Log-Level
     description: The central configuration value to set the log level for this component
     keys:
-      - path: controllerManager.env.loglevel
+      - path: manager.containers[name=cont].env[name=LOG_LEVEL].value
         mapping:
           debug: trace
           info: info
@@ -114,8 +120,25 @@ metavalues:
 			},
 		}
 
+		expectedYaml := `manager:
+  containers:
+  - env:
+    - name: LOG_LEVEL
+      value: trace
+    name: cont
+`
+
 		mockChartGetter := NewMockChartGetter(t)
 		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(helmChart, nil)
+		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
+		assert.Equal(t, expectedYaml, mappedValuesYaml)
+		assert.NoError(t, err)
+	})
+	t.Run("success without mappedValues", func(t *testing.T) {
+		component := &Component{}
+		spec := &client.ChartSpec{}
+
+		mockChartGetter := NewMockChartGetter(t)
 		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
 		assert.Equal(t, "", mappedValuesYaml)
 		assert.NoError(t, err)

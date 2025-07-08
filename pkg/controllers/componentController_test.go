@@ -221,7 +221,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		helmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		helmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		helmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
-		helmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
+		//helmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
 			clientSet:        clientSetMock,
@@ -428,7 +428,6 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(nil, assert.AnError)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -532,7 +531,6 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -556,7 +554,6 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -580,7 +577,6 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}(nil), nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -604,7 +600,6 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,

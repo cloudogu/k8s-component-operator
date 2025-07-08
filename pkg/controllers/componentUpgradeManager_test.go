@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"helm.sh/helm/v3/pkg/chart"
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +48,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
@@ -77,7 +75,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
@@ -120,7 +117,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
@@ -155,7 +151,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
@@ -196,7 +191,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
@@ -240,7 +234,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(mock.Anything, mock.Anything).Return(&chart.Chart{}, nil)
 		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,

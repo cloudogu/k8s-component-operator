@@ -7,7 +7,6 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"helm.sh/helm/v3/pkg/chart"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -192,20 +191,6 @@ func (c *Component) GetHelmChartSpec(ctx context.Context, opts ...HelmChartCreat
 	return chartSpec, nil
 }
 
-func pathToNestedYAML(path string, value any) map[string]any {
-	parts := strings.Split(path, ".")
-	n := len(parts)
-
-	result := value
-	for i := n - 1; i >= 0; i-- {
-		result = map[string]any{
-			parts[i]: result,
-		}
-	}
-
-	return result.(map[string]any)
-}
-
 func getMappedValuesYaml(ctx context.Context, component *Component, spec *client.ChartSpec, helmClient ChartGetter, yamlSerializer yaml.Serializer) (string, error) {
 	logger := log.FromContext(ctx)
 
@@ -240,11 +225,21 @@ func getMappedValuesYaml(ctx context.Context, component *Component, spec *client
 		for _, key := range mappings.Metavalues[k].Keys {
 			fmt.Printf("checking key %s...\n", key)
 			if key.Mapping == nil {
-				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, v))
+				nestedYaml, e := yaml.PathToYAML(key.Path, v, yamlSerializer)
+				if e != nil {
+					logger.Error(fmt.Errorf("error parsing key path %s", key.Path), "")
+					continue
+				}
+				mappingYaml = values.MergeMaps(mappingYaml, nestedYaml)
 				continue
 			}
 			if value, ok := key.Mapping[v]; ok {
-				mappingYaml = values.MergeMaps(mappingYaml, pathToNestedYAML(key.Path, value))
+				nestedYaml, e := yaml.PathToYAML(key.Path, value, yamlSerializer)
+				if e != nil {
+					logger.Error(fmt.Errorf("error parsing key path %s", key.Path), "")
+					continue
+				}
+				mappingYaml = values.MergeMaps(mappingYaml, nestedYaml)
 			} else {
 				logger.Error(fmt.Errorf("no Mapping found for key %s", v), "")
 			}
