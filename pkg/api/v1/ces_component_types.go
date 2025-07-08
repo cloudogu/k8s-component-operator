@@ -110,10 +110,12 @@ type Component struct {
 	Status ComponentStatus `json:"status,omitempty"`
 }
 
+// +kubebuilder:object:generate=false
 type ChartGetter interface {
 	GetChart(ctx context.Context, spec *client.ChartSpec) (*chart.Chart, error)
 }
 
+// +kubebuilder:object:generate=false
 type HelmChartCreationOpts struct {
 	HelmClient     ChartGetter
 	Timeout        time.Duration
