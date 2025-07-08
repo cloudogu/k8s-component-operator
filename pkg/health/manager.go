@@ -38,14 +38,16 @@ func (m *DefaultManager) UpdateComponentHealthWithInstalledVersion(ctx context.C
 }
 
 func (m *DefaultManager) updateComponentCondition(ctx context.Context, namespace string, component *v1.Component, version string) error {
-	deploymentList, statefulSetList, daemonSetList, err := m.findComponentApplications(ctx, component.Name, namespace)
-	if err != nil {
-		return fmt.Errorf("failed to find applications for component %q: %w", component.Name, err)
+	statusFn := func() (v1.HealthStatus, error) {
+		deploymentList, statefulSetList, daemonSetList, err := m.findComponentApplications(ctx, component.Name, namespace)
+		if err != nil {
+			return "", fmt.Errorf("failed to find applications for component %q: %w", component.Name, err)
+		}
+
+		return m.componentHealthStatus(ctx, deploymentList, statefulSetList, daemonSetList, component), nil
 	}
 
-	healthStatus := m.componentHealthStatus(ctx, deploymentList, statefulSetList, daemonSetList, component)
-
-	err = m.updateCondition(ctx, component, healthStatus, version)
+	err := m.updateCondition(ctx, component, statusFn, version)
 	if err != nil {
 		return fmt.Errorf("failed to update health status and installed version for component %q: %w", component.Name, err)
 	}

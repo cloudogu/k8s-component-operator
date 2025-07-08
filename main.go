@@ -112,14 +112,8 @@ func configureManager(ctx context.Context, k8sManager manager.Manager, operatorC
 }
 
 func addRunners(k8sManager manager.Manager, clientSet ecosystem.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) error {
-	healthStartupHandler := health.NewStartupHandler(operatorConfig.Namespace, clientSet)
-	err := k8sManager.Add(healthStartupHandler)
-	if err != nil {
-		return err
-	}
-
-	healthShutdownHandler := health.NewShutdownHandler(clientSet.ComponentV1Alpha1().Components(operatorConfig.Namespace))
-	err = k8sManager.Add(healthShutdownHandler)
+	healthSyncIntervalHandler := health.NewSyncIntervalHandler(operatorConfig.Namespace, clientSet, operatorConfig.HealthSyncIntervalMins)
+	err := k8sManager.Add(healthSyncIntervalHandler)
 	if err != nil {
 		return err
 	}

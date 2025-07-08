@@ -5,13 +5,14 @@ manager:
   image:
     registry: docker.io
     repository: cloudogu/k8s-component-operator
-    tag: 1.9.0
+    tag: 1.9.1
   imagePullPolicy: IfNotPresent
   env:
     logLevel: info
     stage: production
     helmClientTimeoutMins: "15"
     rollbackReleaseTimeoutMins: "15"
+    healthSyncIntervalMins: "2"
   resourceLimits:
     memory: 105M
   resourceRequests:

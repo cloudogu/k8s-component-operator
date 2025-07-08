@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.9.1] - 2025-07-08
+### Fixed
+- [#93] Component health occasionally wouldn't be set to `available` after installation.  
+  This was due to a race condition between two processes setting `available` and `unavailable` at the same time.
+  If the health had first been set to `available`, the other process would reset it to `unavailable` without reevaluating the actual health state.
+### Changed
+- [#93] When setting component health, reevaluate health state on conflict.
+- [#93] Regularly sync component health to avoid inconsistent states, e.g. when reconciliation fails.
+
 ## [v1.9.0] - 2025-04-23
 ### Changed
 - [#90] Set sensible resource requests and limits
