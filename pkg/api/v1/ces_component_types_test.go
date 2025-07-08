@@ -88,6 +88,38 @@ metavalues:
 		assert.Equal(t, expectedYaml, mappedValuesYaml)
 		assert.NoError(t, err)
 	})
+	t.Run("success without mappedValues", func(t *testing.T) {
+		component := &Component{}
+
+		doguOpMetaData := `apiVersion: v1
+metavalues:
+  mainLogLevel:
+    name: Log-Level
+    description: The central configuration value to set the log level for this component
+    keys:
+      - path: controllerManager.env.loglevel
+        mapping:
+          debug: trace
+          info: info
+          warn: warn
+          error: error`
+
+		spec := &client.ChartSpec{}
+		helmChart := &chart.Chart{
+			Files: []*chart.File{
+				{
+					Name: mappingMetadataFileName,
+					Data: []byte(doguOpMetaData),
+				},
+			},
+		}
+
+		mockChartGetter := NewMockChartGetter(t)
+		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(helmChart, nil)
+		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
+		assert.Equal(t, "", mappedValuesYaml)
+		assert.NoError(t, err)
+	})
 	t.Run("success without mapping", func(t *testing.T) {
 		component := &Component{
 			Spec: ComponentSpec{

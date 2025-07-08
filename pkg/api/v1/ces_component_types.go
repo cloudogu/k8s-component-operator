@@ -209,6 +209,10 @@ func pathToNestedYAML(path string, value any) map[string]any {
 func getMappedValuesYaml(ctx context.Context, component *Component, spec *client.ChartSpec, helmClient ChartGetter, yamlSerializer yaml.Serializer) (string, error) {
 	logger := log.FromContext(ctx)
 
+	if len(component.Spec.MappedValues) == 0 {
+		return "", nil
+	}
+
 	hChart, err := helmClient.GetChart(ctx, spec)
 	if err != nil {
 		return "", fmt.Errorf("failed to get helm chart: %w", err)
