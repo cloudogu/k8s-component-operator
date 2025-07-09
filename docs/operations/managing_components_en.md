@@ -98,6 +98,11 @@ A component CR consists of various fields. This section describes these:
 > `.spec.mappedValues` and `.spec.valuesYamlOverwrite` should not be used at the same time.  
 > If both values are configured, `mappedValues` will take precedence.
 
+> [!WARNING]
+> `.spec.mappedValues` and `.spec.valuesYamlOverwrite` must not overwrite list entries. 
+> Due to the structure of YAML, it is not possible to set individual elements within a list.
+> Only the entire list can ever be overwritten.
+
 ## Uninstall components
 
 > [!WARNING]

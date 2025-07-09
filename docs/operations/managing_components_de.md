@@ -99,6 +99,10 @@ Ein Komponenten-CR besteht aus unterschiedlichen Feldern. Dieser Abschnitt erlä
 > [!WARNING]
 > `.spec.mappedValues` und `.spec.valuesYamlOverwrite` sollten nicht gleichzeitig verwendet werden. Sind beide Werte konfiguriert, so bekommen die mappedValues den Vorzug. 
 
+> [!WARNING]
+> `.spec.mappedValues` und `.spec.valuesYamlOverwrite` dürfen keine Listeneinträge überschreiben. Es ist durch die Struktur von Yaml nicht möglich einzelne Elemente innerhalb einer Liste zu setzen. 
+>  Es kann immer nur die gesamte Liste überschrieben werden.
+
 ## Komponenten deinstallieren
 
 > [!WARNING]
