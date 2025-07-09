@@ -2,7 +2,10 @@ package v1
 
 import (
 	"context"
+	_ "embed"
+	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/chart"
@@ -11,6 +14,9 @@ import (
 	originalyaml "sigs.k8s.io/yaml"
 	"testing"
 )
+
+//go:embed testdata/prometheus-component.yaml
+var prometheusComponentBytes []byte
 
 func TestComponent_GetHelmChartSpec(t *testing.T) {
 	type fields struct {
@@ -398,6 +404,57 @@ metavalues:
 		mappedValuesYaml, err := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, marshaller)
 		assert.Equal(t, "", mappedValuesYaml)
 		assert.Error(t, err)
+	})
+	t.Run("success with complex mapping", func(t *testing.T) {
+		serializer := yaml.NewSerializer()
+
+		var origYaml map[string]interface{}
+		_ = serializer.Unmarshal(prometheusComponentBytes, &origYaml)
+
+		fmt.Print(origYaml)
+
+		component := &Component{
+			Spec: ComponentSpec{
+				MappedValues: map[string]string{
+					"mainLogLevel": "debug",
+				},
+			},
+		}
+
+		doguOpMetaData := `apiVersion: v1
+metavalues:
+  mainLogLevel:
+    name: Log-Level
+    description: The central configuration value to set the log level for this component
+    keys:
+      - path: spec.template.spec.containers[name=auth].env[name=LOG_LEVEL].value
+        mapping:
+          debug: trace
+          info: info
+          warn: warn
+          error: error`
+
+		spec := &client.ChartSpec{}
+		helmChart := &chart.Chart{
+			Files: []*chart.File{
+				{
+					Name: mappingMetadataFileName,
+					Data: []byte(doguOpMetaData),
+				},
+			},
+		}
+
+		mockChartGetter := NewMockChartGetter(t)
+		mockChartGetter.EXPECT().GetChart(testCtx, spec).Return(helmChart, nil)
+		mappedValuesYaml, _ := getMappedValuesYaml(testCtx, component, spec, mockChartGetter, yaml.NewSerializer())
+
+		var mappedYaml map[string]interface{}
+		_ = serializer.Unmarshal([]byte(mappedValuesYaml), &mappedYaml)
+
+		mergedMap := values.MergeMaps(origYaml, mappedYaml)
+
+		fmt.Print(mergedMap)
+
 	})
 }
 

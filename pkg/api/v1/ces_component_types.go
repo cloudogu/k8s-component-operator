@@ -250,7 +250,13 @@ func getMappedValuesYaml(ctx context.Context, component *Component, spec *client
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal yaml: %w", err)
 	}
-
+	fmt.Print("=============================================================")
+	fmt.Print("==== Mapping nachdem beide yamls zusammengeführt sind =======")
+	fmt.Print("=============================================================")
+	fmt.Print(string(serialized))
+	fmt.Print("=============================================================")
+	fmt.Print("=============================================================")
+	fmt.Print("=============================================================")
 	return string(serialized), nil
 }
 
