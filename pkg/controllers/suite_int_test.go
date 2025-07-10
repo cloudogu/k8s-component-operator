@@ -8,6 +8,7 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"k8s.io/client-go/kubernetes"
 	"os"
 	"path/filepath"
@@ -103,7 +104,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	componentClientSet, err = ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace, defaultHelmClientTimeoutMins)
+	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace, defaultHelmClientTimeoutMins, yaml.NewSerializer())
 
 	err = reconciler.SetupWithManager(k8sManager)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())

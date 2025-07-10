@@ -21,7 +21,9 @@ No changes.
 package values
 
 import (
+	"github.com/stretchr/testify/assert"
 	"reflect"
+	"sigs.k8s.io/yaml"
 	"testing"
 
 	"helm.sh/helm/v3/pkg/getter"
@@ -89,4 +91,80 @@ func TestReadFile(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected error when has special strings")
 	}
+}
+
+func TestMergeMaps_WithLists(t *testing.T) {
+	t.Run("map with complete overwrite", func(t *testing.T) {
+		var mapA map[string]interface{}
+		strA := `kube-prometheus-stack:
+  prometheus:
+    containers:
+      - name: auth
+        env:
+          - name: LOG_LEVEL
+            value: info
+`
+		_ = yaml.Unmarshal([]byte(strA), &mapA)
+
+		var mapB map[string]interface{}
+		strB := `kube-prometheus-stack:
+  prometheus:
+    containers:
+      - name: auth
+        env:
+          - name: LOG_LEVEL
+            value: debug
+`
+		_ = yaml.Unmarshal([]byte(strB), &mapB)
+
+		testMap := MergeMaps(mapA, mapB)
+		equal := reflect.DeepEqual(testMap, mapB)
+		assert.True(t, equal)
+	})
+	t.Run("map with additional values in source map", func(t *testing.T) {
+		var mapA map[string]interface{}
+		strA := `kube-prometheus-stack:
+  prometheus:
+    containers:
+      - name: auth
+        env:
+          - name: LOG_LEVEL
+            value: info
+      - name: test
+        env:
+          - name: LOG_LEVEL
+            value: error
+`
+		_ = yaml.Unmarshal([]byte(strA), &mapA)
+
+		var mapB map[string]interface{}
+		strB := `kube-prometheus-stack:
+  prometheus:
+    containers:
+      - name: auth
+        env:
+          - name: LOG_LEVEL
+            value: debug
+`
+		_ = yaml.Unmarshal([]byte(strB), &mapB)
+
+		var mapResult map[string]interface{}
+		strResult := `kube-prometheus-stack:
+  prometheus:
+    containers:
+      - name: auth
+        env:
+          - name: LOG_LEVEL
+            value: debug
+      - name: test
+        env:
+          - name: LOG_LEVEL
+            value: error
+`
+		_ = yaml.Unmarshal([]byte(strResult), &mapResult)
+
+		testMap := MergeMaps(mapA, mapB)
+		equal := reflect.DeepEqual(testMap, mapResult)
+		assert.True(t, equal)
+	})
 }

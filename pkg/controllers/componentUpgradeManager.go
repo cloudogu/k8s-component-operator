@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
@@ -53,7 +54,16 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		version = component.Spec.Version
 	}
 
-	err = cum.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cum.timeout))
+	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+		HelmClient:     cum.helmClient,
+		Timeout:        cum.timeout,
+		YamlSerializer: yaml.NewSerializer(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get helm chart spec: %w", err)
+	}
+
+	err = cum.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
 		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
@@ -70,7 +80,7 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// this allows self-upgrades
 	helmCtx := context.WithoutCancel(ctx)
 
-	if err := cum.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpecWithTimout(cum.timeout)); err != nil {
+	if err := cum.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
 		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
 	}
 

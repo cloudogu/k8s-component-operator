@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"context"
+	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"github.com/stretchr/testify/mock"
 	"testing"
 	"time"
 
@@ -32,8 +35,13 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
+		spec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, mock.Anything).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(nil)
@@ -57,7 +65,12 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(assert.AnError)
+		spec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(assert.AnError)
 
 		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Eventf(component, "Warning", "Installation", "Dependency check failed: %s", assert.AnError.Error()).Return()
@@ -85,7 +98,12 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(nil, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		spec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -110,7 +128,12 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(nil, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
+		spec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -135,8 +158,18 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(assert.AnError)
+		spec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		chartSpec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(assert.AnError)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
@@ -162,8 +195,18 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
+		spec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		chartSpec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 
@@ -192,8 +235,18 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, component.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, component.GetHelmChartSpec()).Return(nil)
+		spec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		chartSpec, _ := component.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(assert.AnError)
@@ -226,8 +279,13 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("4.8.3", nil)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, componentWithVersion.GetHelmChartSpec()).Return(nil)
-		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, componentWithVersion.GetHelmChartSpec()).Return(nil)
+		spec, _ := componentWithVersion.GetHelmChartSpec(testCtx, v1.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, spec).Return(nil)
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, componentWithVersion.Spec.Version).Return(nil)
