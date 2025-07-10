@@ -16,10 +16,7 @@ func PathToYAML(path string, val string, serializer Serializer) (map[string]any,
 		Kind: yaml.MappingNode,
 	}
 
-	err := buildNodeFromPath(root, strings.Split(path, "."), value)
-	if err != nil {
-		return nil, err
-	}
+	buildNodeFromPath(root, strings.Split(path, "."), value)
 
 	var out strings.Builder
 	enc := yaml.NewEncoder(&out)
@@ -30,7 +27,7 @@ func PathToYAML(path string, val string, serializer Serializer) (map[string]any,
 
 	var result map[string]any
 
-	err = serializer.Unmarshal([]byte(out.String()), &result)
+	err := serializer.Unmarshal([]byte(out.String()), &result)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +35,7 @@ func PathToYAML(path string, val string, serializer Serializer) (map[string]any,
 	return result, nil
 }
 
-func buildNodeFromPath(parent *yaml.Node, parts []string, value *yaml.Node) error {
+func buildNodeFromPath(parent *yaml.Node, parts []string, value *yaml.Node) {
 	current := parent
 
 	for i := 0; i < len(parts); i++ {
@@ -54,8 +51,6 @@ func buildNodeFromPath(parent *yaml.Node, parts []string, value *yaml.Node) erro
 			current = next
 		}
 	}
-
-	return nil
 }
 
 func getOrCreateMapEntry(mapNode *yaml.Node, key string, defaultValue *yaml.Node) *yaml.Node {
