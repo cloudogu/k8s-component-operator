@@ -202,6 +202,11 @@ func (c *Client) GetLatestVersion(chartName string) (string, error) {
 	return sortedTags[0], nil
 }
 
+func (c *Client) GetChart(ctx context.Context, spec *client.ChartSpec) (*chart.Chart, error) {
+	spec.ChartName = c.patchOciEndpoint(spec.ChartName)
+	return c.getChart(ctx, spec)
+}
+
 func sortByVersionDescending(tags []string) []string {
 	versions := make([]core.Version, 0)
 	for _, tag := range tags {

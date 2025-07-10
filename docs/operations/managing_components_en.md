@@ -91,7 +91,17 @@ A component CR consists of various fields. This section describes these:
   - This is _not_ the cluster namespace.
 - `.spec.version`: The version of the component in the helm registry.
 - `.spec.deployNamespace`: (optional) The k8s-namespace, where all resources of the component should be deployed. If this is empty the namespace of the component-operator will be used.
+- `.spec.mappedValues`: (optional) Helm values used to override configurations from the Helm `values.yaml` file. These values are mapped according to the configuration defined in the `component-values-metadata.yaml` file.
 - `.spec.valuesYamlOverwrite`: (optional) Helm-Values to overwrite configurations of the default values.yaml file. Should be written as a [multiline-yaml](https://yaml-multiline.info/) string for readability.
+
+> [!WARNING]
+> `.spec.mappedValues` and `.spec.valuesYamlOverwrite` should not be used at the same time.  
+> If both values are configured, `mappedValues` will take precedence.
+
+> [!WARNING]
+> `.spec.mappedValues` and `.spec.valuesYamlOverwrite` must not overwrite list entries. 
+> Due to the structure of YAML, it is not possible to set individual elements within a list.
+> Only the entire list can ever be overwritten.
 
 ## Uninstall components
 
@@ -117,3 +127,50 @@ $ kubectl -n ecosystem describe component k8s-dogu-operator
 In that case, the components in question must be manually [installed or upgraded](#Install-or-upgrade-components).
 
 The versions to dependencies are declared in the helm chart during the component development. These can usually not be changed at the time of installation.
+
+## Mapping Configuration Values
+
+To override values from the `values.yaml` file at runtime, the `.spec.mappedValues` field can be used. However, this requires that the corresponding component also provides a `component-values-metadata.yaml` file in the Helm chart.
+
+A configuration within a CR (Custom Resource) could look like this:
+
+```yaml
+spec:
+  mappedValues:
+    mainLogLevel: debug
+```
+
+An associated mapping file must reference the mapped value and configure it accordingly:
+
+```yaml
+apiVersion: v1
+metavalues:
+  mainLogLevel:
+    name: Log-Level
+    description: The central configuration value to set the log level for this component
+    keys:
+      - path: controllerManager.env.logLevel
+        mapping:
+          debug: trace
+          info: info
+          warn: warn
+          error: error
+      - path: manager.env.logLevel
+        mapping:
+          debug: debug
+          panic: error
+```
+
+In this example, the original Helm value `.controllerManager.env.logLevel` is replaced by the value from the CR for mainLogLevel.
+The value is then checked against a list of value mappings and adjusted accordingly.
+
+The final entry for `.controllerManager.env.logLevel` in the example above would therefore contain the value `trace`.
+A mapping entry can also have multiple keys to be mapped. Each key must define its own value mapping.
+
+
+### Special features
+As this mechanism allows the same values to be set by both `mappedValues` and `valuesYamlOverwrite`,
+conflicts may occur.
+In this case, the component operator automatically checks whether there is a conflict and issues a corresponding error message.
+In this case, the value entered in `mappedValues` has priority over the value from `valuesYamlOverwrite`.
+However, this does not lead to any further misbehavior; the conflict is only visible in the log.

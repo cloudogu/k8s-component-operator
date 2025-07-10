@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -12,7 +13,7 @@ import (
 
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
 
-	semver "github.com/Masterminds/semver/v3"
+	"github.com/Masterminds/semver/v3"
 
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
@@ -67,10 +68,11 @@ type ComponentReconciler struct {
 	requeueHandler   requeueHandler
 	namespace        string
 	timeout          time.Duration
+	yamlSerializer   yaml.Serializer
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration) *ComponentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
 	return &ComponentReconciler{
 		clientSet: clientSet,
@@ -85,6 +87,7 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 		helmClient:     helmClient,
 		requeueHandler: componentRequeueHandler,
 		namespace:      namespace,
+		yamlSerializer: yamlSerializer,
 	}
 }
 
@@ -268,7 +271,7 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 			logger.Info("Found existing release for reconciled component",
 				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
 			if existsReleaseInTargetNamespace {
-				return r.getChangeOperationForRelease(component, deployedRelease)
+				return r.getChangeOperationForRelease(ctx, component, deployedRelease)
 			} else {
 				r.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Deploy namespace mismatch (CR: %q; deployed: %q). Deploy namespace declaration is only allowed on install. Revert deploy namespace change to prevent failing upgrade.", targetNamespace, deployedRelease.Namespace)
 				return "", fmt.Errorf("component does not exist in target namespace (%q), but in namespace %q", targetNamespace, deployedRelease.Namespace)
@@ -279,15 +282,23 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 	return Ignore, nil
 }
 
-func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
+func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
 	deployedValues, err := r.helmClient.GetReleaseValues(deployedRelease.Name, false)
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
-	chartSpecValues, err := r.helmClient.GetChartSpecValues(component.GetHelmChartSpecWithTimout(r.timeout))
+	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+		HelmClient:     r.helmClient,
+		Timeout:        r.timeout,
+		YamlSerializer: r.yamlSerializer,
+	})
 	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", component.GetHelmChartSpecWithTimout(r.timeout).ChartName, err)
+		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
+	}
+	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
+	if err != nil {
+		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
 	}
 
 	// if no additional values are set, the maps will look like this:
@@ -301,7 +312,7 @@ func (r *ComponentReconciler) isValuesChanged(deployedRelease *release.Release, 
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
 }
 
-func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Component, release *release.Release) (operation, error) {
+func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
@@ -321,7 +332,7 @@ func (r *ComponentReconciler) getChangeOperationForRelease(component *k8sv1.Comp
 		return Downgrade, nil
 	}
 
-	isValuesChanged, err := r.isValuesChanged(release, component)
+	isValuesChanged, err := r.isValuesChanged(ctx, release, component)
 	if err != nil {
 		return "", fmt.Errorf("failed to compare Values.yaml files of component %s: %w", component.Name, err)
 	}

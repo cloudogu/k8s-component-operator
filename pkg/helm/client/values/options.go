@@ -104,23 +104,81 @@ func (opts *Options) MergeValues(p getter.Providers) (map[string]interface{}, er
 	return base, nil
 }
 
+// Merge maps recursively, with smart list merging by `name`
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
+	for key, bVal := range b {
+		if aVal, exists := a[key]; exists {
+			switch aValTyped := aVal.(type) {
+			case map[string]interface{}:
+				if bValTyped, ok := bVal.(map[string]interface{}); ok {
+					a[key] = MergeMaps(aValTyped, bValTyped)
+				} else {
+					a[key] = bVal // overwrite non-map
+				}
+			case []interface{}:
+				if bValTyped, ok := bVal.([]interface{}); ok {
+					a[key] = mergeListsByName(aValTyped, bValTyped)
+				} else {
+					a[key] = bVal // overwrite non-list
+				}
+			default:
+				a[key] = bVal // primitive overwrite
+			}
+		} else {
+			a[key] = bVal // new key
+		}
 	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = MergeMaps(bv, v)
+	return a
+}
+
+// Merge two lists of maps by matching `name` key
+func mergeListsByName(aList, bList []interface{}) []interface{} {
+	result := make([]interface{}, 0)
+	used := map[string]bool{}
+
+	// Index A list by name
+	aIndex := map[string]map[string]interface{}{}
+	for _, item := range aList {
+		if m, ok := item.(map[string]interface{}); ok {
+			if name, ok := m["name"].(string); ok {
+				aIndex[name] = m
+			}
+		}
+	}
+
+	// Merge B list into A
+	for _, bItem := range bList {
+		if bMap, ok := bItem.(map[string]interface{}); ok {
+			if name, ok := bMap["name"].(string); ok {
+				if aItem, exists := aIndex[name]; exists {
+					// Merge matching items
+					merged := MergeMaps(copyMap(aItem), bMap)
+					result = append(result, merged)
+					used[name] = true
 					continue
 				}
 			}
 		}
-		out[k] = v
+		result = append(result, bItem)
 	}
-	return out
+
+	// Add remaining A items that were not merged
+	for name, aItem := range aIndex {
+		if !used[name] {
+			result = append(result, aItem)
+		}
+	}
+
+	return result
+}
+
+// Deep copy map
+func copyMap(src map[string]interface{}) map[string]interface{} {
+	dst := make(map[string]interface{}, len(src))
+	for k, v := range src {
+		dst[k] = v
+	}
+	return dst
 }
 
 // readFile load a file from stdin, the local directory, or a remote file with a url.

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"log"
+	fmtlog "log"
 	"net"
 	"net/http"
 	"net/url"
@@ -30,7 +30,7 @@ const (
 const anyVersionConstraint = ">0.0.0-0"
 
 var defaultDebugLog = func(format string, v ...interface{}) {
-	log.Printf(format, v...)
+	fmtlog.Printf(format, v...)
 }
 
 // NewClientFromRestConf returns a new Helm client constructed with the provided REST config options.

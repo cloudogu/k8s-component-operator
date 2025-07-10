@@ -85,6 +85,12 @@ type ChartSpec struct {
 	// and https://github.com/kubernetes-sigs/controller-tools/pull/317
 	// +optional
 	ValuesYaml string `json:"valuesYaml,omitempty"`
+	// MappedValuesYaml is the values.yaml content, but generated from component-values-metadata.yaml file
+	// use string instead of map[string]interface{}
+	// https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
+	// and https://github.com/kubernetes-sigs/controller-tools/pull/317
+	// +optional
+	MappedValuesYaml string `json:"mappedValuesYaml,omitempty"`
 	// Specify values similar to the cli
 	// +optional
 	ValuesOptions values.Options `json:"valuesOptions,omitempty"`

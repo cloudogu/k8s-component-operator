@@ -6,6 +6,7 @@ import (
 	context "context"
 
 	client "github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+	chart "helm.sh/helm/v3/pkg/chart"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -25,9 +26,72 @@ func (_m *mockHelmClient) EXPECT() *mockHelmClient_Expecter {
 	return &mockHelmClient_Expecter{mock: &_m.Mock}
 }
 
-// GetChartSpecValues provides a mock function with given fields: chart
-func (_m *mockHelmClient) GetChartSpecValues(chart *client.ChartSpec) (map[string]interface{}, error) {
-	ret := _m.Called(chart)
+// GetChart provides a mock function with given fields: ctx, spec
+func (_m *mockHelmClient) GetChart(ctx context.Context, spec *client.ChartSpec) (*chart.Chart, error) {
+	ret := _m.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChart")
+	}
+
+	var r0 *chart.Chart
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec) (*chart.Chart, error)); ok {
+		return rf(ctx, spec)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec) *chart.Chart); ok {
+		r0 = rf(ctx, spec)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*chart.Chart)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *client.ChartSpec) error); ok {
+		r1 = rf(ctx, spec)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockHelmClient_GetChart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetChart'
+type mockHelmClient_GetChart_Call struct {
+	*mock.Call
+}
+
+// GetChart is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec *client.ChartSpec
+func (_e *mockHelmClient_Expecter) GetChart(ctx interface{}, spec interface{}) *mockHelmClient_GetChart_Call {
+	return &mockHelmClient_GetChart_Call{Call: _e.mock.On("GetChart", ctx, spec)}
+}
+
+func (_c *mockHelmClient_GetChart_Call) Run(run func(ctx context.Context, spec *client.ChartSpec)) *mockHelmClient_GetChart_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*client.ChartSpec))
+	})
+	return _c
+}
+
+func (_c *mockHelmClient_GetChart_Call) Return(_a0 *chart.Chart, _a1 error) *mockHelmClient_GetChart_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockHelmClient_GetChart_Call) RunAndReturn(run func(context.Context, *client.ChartSpec) (*chart.Chart, error)) *mockHelmClient_GetChart_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetChartSpecValues provides a mock function with given fields: _a0
+func (_m *mockHelmClient) GetChartSpecValues(_a0 *client.ChartSpec) (map[string]interface{}, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetChartSpecValues")
+	}
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetChartSpecValues")
@@ -36,10 +100,10 @@ func (_m *mockHelmClient) GetChartSpecValues(chart *client.ChartSpec) (map[strin
 	var r0 map[string]interface{}
 	var r1 error
 	if rf, ok := ret.Get(0).(func(*client.ChartSpec) (map[string]interface{}, error)); ok {
-		return rf(chart)
+		return rf(_a0)
 	}
 	if rf, ok := ret.Get(0).(func(*client.ChartSpec) map[string]interface{}); ok {
-		r0 = rf(chart)
+		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string]interface{})
@@ -47,7 +111,7 @@ func (_m *mockHelmClient) GetChartSpecValues(chart *client.ChartSpec) (map[strin
 	}
 
 	if rf, ok := ret.Get(1).(func(*client.ChartSpec) error); ok {
-		r1 = rf(chart)
+		r1 = rf(_a0)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -61,12 +125,12 @@ type mockHelmClient_GetChartSpecValues_Call struct {
 }
 
 // GetChartSpecValues is a helper method to define mock.On call
-//   - chart *client.ChartSpec
-func (_e *mockHelmClient_Expecter) GetChartSpecValues(chart interface{}) *mockHelmClient_GetChartSpecValues_Call {
-	return &mockHelmClient_GetChartSpecValues_Call{Call: _e.mock.On("GetChartSpecValues", chart)}
+//   - _a0 *client.ChartSpec
+func (_e *mockHelmClient_Expecter) GetChartSpecValues(_a0 interface{}) *mockHelmClient_GetChartSpecValues_Call {
+	return &mockHelmClient_GetChartSpecValues_Call{Call: _e.mock.On("GetChartSpecValues", _a0)}
 }
 
-func (_c *mockHelmClient_GetChartSpecValues_Call) Run(run func(chart *client.ChartSpec)) *mockHelmClient_GetChartSpecValues_Call {
+func (_c *mockHelmClient_GetChartSpecValues_Call) Run(run func(_a0 *client.ChartSpec)) *mockHelmClient_GetChartSpecValues_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*client.ChartSpec))
 	})
@@ -255,9 +319,13 @@ func (_c *mockHelmClient_GetReleaseValues_Call) RunAndReturn(run func(string, bo
 	return _c
 }
 
-// InstallOrUpgrade provides a mock function with given fields: ctx, chart
-func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, chart *client.ChartSpec) error {
-	ret := _m.Called(ctx, chart)
+// InstallOrUpgrade provides a mock function with given fields: ctx, _a1
+func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, _a1 *client.ChartSpec) error {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InstallOrUpgrade")
+	}
 
 	if len(ret) == 0 {
 		panic("no return value specified for InstallOrUpgrade")
@@ -265,7 +333,7 @@ func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, chart *client.Ch
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec) error); ok {
-		r0 = rf(ctx, chart)
+		r0 = rf(ctx, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -280,12 +348,12 @@ type mockHelmClient_InstallOrUpgrade_Call struct {
 
 // InstallOrUpgrade is a helper method to define mock.On call
 //   - ctx context.Context
-//   - chart *client.ChartSpec
-func (_e *mockHelmClient_Expecter) InstallOrUpgrade(ctx interface{}, chart interface{}) *mockHelmClient_InstallOrUpgrade_Call {
-	return &mockHelmClient_InstallOrUpgrade_Call{Call: _e.mock.On("InstallOrUpgrade", ctx, chart)}
+//   - _a1 *client.ChartSpec
+func (_e *mockHelmClient_Expecter) InstallOrUpgrade(ctx interface{}, _a1 interface{}) *mockHelmClient_InstallOrUpgrade_Call {
+	return &mockHelmClient_InstallOrUpgrade_Call{Call: _e.mock.On("InstallOrUpgrade", ctx, _a1)}
 }
 
-func (_c *mockHelmClient_InstallOrUpgrade_Call) Run(run func(ctx context.Context, chart *client.ChartSpec)) *mockHelmClient_InstallOrUpgrade_Call {
+func (_c *mockHelmClient_InstallOrUpgrade_Call) Run(run func(ctx context.Context, _a1 *client.ChartSpec)) *mockHelmClient_InstallOrUpgrade_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(*client.ChartSpec))
 	})
@@ -359,9 +427,13 @@ func (_c *mockHelmClient_ListDeployedReleases_Call) RunAndReturn(run func() ([]*
 	return _c
 }
 
-// SatisfiesDependencies provides a mock function with given fields: ctx, chart
-func (_m *mockHelmClient) SatisfiesDependencies(ctx context.Context, chart *client.ChartSpec) error {
-	ret := _m.Called(ctx, chart)
+// SatisfiesDependencies provides a mock function with given fields: ctx, _a1
+func (_m *mockHelmClient) SatisfiesDependencies(ctx context.Context, _a1 *client.ChartSpec) error {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SatisfiesDependencies")
+	}
 
 	if len(ret) == 0 {
 		panic("no return value specified for SatisfiesDependencies")
@@ -369,7 +441,7 @@ func (_m *mockHelmClient) SatisfiesDependencies(ctx context.Context, chart *clie
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec) error); ok {
-		r0 = rf(ctx, chart)
+		r0 = rf(ctx, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -384,12 +456,12 @@ type mockHelmClient_SatisfiesDependencies_Call struct {
 
 // SatisfiesDependencies is a helper method to define mock.On call
 //   - ctx context.Context
-//   - chart *client.ChartSpec
-func (_e *mockHelmClient_Expecter) SatisfiesDependencies(ctx interface{}, chart interface{}) *mockHelmClient_SatisfiesDependencies_Call {
-	return &mockHelmClient_SatisfiesDependencies_Call{Call: _e.mock.On("SatisfiesDependencies", ctx, chart)}
+//   - _a1 *client.ChartSpec
+func (_e *mockHelmClient_Expecter) SatisfiesDependencies(ctx interface{}, _a1 interface{}) *mockHelmClient_SatisfiesDependencies_Call {
+	return &mockHelmClient_SatisfiesDependencies_Call{Call: _e.mock.On("SatisfiesDependencies", ctx, _a1)}
 }
 
-func (_c *mockHelmClient_SatisfiesDependencies_Call) Run(run func(ctx context.Context, chart *client.ChartSpec)) *mockHelmClient_SatisfiesDependencies_Call {
+func (_c *mockHelmClient_SatisfiesDependencies_Call) Run(run func(ctx context.Context, _a1 *client.ChartSpec)) *mockHelmClient_SatisfiesDependencies_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(*client.ChartSpec))
 	})

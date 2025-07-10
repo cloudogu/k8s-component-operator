@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -52,7 +53,15 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		version = component.Spec.Version
 	}
 
-	err = cim.helmClient.SatisfiesDependencies(ctx, component.GetHelmChartSpecWithTimout(cim.timeout))
+	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+		HelmClient:     cim.helmClient,
+		Timeout:        cim.timeout,
+		YamlSerializer: yaml.NewSerializer(),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get helm chart spec: %w", err)
+	}
+	err = cim.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
 		cim.recorder.Eventf(component, corev1.EventTypeWarning, InstallEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
@@ -77,7 +86,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.WithoutCancel(ctx)
 
-	if err := cim.helmClient.InstallOrUpgrade(helmCtx, component.GetHelmChartSpecWithTimout(cim.timeout)); err != nil {
+	if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
 		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 	}
 

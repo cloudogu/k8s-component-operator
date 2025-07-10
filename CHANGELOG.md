@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.10.0] - 2025-07-10
+### Added
+- [#95] Added mappedValues field to component cr
+  - This field is a generic key/value map
+- [#95] Added feature to read a components `component-values-metadata.yaml` file from helm chart
+  - This file contains mappings from a field in mappedValues to a field in values.yaml
+
 ## [v1.9.1] - 2025-07-08
 ### Fixed
 - [#93] Component health occasionally wouldn't be set to `available` after installation.  
