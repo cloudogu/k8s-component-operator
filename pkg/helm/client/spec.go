@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/pkg/errors"
@@ -14,7 +15,7 @@ import (
 // GetValuesMap returns the merged mapped out values of a chart,
 // using both ValuesYaml and ValuesOptions
 func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{}, error) {
-	logger := log.FromContext(nil)
+	logger := log.FromContext(context.TODO())
 	originalValuesYaml := map[string]interface{}{}
 
 	err := yaml.Unmarshal([]byte(spec.ValuesYaml), &originalValuesYaml)
