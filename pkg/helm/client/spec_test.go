@@ -93,130 +93,36 @@ func Test_haveSameKeyWithDifferentValues(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "two nested maps with same keys different values",
+			name: "string value in second map overwrites map value in first map",
 			a: map[string]interface{}{
 				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"c": "d",
-						},
+					"c": map[string]interface{}{
+						"d": "e",
 					},
 				},
 			},
 			b: map[string]interface{}{
 				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"e": "f",
-						},
-					},
-				},
-			},
-			want: false,
-		},
-		{
-			name: "second map overwrites first map array",
-			a: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"c": "d",
-						},
-					},
-				},
-			},
-			b: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": "e",
+					"c": "e",
 				},
 			},
 			want: true,
 		},
 		{
-			name: "first map overwrites second map array",
+			name: "string value in first map overwrites string value in first map",
 			a: map[string]interface{}{
 				"a": map[string]interface{}{
-					"b": "e",
+					"c": "e",
 				},
 			},
 			b: map[string]interface{}{
 				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"c": "d",
-						},
+					"c": map[string]interface{}{
+						"d": "e",
 					},
 				},
 			},
 			want: true,
-		},
-		{
-			name: "both slices have multiple entries with one conflict",
-			a: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"c": "d",
-						},
-						{
-							"x": "y",
-						},
-						{
-							"z": "a",
-						},
-					},
-				},
-			},
-			b: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"y": "x",
-						},
-						{
-							"a": "z",
-						},
-						{
-							"c": "d",
-						},
-					},
-				},
-			},
-			want: true,
-		},
-		{
-			name: "both slices have multiple entries without conflicts",
-			a: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"c": "d",
-						},
-						{
-							"x": "y",
-						},
-						{
-							"z": "a",
-						},
-					},
-				},
-			},
-			b: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": []map[string]interface{}{
-						{
-							"y": "x",
-						},
-						{
-							"a": "z",
-						},
-						{
-							"g": "h",
-						},
-					},
-				},
-			},
-			want: false,
 		},
 	}
 	for _, test := range tests {

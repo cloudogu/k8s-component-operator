@@ -40,14 +40,7 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 		logger.Error(fmt.Errorf("conflicting values in valuesYamlOverwrite and mappedValues"), "you cannot set log mapped values via valuesYamlOverwrite and mappedValues. Configured value in mappedValues has priority")
 	}
 
-	fmt.Print("=============================================================")
-	fmt.Print("=======Merged Values Yaml Overwrite =========================")
-	fmt.Print("=============================================================")
-	mergedMap := values.MergeMaps(mergedValuesYamlOverwrite, mappedValuesYaml)
-	fmt.Print("=============================================================")
-	fmt.Print("=======Merged Values Yaml Overwrite =========================")
-	fmt.Print("=============================================================")
-	return mergedMap, nil
+	return values.MergeMaps(mergedValuesYamlOverwrite, mappedValuesYaml), nil
 }
 
 func hasSameValuesConfigured(a, b map[string]interface{}) bool {
@@ -68,22 +61,7 @@ func hasSameValuesConfigured(a, b map[string]interface{}) bool {
 					return true
 				} // else just continue loop
 			} else {
-				vsl, ok := v.([]map[string]interface{})
-				if ok {
-					mvsl, ok := mv.([]map[string]interface{})
-					if !ok {
-						return true
-					}
-					for _, ma := range vsl {
-						for _, mb := range mvsl {
-							if hasSameValuesConfigured(ma, mb) {
-								return true
-							}
-						}
-					}
-				} else {
-					return true
-				}
+				return true
 			}
 
 			return false
