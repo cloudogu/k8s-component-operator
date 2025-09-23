@@ -1,19 +1,16 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  creationTimestamp: null
   labels:
     k8s.cloudogu.com/component.name: k8s-test
     k8s.cloudogu.com/component.version: 1.2.3-4
   name: hello
 spec:
   jobTemplate:
-    metadata:
-      creationTimestamp: null
+    metadata: {}
     spec:
       template:
         metadata:
-          creationTimestamp: null
           labels:
             k8s.cloudogu.com/component.name: k8s-test
             k8s.cloudogu.com/component.version: 1.2.3-4

@@ -1,7 +1,6 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  creationTimestamp: null
   labels:
     k8s.cloudogu.com/component.name: k8s-test
     k8s.cloudogu.com/component.version: 1.2.3-4
@@ -14,7 +13,6 @@ spec:
   serviceName: nginx
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: nginx
         k8s.cloudogu.com/component.name: k8s-test
@@ -33,7 +31,6 @@ spec:
   updateStrategy: {}
   volumeClaimTemplates:
   - metadata:
-      creationTimestamp: null
       name: www
     spec:
       accessModes:
