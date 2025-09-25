@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.10.1] - 2025-09-25
+
 ### Changed
 - [#96] Upgrade Golang to v1.25.1
 - [#96] Upgrade Dependencies
