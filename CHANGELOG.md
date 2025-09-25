@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.10.1] - 2025-09-25
+
+### Changed
+- [#96] Upgrade Golang to v1.25.1
+- [#96] Upgrade Dependencies
+- [#96] Update Makefiles to 10.4.0
+
 ## [v1.10.0] - 2025-07-10
 ### Added
 - [#95] Added mappedValues field to component cr

@@ -147,10 +147,6 @@ func (_m *mockComponentRepo) updateCondition(ctx context.Context, component *v1.
 		panic("no return value specified for updateCondition")
 	}
 
-	if len(ret) == 0 {
-		panic("no return value specified for updateCondition")
-	}
-
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *v1.Component, func() (v1.HealthStatus, error), string) error); ok {
 		r0 = rf(ctx, component, statusFn, version)

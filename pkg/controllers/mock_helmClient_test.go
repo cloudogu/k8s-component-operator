@@ -93,10 +93,6 @@ func (_m *mockHelmClient) GetChartSpecValues(_a0 *client.ChartSpec) (map[string]
 		panic("no return value specified for GetChartSpecValues")
 	}
 
-	if len(ret) == 0 {
-		panic("no return value specified for GetChartSpecValues")
-	}
-
 	var r0 map[string]interface{}
 	var r1 error
 	if rf, ok := ret.Get(0).(func(*client.ChartSpec) (map[string]interface{}, error)); ok {
@@ -327,10 +323,6 @@ func (_m *mockHelmClient) InstallOrUpgrade(ctx context.Context, _a1 *client.Char
 		panic("no return value specified for InstallOrUpgrade")
 	}
 
-	if len(ret) == 0 {
-		panic("no return value specified for InstallOrUpgrade")
-	}
-
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *client.ChartSpec) error); ok {
 		r0 = rf(ctx, _a1)
@@ -430,10 +422,6 @@ func (_c *mockHelmClient_ListDeployedReleases_Call) RunAndReturn(run func() ([]*
 // SatisfiesDependencies provides a mock function with given fields: ctx, _a1
 func (_m *mockHelmClient) SatisfiesDependencies(ctx context.Context, _a1 *client.ChartSpec) error {
 	ret := _m.Called(ctx, _a1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SatisfiesDependencies")
-	}
 
 	if len(ret) == 0 {
 		panic("no return value specified for SatisfiesDependencies")
