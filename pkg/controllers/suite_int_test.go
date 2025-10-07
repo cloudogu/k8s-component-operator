@@ -5,15 +5,16 @@ package controllers
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-lib/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
-	"testing"
-	"time"
 
 	"github.com/bombsimon/logrusr/v2"
 	"github.com/onsi/ginkgo"
@@ -34,7 +35,7 @@ var cancel context.CancelFunc
 
 // Used in other integration tests
 var (
-	componentClientSet ecosystem.ComponentEcosystemInterface
+	componentClientSet client.ComponentEcosystemInterface
 	helmClientMock     *mockHelmClient
 	recorderMock       *mockEventRecorder
 	namespace          = "default"
@@ -68,7 +69,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	ginkgo.By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "k8s", "helm-crd", "templates")},
+		CRDDirectoryPaths:     []string{filepath.Join("../../", "vendor", "github.com", "cloudogu", "k8s-component-lib", "api", "v1")},
 		ErrorIfCRDPathMissing: true,
 	}
 
@@ -101,7 +102,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	componentClientSet, err = ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
+	componentClientSet, err = client.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace, defaultHelmClientTimeoutMins, yaml.NewSerializer())
