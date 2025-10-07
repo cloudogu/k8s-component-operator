@@ -14,6 +14,7 @@ Docker docker = new Docker(this)
 gpg = new Gpg(this, docker)
 goVersion = "1.25.1"
 makefile = new Makefile(this)
+componentOperatorCrdVersion="1.10.1"
 
 // Configuration of repository
 repositoryOwner = "cloudogu"
@@ -83,6 +84,13 @@ node('docker') {
 
             stage('Set up k3d cluster') {
                 k3d.startK3d()
+            }
+
+            stage('Deploy crd') {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
+                    k3d.helm("registry login ${registry} --username '${HARBOR_USERNAME}' --password '${HARBOR_PASSWORD}'")
+                    k3d.helm("install k8s-component-operator-crd oci://${registry}/${registry_namespace}/k8s-component-operator-crd --version ${componentOperatorCrdVersion}")
+                }
             }
 
             def imageName = ""
