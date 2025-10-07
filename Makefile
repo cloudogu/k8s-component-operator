@@ -1,6 +1,6 @@
 # Set these to the desired values
 ARTIFACT_ID=k8s-component-operator
-VERSION=1.10.1
+VERSION=1.11.0
 ## Image URL to use all building/pushing image targets
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
 GOTAG=1.25.1
@@ -32,7 +32,7 @@ include build/make/k8s-controller.mk
 BINARY_HELM_VERSION=v3.18.3
 
 .PHONY: build-boot
-build-boot: crd-helm-apply helm-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.
+build-boot: helm-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.
 
 .PHONY: helm-values-update-image-version
 helm-values-update-image-version: $(BINARY_YQ)

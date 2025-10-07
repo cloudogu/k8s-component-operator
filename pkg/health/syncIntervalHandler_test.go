@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

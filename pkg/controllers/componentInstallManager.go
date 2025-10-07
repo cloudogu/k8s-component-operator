@@ -3,12 +3,14 @@ package controllers
 import (
 	"context"
 	"fmt"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"time"
+
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"time"
 )
 
 // ComponentInstallManager is a central unit in the process of handling the installation process of a custom dogu resource.
@@ -40,7 +42,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// set the installed version in the component CR to use it for version-comparison in future upgrades
 	var version string
 	if component.Spec.Version == "" {
-		version, err = cim.helmClient.GetLatestVersion(component.GetHelmChartName())
+		version, err = cim.helmClient.GetLatestVersion(helm.GetHelmChartName(component))
 		if err != nil {
 			return &genericRequeueableError{fmt.Sprintf("failed to get latest version for component %q", component.Spec.Name), err}
 		}
@@ -53,7 +55,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		version = component.Spec.Version
 	}
 
-	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+	chartSpec, err := helm.GetHelmChartSpec(ctx, component, helm.HelmChartCreationOpts{
 		HelmClient:     cim.helmClient,
 		Timeout:        cim.timeout,
 		YamlSerializer: yaml.NewSerializer(),

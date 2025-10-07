@@ -1,7 +1,7 @@
 package health
 
 import (
-	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"

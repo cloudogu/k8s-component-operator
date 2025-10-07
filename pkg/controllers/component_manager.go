@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"

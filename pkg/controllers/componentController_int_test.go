@@ -7,7 +7,10 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"strconv"
+	"strings"
+
+	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
@@ -15,8 +18,6 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strconv"
-	"strings"
 )
 
 type mockeryGinkgoLogger struct {

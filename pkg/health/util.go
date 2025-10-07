@@ -6,7 +6,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
 )
 
 func componentName(object client.Object) string {

@@ -3,7 +3,7 @@
 package health
 
 import (
-	ecosystem "github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
+	client "github.com/cloudogu/k8s-component-lib/client"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -21,19 +21,19 @@ func (_m *mockComponentV1Alpha1Client) EXPECT() *mockComponentV1Alpha1Client_Exp
 }
 
 // Components provides a mock function with given fields: namespace
-func (_m *mockComponentV1Alpha1Client) Components(namespace string) ecosystem.ComponentInterface {
+func (_m *mockComponentV1Alpha1Client) Components(namespace string) client.ComponentInterface {
 	ret := _m.Called(namespace)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Components")
 	}
 
-	var r0 ecosystem.ComponentInterface
-	if rf, ok := ret.Get(0).(func(string) ecosystem.ComponentInterface); ok {
+	var r0 client.ComponentInterface
+	if rf, ok := ret.Get(0).(func(string) client.ComponentInterface); ok {
 		r0 = rf(namespace)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(ecosystem.ComponentInterface)
+			r0 = ret.Get(0).(client.ComponentInterface)
 		}
 	}
 
@@ -58,12 +58,12 @@ func (_c *mockComponentV1Alpha1Client_Components_Call) Run(run func(namespace st
 	return _c
 }
 
-func (_c *mockComponentV1Alpha1Client_Components_Call) Return(_a0 ecosystem.ComponentInterface) *mockComponentV1Alpha1Client_Components_Call {
+func (_c *mockComponentV1Alpha1Client_Components_Call) Return(_a0 client.ComponentInterface) *mockComponentV1Alpha1Client_Components_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *mockComponentV1Alpha1Client_Components_Call) RunAndReturn(run func(string) ecosystem.ComponentInterface) *mockComponentV1Alpha1Client_Components_Call {
+func (_c *mockComponentV1Alpha1Client_Components_Call) RunAndReturn(run func(string) client.ComponentInterface) *mockComponentV1Alpha1Client_Components_Call {
 	_c.Call.Return(run)
 	return _c
 }
