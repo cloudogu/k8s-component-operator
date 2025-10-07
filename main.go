@@ -4,8 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"os"
+
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -21,8 +22,8 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	componentClient "github.com/cloudogu/k8s-component-lib/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/cloudogu/k8s-component-operator/pkg/controllers"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
@@ -112,7 +113,7 @@ func configureManager(ctx context.Context, k8sManager manager.Manager, operatorC
 	return nil
 }
 
-func addRunners(k8sManager manager.Manager, clientSet ecosystem.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) error {
+func addRunners(k8sManager manager.Manager, clientSet componentClient.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) error {
 	healthSyncIntervalHandler := health.NewSyncIntervalHandler(operatorConfig.Namespace, clientSet, operatorConfig.HealthSyncIntervalMins)
 	err := k8sManager.Add(healthSyncIntervalHandler)
 	if err != nil {
@@ -153,7 +154,7 @@ func startK8sManager(ctx context.Context, k8sManager manager.Manager) error {
 	return nil
 }
 
-func configureReconciler(ctx context.Context, k8sManager manager.Manager, clientSet ecosystem.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) error {
+func configureReconciler(ctx context.Context, k8sManager manager.Manager, clientSet componentClient.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) error {
 	eventRecorder := k8sManager.GetEventRecorderFor("k8s-component-operator")
 
 	helmRepoData, err := config.GetHelmRepositoryData(ctx, clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
@@ -185,13 +186,13 @@ func configureReconciler(ctx context.Context, k8sManager manager.Manager, client
 	return nil
 }
 
-func createEcosystemClientSet(k8sManager manager.Manager) (*ecosystem.EcosystemClientset, error) {
+func createEcosystemClientSet(k8sManager manager.Manager) (*componentClient.EcosystemClientset, error) {
 	clientSet, err := kubernetes.NewForConfig(k8sManager.GetConfig())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create clientset: %w", err)
 	}
 
-	componentClientSet, err := ecosystem.NewComponentClientset(k8sManager.GetConfig(), clientSet)
+	componentClientSet, err := componentClient.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create component client set: %w", err)
 	}

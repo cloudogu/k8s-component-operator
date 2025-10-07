@@ -14,6 +14,7 @@ Docker docker = new Docker(this)
 gpg = new Gpg(this, docker)
 goVersion = "1.25.1"
 makefile = new Makefile(this)
+componentOperatorCrdVersion="1.11.0"
 
 // Configuration of repository
 repositoryOwner = "cloudogu"
@@ -23,7 +24,6 @@ registry = "registry.cloudogu.com"
 registry_namespace = "k8s"
 k8sTargetDir = "target/k8s"
 helmChartDir = "${k8sTargetDir}/helm"
-helmCRDChartDir = "${k8sTargetDir}/helm-crd"
 
 // Configuration of branches
 productionReleaseBranch = "main"
@@ -64,13 +64,11 @@ node('docker') {
                             }
 
                             stage('Generate k8s Resources') {
-                                make 'crd-helm-generate'
                                 make 'helm-generate'
                                 archiveArtifacts "${k8sTargetDir}/**/*"
                             }
 
                             stage("Lint helm") {
-                                make 'crd-helm-lint'
                                 make 'helm-lint'
                             }
                         }
@@ -88,6 +86,13 @@ node('docker') {
                 k3d.startK3d()
             }
 
+            stage('Deploy crd') {
+                withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: 'harborhelmchartpush', usernameVariable: 'HARBOR_USERNAME', passwordVariable: 'HARBOR_PASSWORD']]) {
+                    k3d.helm("registry login ${registry} --username '${HARBOR_USERNAME}' --password '${HARBOR_PASSWORD}'")
+                    k3d.helm("install k8s-component-operator-crd oci://${registry}/${registry_namespace}/k8s-component-operator-crd --version ${componentOperatorCrdVersion}")
+                }
+            }
+
             def imageName = ""
             stage('Build & Push Image') {
                 imageName = k3d.buildAndPushToLocalRegistry("cloudogu/${repositoryName}", controllerVersion)
@@ -103,7 +108,6 @@ node('docker') {
             }
 
             stage('Deploy Manager') {
-                k3d.helm("install ${repositoryName}-crd ${helmCRDChartDir}")
                 k3d.helm("install ${repositoryName} ${helmChartDir}")
             }
 
@@ -200,9 +204,8 @@ void stageAutomaticRelease() {
                     .mountJenkinsUser()
                     .inside("--volume ${WORKSPACE}:/go/src/${project} -w /go/src/${project}")
                             {
-                                // Package operator-chart & crd-chart
+                                // Package operator-chart
                                 make 'helm-package'
-                                make 'crd-helm-package'
                                 archiveArtifacts "${k8sTargetDir}/**/*"
 
                                 // Push charts
@@ -210,7 +213,6 @@ void stageAutomaticRelease() {
                                     sh ".bin/helm registry login ${registry} --username '${HARBOR_USERNAME}' --password '${HARBOR_PASSWORD}'"
 
                                     sh ".bin/helm push ${helmChartDir}/${repositoryName}-${controllerVersion}.tgz oci://${registry}/${registry_namespace}/"
-                                    sh ".bin/helm push ${helmCRDChartDir}/${repositoryName}-crd-${controllerVersion}.tgz oci://${registry}/${registry_namespace}/"
                                 }
                             }
         }

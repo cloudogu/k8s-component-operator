@@ -3,10 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"time"
 
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -41,7 +43,7 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// set the installed version in the component CR to use it for version-comparison in future upgrades
 	var version string
 	if component.Spec.Version == "" {
-		version, err = cum.helmClient.GetLatestVersion(component.GetHelmChartName())
+		version, err = cum.helmClient.GetLatestVersion(helm.GetHelmChartName(component))
 		if err != nil {
 			return &genericRequeueableError{fmt.Sprintf("failed to get latest version for component %q", component.Spec.Name), err}
 		}
@@ -54,7 +56,7 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		version = component.Spec.Version
 	}
 
-	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+	chartSpec, err := helm.GetHelmChartSpec(ctx, component, helm.HelmChartCreationOpts{
 		HelmClient:     cum.helmClient,
 		Timeout:        cum.timeout,
 		YamlSerializer: yaml.NewSerializer(),

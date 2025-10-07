@@ -3,15 +3,17 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/health"
-	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
 	"time"
 
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm"
+	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 
 	"github.com/Masterminds/semver/v3"
 
@@ -288,7 +290,7 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
-	chartSpec, err := component.GetHelmChartSpec(ctx, k8sv1.HelmChartCreationOpts{
+	chartSpec, err := helm.GetHelmChartSpec(ctx, component, helm.HelmChartCreationOpts{
 		HelmClient:     r.helmClient,
 		Timeout:        r.timeout,
 		YamlSerializer: r.yamlSerializer,
