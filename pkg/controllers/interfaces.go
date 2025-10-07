@@ -2,17 +2,18 @@ package controllers
 
 import (
 	"context"
+	"time"
+
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"helm.sh/helm/v3/pkg/chart"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	"time"
 
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	componentClient "github.com/cloudogu/k8s-component-lib/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 )
 
@@ -73,11 +74,11 @@ type requeueHandler interface {
 }
 
 type componentEcosystemInterface interface {
-	ecosystem.ComponentEcosystemInterface
+	componentClient.ComponentEcosystemInterface
 }
 
 type componentInterface interface {
-	ecosystem.ComponentInterface
+	componentClient.ComponentInterface
 }
 
 // requeuableError indicates that the current error requires the operator to requeue the component.
@@ -96,5 +97,5 @@ type appsV1Interface interface {
 //nolint:unused
 //goland:noinspection GoUnusedType
 type componentV1Alpha1Interface interface {
-	ecosystem.ComponentV1Alpha1Interface
+	componentClient.ComponentV1Alpha1Interface
 }

@@ -7,8 +7,8 @@ import (
 	appsv1client "k8s.io/client-go/kubernetes/typed/apps/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
-	v1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-lib/client"
 )
 
 type RegistrableController interface {
@@ -16,11 +16,11 @@ type RegistrableController interface {
 }
 
 type ecosystemClientSet interface {
-	ecosystem.ComponentEcosystemInterface
+	client.ComponentEcosystemInterface
 }
 
 type componentClient interface {
-	ecosystem.ComponentInterface
+	client.ComponentInterface
 }
 
 type appsV1Client interface {
@@ -57,7 +57,7 @@ type componentRepo interface {
 //nolint:unused
 //goland:noinspection GoUnusedType
 type componentV1Alpha1Client interface {
-	ecosystem.ComponentV1Alpha1Interface
+	client.ComponentV1Alpha1Interface
 }
 
 //nolint:unused

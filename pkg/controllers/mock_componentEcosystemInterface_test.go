@@ -30,6 +30,8 @@ import (
 
 	certificatesv1beta1 "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 
+	client "github.com/cloudogu/k8s-component-lib/client"
+
 	coordinationv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
 
 	coordinationv1beta1 "k8s.io/client-go/kubernetes/typed/coordination/v1beta1"
@@ -41,8 +43,6 @@ import (
 	discoveryv1 "k8s.io/client-go/kubernetes/typed/discovery/v1"
 
 	discoveryv1beta1 "k8s.io/client-go/kubernetes/typed/discovery/v1beta1"
-
-	ecosystem "github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
 
 	eventsv1 "k8s.io/client-go/kubernetes/typed/events/v1"
 
@@ -1073,19 +1073,19 @@ func (_c *mockComponentEcosystemInterface_CertificatesV1beta1_Call) RunAndReturn
 }
 
 // ComponentV1Alpha1 provides a mock function with no fields
-func (_m *mockComponentEcosystemInterface) ComponentV1Alpha1() ecosystem.ComponentV1Alpha1Interface {
+func (_m *mockComponentEcosystemInterface) ComponentV1Alpha1() client.ComponentV1Alpha1Interface {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for ComponentV1Alpha1")
 	}
 
-	var r0 ecosystem.ComponentV1Alpha1Interface
-	if rf, ok := ret.Get(0).(func() ecosystem.ComponentV1Alpha1Interface); ok {
+	var r0 client.ComponentV1Alpha1Interface
+	if rf, ok := ret.Get(0).(func() client.ComponentV1Alpha1Interface); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(ecosystem.ComponentV1Alpha1Interface)
+			r0 = ret.Get(0).(client.ComponentV1Alpha1Interface)
 		}
 	}
 
@@ -1109,12 +1109,12 @@ func (_c *mockComponentEcosystemInterface_ComponentV1Alpha1_Call) Run(run func()
 	return _c
 }
 
-func (_c *mockComponentEcosystemInterface_ComponentV1Alpha1_Call) Return(_a0 ecosystem.ComponentV1Alpha1Interface) *mockComponentEcosystemInterface_ComponentV1Alpha1_Call {
+func (_c *mockComponentEcosystemInterface_ComponentV1Alpha1_Call) Return(_a0 client.ComponentV1Alpha1Interface) *mockComponentEcosystemInterface_ComponentV1Alpha1_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *mockComponentEcosystemInterface_ComponentV1Alpha1_Call) RunAndReturn(run func() ecosystem.ComponentV1Alpha1Interface) *mockComponentEcosystemInterface_ComponentV1Alpha1_Call {
+func (_c *mockComponentEcosystemInterface_ComponentV1Alpha1_Call) RunAndReturn(run func() client.ComponentV1Alpha1Interface) *mockComponentEcosystemInterface_ComponentV1Alpha1_Call {
 	_c.Call.Return(run)
 	return _c
 }

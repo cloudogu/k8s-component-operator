@@ -32,7 +32,7 @@ include build/make/k8s-controller.mk
 BINARY_HELM_VERSION=v3.18.3
 
 .PHONY: build-boot
-build-boot: crd-helm-apply helm-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.
+build-boot: helm-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.
 
 .PHONY: helm-values-update-image-version
 helm-values-update-image-version: $(BINARY_YQ)

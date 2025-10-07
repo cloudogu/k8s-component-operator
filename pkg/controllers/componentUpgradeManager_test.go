@@ -2,15 +2,17 @@ package controllers
 
 import (
 	"context"
+	"testing"
+
+	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 )
 
 func TestNewComponentUpgradeManager(t *testing.T) {
@@ -48,7 +50,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
 			YamlSerializer: yaml.NewSerializer(),
@@ -75,7 +77,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 
 		mockHelmClient := newMockHelmClient(t)
-		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
 			YamlSerializer: yaml.NewSerializer(),
@@ -117,7 +119,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
 			YamlSerializer: yaml.NewSerializer(),
@@ -151,7 +153,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
 			YamlSerializer: yaml.NewSerializer(),
@@ -191,7 +193,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
-		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
 			YamlSerializer: yaml.NewSerializer(),
@@ -234,7 +236,7 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		spec, _ := component.GetHelmChartSpec(testCtx, k8sv1.HelmChartCreationOpts{
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			Timeout:        defaultHelmClientTimeoutMins,
 			YamlSerializer: yaml.NewSerializer(),

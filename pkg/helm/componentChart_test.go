@@ -1,18 +1,21 @@
-package v1
+package helm
 
 import (
 	"context"
 	_ "embed"
 	"fmt"
+	"reflect"
+	"testing"
+
+	componentV1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/chart"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
+
 	originalyaml "sigs.k8s.io/yaml"
-	"testing"
 )
 
 //go:embed testdata/prometheus-component.yaml
@@ -22,26 +25,26 @@ func TestComponent_GetHelmChartSpec(t *testing.T) {
 	type fields struct {
 		TypeMeta   v1.TypeMeta
 		ObjectMeta v1.ObjectMeta
-		Spec       ComponentSpec
-		Status     ComponentStatus
+		Spec       componentV1.ComponentSpec
+		Status     componentV1.ComponentStatus
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   string
 	}{
-		{name: "should use deployNamespace if specified", fields: fields{Spec: ComponentSpec{DeployNamespace: "longhorn"}}, want: "longhorn"},
-		{name: "should use regular namespace if no deployNamespace if specified", fields: fields{ObjectMeta: v1.ObjectMeta{Namespace: "ecosystem"}, Spec: ComponentSpec{DeployNamespace: ""}}, want: "ecosystem"},
+		{name: "should use deployNamespace if specified", fields: fields{Spec: componentV1.ComponentSpec{DeployNamespace: "longhorn"}}, want: "longhorn"},
+		{name: "should use regular namespace if no deployNamespace if specified", fields: fields{ObjectMeta: v1.ObjectMeta{Namespace: "ecosystem"}, Spec: componentV1.ComponentSpec{DeployNamespace: ""}}, want: "ecosystem"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Component{
+			c := &componentV1.Component{
 				TypeMeta:   tt.fields.TypeMeta,
 				ObjectMeta: tt.fields.ObjectMeta,
 				Spec:       tt.fields.Spec,
 				Status:     tt.fields.Status,
 			}
-			spec, _ := c.GetHelmChartSpec(context.Background())
+			spec, _ := GetHelmChartSpec(context.Background(), c)
 			if got := spec.Namespace; !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetHelmChartSpec() = %v, want %v", got, tt.want)
 			}
@@ -52,8 +55,8 @@ func TestComponent_GetHelmChartSpec(t *testing.T) {
 func Test_getMappedValuesYaml(t *testing.T) {
 	testCtx := context.Background()
 	t.Run("success with mapping", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "debug",
 				},
@@ -95,7 +98,7 @@ metavalues:
 		assert.NoError(t, err)
 	})
 	t.Run("success without mappedValues", func(t *testing.T) {
-		component := &Component{}
+		component := &componentV1.Component{}
 		spec := &client.ChartSpec{}
 
 		mockChartGetter := NewMockChartGetter(t)
@@ -104,8 +107,8 @@ metavalues:
 		assert.NoError(t, err)
 	})
 	t.Run("success without mapping", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "debug",
 				},
@@ -142,8 +145,8 @@ metavalues:
 		assert.NoError(t, err)
 	})
 	t.Run("success no matching mapping", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"someOtherKey": "value",
 				},
@@ -178,8 +181,8 @@ metavalues:
 		assert.NoError(t, err)
 	})
 	t.Run("success with multiple path", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "debug",
 				},
@@ -230,8 +233,8 @@ your:
 		assert.NoError(t, err)
 	})
 	t.Run("success invalid mapping value", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "panic",
 				},
@@ -271,8 +274,8 @@ metavalues:
 		assert.NoError(t, err)
 	})
 	t.Run("error getting helm chart", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "debug",
 				},
@@ -288,8 +291,8 @@ metavalues:
 		assert.Error(t, err)
 	})
 	t.Run("error parsing yaml", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "debug",
 				},
@@ -320,8 +323,8 @@ invalid
 		assert.Error(t, err)
 	})
 	t.Run("error unmarshaling", func(t *testing.T) {
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "debug",
 				},
@@ -367,8 +370,8 @@ metavalues:
 
 		fmt.Print(origYaml)
 
-		component := &Component{
-			Spec: ComponentSpec{
+		component := &componentV1.Component{
+			Spec: componentV1.ComponentSpec{
 				MappedValues: map[string]string{
 					"mainLogLevel": "debug",
 				},

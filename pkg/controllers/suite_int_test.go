@@ -5,8 +5,8 @@ package controllers
 
 import (
 	"context"
-	"github.com/cloudogu/k8s-component-operator/pkg/api/ecosystem"
-	k8sv1 "github.com/cloudogu/k8s-component-operator/pkg/api/v1"
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-lib/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/config"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"k8s.io/client-go/kubernetes"

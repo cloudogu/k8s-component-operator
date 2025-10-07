@@ -7,6 +7,7 @@ require (
 	github.com/bombsimon/logrusr/v2 v2.0.1
 	github.com/cloudogu/cesapp-lib v0.18.1
 	github.com/cloudogu/k8s-apply-lib v0.5.0
+	github.com/cloudogu/k8s-component-lib v0.0.0-20251007081606-7950c06d70de
 	github.com/cloudogu/retry-lib v0.1.0
 	github.com/go-logr/logr v1.4.3
 	github.com/onsi/ginkgo v1.16.5
@@ -21,7 +22,7 @@ require (
 	k8s.io/apimachinery v0.34.1
 	k8s.io/cli-runtime v0.34.1
 	k8s.io/client-go v0.34.1
-	sigs.k8s.io/controller-runtime v0.22.1
+	sigs.k8s.io/controller-runtime v0.22.2
 	sigs.k8s.io/yaml v1.6.0
 )
 
