@@ -6,6 +6,7 @@ import (
 	"time"
 
 	componentV1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
@@ -26,6 +27,7 @@ type HelmChartCreationOpts struct {
 	HelmClient     ChartGetter
 	Timeout        time.Duration
 	YamlSerializer yaml.Serializer
+	Reader         configref.ConfigMapRefReader
 }
 
 type Mapping struct {
@@ -57,10 +59,12 @@ func GetHelmChartSpec(ctx context.Context, c *componentV1.Component, opts ...Hel
 	timeout := defaultHelmClientTimeoutMins
 	var chartGetter ChartGetter
 	var yamlSerializer yaml.Serializer
+	var reader configref.ConfigMapRefReader
 	if len(opts) > 0 {
 		timeout = opts[0].Timeout
 		chartGetter = opts[0].HelmClient
 		yamlSerializer = opts[0].YamlSerializer
+		reader = opts[0].Reader
 	}
 
 	chartSpec := &client.ChartSpec{
@@ -88,6 +92,11 @@ func GetHelmChartSpec(ctx context.Context, c *componentV1.Component, opts ...Hel
 		chartSpec.MappedValuesYaml, err = getMappedValuesYaml(ctx, c, chartSpec, chartGetter, yamlSerializer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create mapped values: %w", err)
+		}
+
+		chartSpec.ValuesConfigRefYaml, err = reader.GetValues(ctx, c.Spec.ValuesConfigRef)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create values config references: %w", err)
 		}
 	}
 

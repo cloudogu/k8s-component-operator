@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 
@@ -22,16 +23,18 @@ type ComponentUpgradeManager struct {
 	healthManager   healthManager
 	recorder        record.EventRecorder
 	timeout         time.Duration
+	reader          configref.ConfigMapRefReader
 }
 
 // NewComponentUpgradeManager creates a new instance of ComponentUpgradeManager.
-func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration) *ComponentUpgradeManager {
+func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configref.ConfigMapRefReader) *ComponentUpgradeManager {
 	return &ComponentUpgradeManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
 		healthManager:   healthManager,
 		recorder:        recorder,
 		timeout:         timeout,
+		reader:          reader,
 	}
 }
 
@@ -60,6 +63,7 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		HelmClient:     cum.helmClient,
 		Timeout:        cum.timeout,
 		YamlSerializer: yaml.NewSerializer(),
+		Reader:         cum.reader,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get helm chart spec: %w", err)

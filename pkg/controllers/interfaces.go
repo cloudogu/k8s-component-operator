@@ -99,3 +99,7 @@ type appsV1Interface interface {
 type componentV1Alpha1Interface interface {
 	componentClient.ComponentV1Alpha1Interface
 }
+
+type configMapRefReader interface {
+	GetValues(ctx context.Context, configMapReference *k8sv1.Reference) (string, error)
+}

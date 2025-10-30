@@ -6,6 +6,7 @@ import (
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	corev1 "k8s.io/api/core/v1"
@@ -20,16 +21,18 @@ type ComponentInstallManager struct {
 	healthManager   healthManager
 	recorder        record.EventRecorder
 	timeout         time.Duration
+	reader          configref.ConfigMapRefReader
 }
 
 // NewComponentInstallManager creates a new instance of ComponentInstallManager.
-func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration) *ComponentInstallManager {
+func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configref.ConfigMapRefReader) *ComponentInstallManager {
 	return &ComponentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
 		healthManager:   healthManager,
 		recorder:        recorder,
 		timeout:         timeout,
+		reader:          reader,
 	}
 }
 
@@ -59,6 +62,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		HelmClient:     cim.helmClient,
 		Timeout:        cim.timeout,
 		YamlSerializer: yaml.NewSerializer(),
+		Reader:         cim.reader,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get helm chart spec: %w", err)

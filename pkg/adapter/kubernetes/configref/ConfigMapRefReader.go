@@ -12,8 +12,8 @@ type ConfigMapRefReader struct {
 	configMapClient configMapClient
 }
 
-func NewConfigMapRefReader(configMapClient configMapClient) *ConfigMapRefReader {
-	return &ConfigMapRefReader{
+func NewConfigMapRefReader(configMapClient configMapClient) ConfigMapRefReader {
+	return ConfigMapRefReader{
 		configMapClient: configMapClient,
 	}
 }

@@ -3,7 +3,9 @@ package client
 import (
 	"context"
 	"fmt"
+
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -23,17 +25,22 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 		return nil, errors.Wrap(err, "Failed to Parse ValuesYaml")
 	}
 
+	configRefValues, err := mergeYamlStringWithYaml(logger, spec.ValuesConfigRefYaml, originalValuesYaml)
+	if err != nil {
+		return nil, err
+	}
+
 	valuesOptions, err := spec.ValuesOptions.MergeValues(p)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to Parse ValuesOptions")
 	}
 
-	mergedValuesYamlOverwrite := values.MergeMaps(originalValuesYaml, valuesOptions)
+	mergedValuesYamlOverwrite := values.MergeMaps(configRefValues, valuesOptions)
 
 	mappedValuesYaml := map[string]interface{}{}
 	err = yaml.Unmarshal([]byte(spec.MappedValuesYaml), &mappedValuesYaml)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Parse ValuesYaml")
+		return nil, errors.Wrap(err, "Failed to Parse mappedValues")
 	}
 
 	conflict := hasSameValuesConfigured(mergedValuesYamlOverwrite, mappedValuesYaml)
@@ -42,6 +49,21 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 	}
 
 	return values.MergeMaps(mergedValuesYamlOverwrite, mappedValuesYaml), nil
+}
+
+func mergeYamlStringWithYaml(logger logr.Logger, yamlString string, yamlToMergeInto map[string]interface{}) (map[string]interface{}, error) {
+	valuesYaml := map[string]interface{}{}
+	err := yaml.Unmarshal([]byte(yamlString), &valuesYaml)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to Parse yaml")
+	}
+
+	conflict := hasSameValuesConfigured(yamlToMergeInto, valuesYaml)
+	if conflict {
+		logger.Error(fmt.Errorf("conflicting values in valuesYamlOverwrite and mappedValues"), "you cannot set log mapped values via valuesYamlOverwrite and mappedValues. Configured value in mappedValues has priority")
+	}
+
+	return values.MergeMaps(yamlToMergeInto, valuesYaml), nil
 }
 
 func hasSameValuesConfigured(a, b map[string]interface{}) bool {

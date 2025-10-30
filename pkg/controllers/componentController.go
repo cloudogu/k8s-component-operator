@@ -8,6 +8,7 @@ import (
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
@@ -72,10 +73,11 @@ type ComponentReconciler struct {
 	namespace        string
 	timeout          time.Duration
 	yamlSerializer   yaml.Serializer
+	reader           configref.ConfigMapRefReader
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer) *ComponentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configref.ConfigMapRefReader) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
 	return &ComponentReconciler{
 		clientSet: clientSet,
@@ -86,11 +88,13 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 			health.NewManager(namespace, clientSet),
 			recorder,
 			timeout,
+			configref.NewConfigMapRefReader(clientSet.CoreV1().ConfigMaps(namespace)),
 		),
 		helmClient:     helmClient,
 		requeueHandler: componentRequeueHandler,
 		namespace:      namespace,
 		yamlSerializer: yamlSerializer,
+		reader:         reader,
 	}
 }
 
@@ -295,6 +299,7 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 		HelmClient:     r.helmClient,
 		Timeout:        r.timeout,
 		YamlSerializer: r.yamlSerializer,
+		Reader:         r.reader,
 	})
 	if err != nil {
 		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
@@ -370,7 +375,9 @@ func (r *ComponentReconciler) findComponentsForConfigMaps(ctx context.Context, c
 
 	var requests []reconcile.Request
 	for _, component := range list.Items {
-		if component.Spec.ValuesConfigRef.Name == cm.GetName() {
+		configRef := component.Spec.ValuesConfigRef
+		if configRef != nil && configRef.Name == cm.GetName() {
+			println(fmt.Sprintf("ConfigRef: %q", component.Spec.ValuesConfigRef))
 			requests = append(requests, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      component.Name,

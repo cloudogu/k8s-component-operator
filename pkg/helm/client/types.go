@@ -1,10 +1,11 @@
 package client
 
 import (
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
-	"helm.sh/helm/v3/pkg/postrender"
 	"io"
 	"time"
+
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
+	"helm.sh/helm/v3/pkg/postrender"
 
 	"k8s.io/client-go/rest"
 
@@ -91,6 +92,10 @@ type ChartSpec struct {
 	// and https://github.com/kubernetes-sigs/controller-tools/pull/317
 	// +optional
 	MappedValuesYaml string `json:"mappedValuesYaml,omitempty"`
+	// ValuesConfigRef is used for configuration
+	// TODO
+	// +optional
+	ValuesConfigRefYaml string `json:"valuesConfigRefYaml,omitempty"`
 	// Specify values similar to the cli
 	// +optional
 	ValuesOptions values.Options `json:"valuesOptions,omitempty"`
