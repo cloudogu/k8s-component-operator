@@ -7,13 +7,14 @@ import (
 	"strings"
 	"time"
 
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 
 	"github.com/Masterminds/semver/v3"
 
@@ -357,5 +358,26 @@ func (r *ComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		WithOptions(options).
 		For(&k8sv1.Component{}).
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.findComponentsForConfigMaps)).
 		Complete(r)
+}
+
+func (r *ComponentReconciler) findComponentsForConfigMaps(ctx context.Context, cm client.Object) []reconcile.Request {
+	list, err := r.clientSet.ComponentV1Alpha1().Components(r.namespace).List(ctx, v1.ListOptions{})
+	if err != nil {
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for _, component := range list.Items {
+		if component.Spec.ValuesConfigRef.Name == cm.GetName() {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      component.Name,
+					Namespace: component.Namespace,
+				},
+			})
+		}
+	}
+	return requests
 }
