@@ -4,7 +4,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"helm.sh/helm/v3/pkg/postrender"
 
 	"k8s.io/client-go/rest"
@@ -93,12 +92,11 @@ type ChartSpec struct {
 	// +optional
 	MappedValuesYaml string `json:"mappedValuesYaml,omitempty"`
 	// ValuesConfigRef is used for configuration
-	// TODO
 	// +optional
 	ValuesConfigRefYaml string `json:"valuesConfigRefYaml,omitempty"`
 	// Specify values similar to the cli
 	// +optional
-	ValuesOptions values.Options `json:"valuesOptions,omitempty"`
+	ValuesOptions valuesOptions `json:"valuesOptions,omitempty"`
 	// Version of the chart release.
 	// +optional
 	Version string `json:"version,omitempty"`

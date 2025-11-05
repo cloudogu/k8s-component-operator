@@ -1,9 +1,33 @@
 package client
 
 import (
-	"github.com/stretchr/testify/assert"
+	_ "embed"
+	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"helm.sh/helm/v3/pkg/getter"
+	"sigs.k8s.io/yaml"
+
+	yaml2 "github.com/cloudogu/k8s-component-operator/pkg/yaml"
 )
+
+//go:embed testdata/values/mappedValues.yaml
+var mappedValuesBytes []byte
+
+//go:embed testdata/values/valuesYamlOverwrite.yaml
+var valuesYamlOverwriteBytes []byte
+
+//go:embed testdata/values/configMapData.yaml
+var configMapDataBytes []byte
+
+//go:embed testdata/values/values.yaml
+var valuesBytes []byte
+
+//go:embed testdata/values/result.yaml
+var resultBytes []byte
 
 func Test_haveSameKeyWithDifferentValues(t *testing.T) {
 	tests := []struct {
@@ -128,6 +152,75 @@ func Test_haveSameKeyWithDifferentValues(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equalf(t, test.want, hasSameValuesConfigured(test.a, test.b), "hasSameValuesConfigured(%v, %v)", test.a, test.b)
+		})
+	}
+}
+
+func TestChartSpec_GetValuesMap(t *testing.T) {
+	type fields struct {
+		MappedValuesYamlFn    func(t *testing.T) string
+		ValuesOptionsFn       func(t *testing.T) valuesOptions
+		ValuesConfigRefYamlFn func(t *testing.T) string
+		ValuesYamlFn          func(t *testing.T) string
+	}
+	type args struct {
+		p getter.Providers
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantFn  func(t *testing.T) map[string]interface{}
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{
+			name: "mappedValues before values yaml overwrite. values yaml overwrite before configmap reference. Config map reference before values yaml",
+			fields: fields{
+				MappedValuesYamlFn: func(t *testing.T) string {
+					return string(mappedValuesBytes)
+				},
+				ValuesOptionsFn: func(t *testing.T) valuesOptions {
+					mck := newMockValuesOptions(t)
+					valuesYamlOverwrite := map[string]interface{}{}
+					err := yaml.Unmarshal(valuesYamlOverwriteBytes, &valuesYamlOverwrite)
+					require.NoError(t, err)
+
+					mck.EXPECT().MergeValues(mock.Anything).Return(valuesYamlOverwrite, nil)
+					return mck
+				},
+				ValuesConfigRefYamlFn: func(t *testing.T) string {
+					return string(configMapDataBytes)
+				},
+				ValuesYamlFn: func(t *testing.T) string {
+					return string(valuesBytes)
+				},
+			},
+			args: args{
+				p: make(getter.Providers, 0),
+			},
+			wantErr: assert.NoError,
+			wantFn: func(t *testing.T) map[string]interface{} {
+				var resultYaml map[string]interface{}
+				serializer := yaml2.NewSerializer()
+				err := serializer.Unmarshal(resultBytes, &resultYaml)
+				require.NoError(t, err)
+				return resultYaml
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := &ChartSpec{
+				ValuesYaml:          tt.fields.ValuesYamlFn(t),
+				MappedValuesYaml:    tt.fields.MappedValuesYamlFn(t),
+				ValuesConfigRefYaml: tt.fields.ValuesConfigRefYamlFn(t),
+				ValuesOptions:       tt.fields.ValuesOptionsFn(t),
+			}
+			got, err := spec.GetValuesMap(tt.args.p)
+			if !tt.wantErr(t, err, fmt.Sprintf("GetValuesMap(%v)", tt.args.p)) {
+				return
+			}
+			assert.Equalf(t, tt.wantFn(t), got, "GetValuesMap(%v)", tt.args.p)
 		})
 	}
 }

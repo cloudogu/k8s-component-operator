@@ -1,0 +1,14 @@
+manager:
+  imagePullPolicy: IfNotPresent
+  env:
+    logLevel: error
+    stage: production
+    helmClientTimeoutMins: "18"
+    rollbackReleaseTimeoutMins: "15"
+  resourceLimits:
+    memory: 105M
+  resourceRequests:
+    cpu: 15m
+    memory: 105M
+  networkPolicies:
+    enabled: true

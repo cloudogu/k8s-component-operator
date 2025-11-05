@@ -3,9 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
-	"github.com/stretchr/testify/mock"
-	"helm.sh/helm/v3/pkg/chart"
 	"log"
 	"net"
 	"net/http"
@@ -14,6 +11,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
+	"github.com/stretchr/testify/mock"
+	"helm.sh/helm/v3/pkg/chart"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -406,7 +407,7 @@ testYaml:
 		spec := &ChartSpec{
 			ReleaseName: "test-release",
 			ChartName:   "test-chart",
-			ValuesOptions: values.Options{
+			ValuesOptions: &values.Options{
 				StringValues: []string{"testYaml.key3=val3", "testYaml.key4=val4"},
 			},
 		}
@@ -434,7 +435,7 @@ testYaml:
 		spec := &ChartSpec{
 			ReleaseName: "test-release",
 			ChartName:   "test-chart",
-			ValuesOptions: values.Options{
+			ValuesOptions: &values.Options{
 				StringValues: []string{"testYaml.key2=val3", "testYaml.key3=val4"},
 			},
 			ValuesYaml: `
@@ -512,7 +513,7 @@ NoYaml{}
 		spec := &ChartSpec{
 			ReleaseName: "test-release",
 			ChartName:   "test-chart",
-			ValuesOptions: values.Options{
+			ValuesOptions: &values.Options{
 				StringValues: []string{"noKeyValue{}"},
 			},
 		}
