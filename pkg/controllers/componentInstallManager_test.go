@@ -16,6 +16,7 @@ import (
 
 var ctxWithoutCancel = context.WithoutCancel(testCtx)
 var defaultHelmClientTimeoutMins = 15 * time.Minute
+var defaultRequeueTime = 3 * time.Second
 
 func TestNewComponentInstallManager(t *testing.T) {
 	// when
