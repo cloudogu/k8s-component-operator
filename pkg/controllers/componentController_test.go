@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
-	"testing"
-	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 
@@ -24,22 +25,29 @@ import (
 )
 
 const testNamespace = "testtestNamespace"
+const testRequeueTime = time.Second
 
 func TestNewComponentReconciler(t *testing.T) {
 	// given
 	componentInterfaceMock := newMockComponentInterface(t)
 	componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
 	componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+	configMapClientMock := newMockConfigMapInterface(t)
+	corev1Mock := newMockCoreV1Interface(t)
+	corev1Mock.EXPECT().ConfigMaps(testNamespace).Return(configMapClientMock)
 	appsMock := newMockAppsV1Interface(t)
 	clientSetMock := newMockComponentEcosystemInterface(t)
 	clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+	clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
 	clientSetMock.EXPECT().AppsV1().Return(appsMock)
+	clientSetMock.EXPECT().CoreV1().Return(corev1Mock)
+	configMapRefReaderMock := newMockConfigMapRefReader(t)
 
 	mockHelmClient := newMockHelmClient(t)
 	mockRecorder := newMockEventRecorder(t)
 
 	// when
-	manager := NewComponentReconciler(clientSetMock, mockHelmClient, mockRecorder, testNamespace, defaultHelmClientTimeoutMins, yaml.NewSerializer())
+	manager := NewComponentReconciler(clientSetMock, mockHelmClient, mockRecorder, testNamespace, defaultHelmClientTimeoutMins, yaml.NewSerializer(), configMapRefReaderMock, testRequeueTime)
 
 	// then
 	require.NotNil(t, manager)
@@ -206,6 +214,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		// given
 		component := getComponent(testNamespace, helmNamespace, "", "dogu-op", "0.1.0")
 		component.Status.Status = "installed"
+		component.Spec.ValuesConfigRef = &k8sv1.Reference{}
 
 		componentInterfaceMock := newMockComponentInterface(t)
 		componentInterfaceMock.EXPECT().Get(testCtx, "dogu-op", v1.GetOptions{}).Return(component, nil)
@@ -213,6 +222,8 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
 		clientSetMock := newMockComponentEcosystemInterface(t)
 		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		mockRecorder := newMockEventRecorder(t)
 		manager := NewMockComponentManager(t)
@@ -230,6 +241,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 			helmClient:       helmClient,
 			timeout:          defaultHelmClientTimeoutMins,
 			yamlSerializer:   yaml.NewSerializer(),
+			reader:           configMapRefReaderMock,
 		}
 		req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: testNamespace, Name: "dogu-op"}}
 
@@ -423,16 +435,20 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should fail on error getting component values", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.1")
+		component.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(nil, assert.AnError)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
 			timeout:        defaultHelmClientTimeoutMins,
 			yamlSerializer: yaml.NewSerializer(),
+			reader:         configMapRefReaderMock,
 		}
 
 		// when
@@ -526,16 +542,20 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return upgrade-operation on same version, but values-yaml difference", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.2")
+		component.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
 			timeout:        defaultHelmClientTimeoutMins,
 			yamlSerializer: yaml.NewSerializer(),
+			reader:         configMapRefReaderMock,
 		}
 
 		// when
@@ -549,16 +569,20 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return ignore-operation on same version and same values-yaml values", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.2")
+		component.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
 			timeout:        defaultHelmClientTimeoutMins,
 			yamlSerializer: yaml.NewSerializer(),
+			reader:         configMapRefReaderMock,
 		}
 
 		// when
@@ -572,16 +596,20 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return ignore-operation on same version and different zero-length maps", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.2")
+		component.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.2"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}(nil), nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
 			timeout:        defaultHelmClientTimeoutMins,
 			yamlSerializer: yaml.NewSerializer(),
+			reader:         configMapRefReaderMock,
 		}
 
 		// when
@@ -595,16 +623,20 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 	t.Run("should return ignore-operation on same version", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.1")
+		component.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockHelmClient := newMockHelmClient(t)
 		helmReleases := []*release.Release{{Name: "dogu-op", Namespace: "ecosystem", Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.0.1"}}}}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(helmReleases, nil)
 		mockHelmClient.EXPECT().GetReleaseValues("dogu-op", false).Return(map[string]interface{}{}, nil)
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
 			timeout:        defaultHelmClientTimeoutMins,
 			yamlSerializer: yaml.NewSerializer(),
+			reader:         configMapRefReaderMock,
 		}
 
 		// when

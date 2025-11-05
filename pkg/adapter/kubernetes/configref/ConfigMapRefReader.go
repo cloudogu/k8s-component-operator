@@ -18,7 +18,7 @@ func NewConfigMapRefReader(configMapClient configMapClient) ConfigMapRefReader {
 	}
 }
 
-func (reader *ConfigMapRefReader) GetValues(ctx context.Context, configMapReference *v2.Reference) (string, error) {
+func (reader ConfigMapRefReader) GetValues(ctx context.Context, configMapReference *v2.Reference) (string, error) {
 	if configMapReference == nil || configMapReference.Name == "" {
 		return "", nil
 	}

@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"context"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
 	"time"
+
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -60,7 +61,7 @@ func Test_componentRequeueHandler_Handle(t *testing.T) {
 		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock}
 
 		requeueErrMock := newMockRequeuableError(t)
-		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything).Return(30 * time.Second)
+		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything, mock.Anything).Return(30 * time.Second)
 
 		// when
 		actual, err := sut.Handle(testCtx, "", component, requeueErrMock, "upgrading")
@@ -90,7 +91,7 @@ func Test_componentRequeueHandler_Handle(t *testing.T) {
 		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock, recorder: recorderMock}
 
 		requeueErrMock := newMockRequeuableError(t)
-		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything).Return(time.Second)
+		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything, mock.Anything).Return(time.Second)
 		requeueErrMock.EXPECT().Error().Return("my error")
 
 		// when

@@ -7,6 +7,7 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"helm.sh/helm/v3/pkg/chart"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"helm.sh/helm/v3/pkg/release"
 	"k8s.io/client-go/tools/record"
@@ -102,4 +103,16 @@ type componentV1Alpha1Interface interface {
 
 type configMapRefReader interface {
 	GetValues(ctx context.Context, configMapReference *k8sv1.Reference) (string, error)
+}
+
+//nolint:unused
+//goland:noinspection GoUnusedType
+type coreV1Interface interface {
+	corev1.CoreV1Interface
+}
+
+//nolint:unused
+//goland:noinspection GoUnusedType
+type configMapInterface interface {
+	corev1.ConfigMapInterface
 }

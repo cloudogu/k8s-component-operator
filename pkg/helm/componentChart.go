@@ -6,8 +6,6 @@ import (
 	"time"
 
 	componentV1 "github.com/cloudogu/k8s-component-lib/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
-
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/cloudogu/k8s-component-operator/pkg/labels"
@@ -27,7 +25,7 @@ type HelmChartCreationOpts struct {
 	HelmClient     ChartGetter
 	Timeout        time.Duration
 	YamlSerializer yaml.Serializer
-	Reader         configref.ConfigMapRefReader
+	Reader         configMapRefReader
 }
 
 type Mapping struct {
@@ -59,7 +57,7 @@ func GetHelmChartSpec(ctx context.Context, c *componentV1.Component, opts ...Hel
 	timeout := defaultHelmClientTimeoutMins
 	var chartGetter ChartGetter
 	var yamlSerializer yaml.Serializer
-	var reader configref.ConfigMapRefReader
+	var reader configMapRefReader
 	if len(opts) > 0 {
 		timeout = opts[0].Timeout
 		chartGetter = opts[0].HelmClient

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 
@@ -23,11 +22,11 @@ type ComponentUpgradeManager struct {
 	healthManager   healthManager
 	recorder        record.EventRecorder
 	timeout         time.Duration
-	reader          configref.ConfigMapRefReader
+	reader          configMapRefReader
 }
 
 // NewComponentUpgradeManager creates a new instance of ComponentUpgradeManager.
-func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configref.ConfigMapRefReader) *ComponentUpgradeManager {
+func NewComponentUpgradeManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configMapRefReader) *ComponentUpgradeManager {
 	return &ComponentUpgradeManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,

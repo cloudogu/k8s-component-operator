@@ -6,7 +6,6 @@ import (
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	corev1 "k8s.io/api/core/v1"
@@ -21,11 +20,11 @@ type ComponentInstallManager struct {
 	healthManager   healthManager
 	recorder        record.EventRecorder
 	timeout         time.Duration
-	reader          configref.ConfigMapRefReader
+	reader          configMapRefReader
 }
 
 // NewComponentInstallManager creates a new instance of ComponentInstallManager.
-func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configref.ConfigMapRefReader) *ComponentInstallManager {
+func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configMapRefReader) *ComponentInstallManager {
 	return &ComponentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
