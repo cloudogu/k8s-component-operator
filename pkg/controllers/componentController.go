@@ -77,8 +77,8 @@ type ComponentReconciler struct {
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configref.ConfigMapRefReader) *ComponentReconciler {
-	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configref.ConfigMapRefReader, requeueTime time.Duration) *ComponentReconciler {
+	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace, requeueTime)
 	return &ComponentReconciler{
 		clientSet: clientSet,
 		recorder:  recorder,

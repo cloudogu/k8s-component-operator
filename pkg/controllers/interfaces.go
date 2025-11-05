@@ -85,7 +85,7 @@ type componentInterface interface {
 type requeuableError interface {
 	error
 	// GetRequeueTime returns the time to wait before the next reconciliation.
-	GetRequeueTime(requeueTimeNanos time.Duration) time.Duration
+	GetRequeueTime(requeueTimeNanos time.Duration, defaultRequeueTimeNanos time.Duration) time.Duration
 }
 
 //nolint:unused
