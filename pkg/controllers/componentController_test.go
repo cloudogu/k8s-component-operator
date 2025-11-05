@@ -806,3 +806,98 @@ func Test_componentReconciler_validateName(t *testing.T) {
 		})
 	}
 }
+
+func TestComponentReconciler_getComponentRequest(t *testing.T) {
+	t.Run("should fail to get component list", func(t *testing.T) {
+		// given
+		cm := &corev1.ConfigMap{}
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
+		componentV1InterfaceMock := newMockComponentV1Alpha1Interface(t)
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().List(testCtx, v1.ListOptions{}).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{*component}}, assert.AnError)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentV1InterfaceMock)
+		componentV1InterfaceMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+
+		sut := ComponentReconciler{
+			namespace: testNamespace,
+			clientSet: clientSetMock,
+		}
+
+		// when
+		requests := sut.getComponentRequest(testCtx, cm)
+
+		// then
+		assert.Nil(t, requests)
+	})
+	t.Run("should get empty component list", func(t *testing.T) {
+		// given
+		cm := &corev1.ConfigMap{}
+		componentV1InterfaceMock := newMockComponentV1Alpha1Interface(t)
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().List(testCtx, v1.ListOptions{}).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{}}, nil)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentV1InterfaceMock)
+		componentV1InterfaceMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+
+		sut := ComponentReconciler{
+			namespace: testNamespace,
+			clientSet: clientSetMock,
+		}
+
+		// when
+		requests := sut.getComponentRequest(testCtx, cm)
+
+		// then
+		assert.Empty(t, requests)
+	})
+	t.Run("should get component list with no config map reference", func(t *testing.T) {
+		// given
+		cm := &corev1.ConfigMap{}
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
+		componentV1InterfaceMock := newMockComponentV1Alpha1Interface(t)
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().List(testCtx, v1.ListOptions{}).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{*component}}, nil)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentV1InterfaceMock)
+		componentV1InterfaceMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
+
+		sut := ComponentReconciler{
+			namespace: testNamespace,
+			clientSet: clientSetMock,
+		}
+
+		// when
+		requests := sut.getComponentRequest(testCtx, cm)
+
+		// then
+		assert.Empty(t, requests)
+	})
+	t.Run("should get component list with config map reference", func(t *testing.T) {
+		// given
+		cm := &corev1.ConfigMap{ObjectMeta: v1.ObjectMeta{Name: "configmap"}}
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
+		component.Spec.ValuesConfigRef = &k8sv1.Reference{
+			Name: "configmap",
+			Key:  "key",
+		}
+		componentV1InterfaceMock := newMockComponentV1Alpha1Interface(t)
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().List(testCtx, v1.ListOptions{}).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{*component}}, nil)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentV1InterfaceMock)
+		componentV1InterfaceMock.EXPECT().Components("ecosystem").Return(componentInterfaceMock)
+
+		sut := ComponentReconciler{
+			namespace: "ecosystem",
+			clientSet: clientSetMock,
+		}
+
+		// when
+		requests := sut.getComponentRequest(testCtx, cm)
+
+		// then
+		assert.NotEmpty(t, requests)
+		assert.Equal(t, reconcile.Request{NamespacedName: types.NamespacedName{Name: "dogu-op", Namespace: "ecosystem"}}, requests[0])
+	})
+}

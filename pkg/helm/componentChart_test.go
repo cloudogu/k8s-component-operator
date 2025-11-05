@@ -28,13 +28,63 @@ func TestComponent_GetHelmChartSpec(t *testing.T) {
 		Spec       componentV1.ComponentSpec
 		Status     componentV1.ComponentStatus
 	}
+	type args struct {
+		creationOptsFn func(t *testing.T) *HelmChartCreationOpts
+	}
 	tests := []struct {
-		name   string
-		fields fields
-		want   string
+		name    string
+		fields  fields
+		args    args
+		want    string
+		wantErr bool
 	}{
-		{name: "should use deployNamespace if specified", fields: fields{Spec: componentV1.ComponentSpec{DeployNamespace: "longhorn"}}, want: "longhorn"},
+		{
+			name:   "should use deployNamespace if specified",
+			fields: fields{Spec: componentV1.ComponentSpec{DeployNamespace: "longhorn"}},
+			want:   "longhorn",
+		},
 		{name: "should use regular namespace if no deployNamespace if specified", fields: fields{ObjectMeta: v1.ObjectMeta{Namespace: "ecosystem"}, Spec: componentV1.ComponentSpec{DeployNamespace: ""}}, want: "ecosystem"},
+		{
+			name: "should use helm chart creation options",
+			fields: fields{
+				ObjectMeta: v1.ObjectMeta{Namespace: "ecosystem"},
+				Spec:       componentV1.ComponentSpec{DeployNamespace: "", ValuesConfigRef: &componentV1.Reference{}},
+			},
+			args: args{
+				creationOptsFn: func(t *testing.T) *HelmChartCreationOpts {
+					readerMock := newMockConfigMapRefReader(t)
+					readerMock.EXPECT().GetValues(testCtx, &componentV1.Reference{}).Return("", nil)
+					return &HelmChartCreationOpts{
+						HelmClient:     NewMockChartGetter(t),
+						Timeout:        0,
+						YamlSerializer: newMockYamlSerializer(t),
+						Reader:         readerMock,
+					}
+				},
+			},
+			want: "ecosystem",
+		},
+		{
+			name: "should fail to read config maps",
+			fields: fields{
+				ObjectMeta: v1.ObjectMeta{Namespace: "ecosystem"},
+				Spec:       componentV1.ComponentSpec{DeployNamespace: "", ValuesConfigRef: &componentV1.Reference{}},
+			},
+			args: args{
+				creationOptsFn: func(t *testing.T) *HelmChartCreationOpts {
+					readerMock := newMockConfigMapRefReader(t)
+					readerMock.EXPECT().GetValues(testCtx, &componentV1.Reference{}).Return("", assert.AnError)
+					return &HelmChartCreationOpts{
+						HelmClient:     NewMockChartGetter(t),
+						Timeout:        0,
+						YamlSerializer: newMockYamlSerializer(t),
+						Reader:         readerMock,
+					}
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -44,7 +94,17 @@ func TestComponent_GetHelmChartSpec(t *testing.T) {
 				Spec:       tt.fields.Spec,
 				Status:     tt.fields.Status,
 			}
-			spec, _ := GetHelmChartSpec(context.Background(), c)
+			var spec *client.ChartSpec
+			var err error
+			if tt.args.creationOptsFn != nil {
+				spec, err = GetHelmChartSpec(testCtx, c, *tt.args.creationOptsFn(t))
+			} else {
+				spec, err = GetHelmChartSpec(testCtx, c)
+			}
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
 			if got := spec.Namespace; !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetHelmChartSpec() = %v, want %v", got, tt.want)
 			}
