@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
@@ -16,8 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	"github.com/Masterminds/semver/v3"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
@@ -363,28 +363,35 @@ func (r *ComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		WithOptions(options).
 		For(&k8sv1.Component{}).
-		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.findComponentsForConfigMaps)).
+		WatchesRawSource(r.getConfigMapKind(mgr)).
 		Complete(r)
 }
 
-func (r *ComponentReconciler) findComponentsForConfigMaps(ctx context.Context, cm client.Object) []reconcile.Request {
+func (r *ComponentReconciler) getComponentRequest(ctx context.Context, cm *corev1.ConfigMap) []reconcile.Request {
 	list, err := r.clientSet.ComponentV1Alpha1().Components(r.namespace).List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil
 	}
-
-	var requests []reconcile.Request
+	var componentRequest []reconcile.Request
 	for _, component := range list.Items {
-		configRef := component.Spec.ValuesConfigRef
-		if configRef != nil && configRef.Name == cm.GetName() {
-			println(fmt.Sprintf("ConfigRef: %q", component.Spec.ValuesConfigRef))
-			requests = append(requests, reconcile.Request{
+		if component.Spec.ValuesConfigRef != nil && component.Spec.ValuesConfigRef.Name == cm.Name {
+			componentRequest = append(componentRequest, reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      component.Name,
-					Namespace: component.Namespace,
+					Namespace: r.namespace,
 				},
 			})
 		}
 	}
-	return requests
+	return componentRequest
+}
+
+func (r *ComponentReconciler) getConfigMapKind(mgr ctrl.Manager) source.TypedSyncingSource[reconcile.Request] {
+	return source.TypedKind(
+		mgr.GetCache(),
+		&corev1.ConfigMap{},
+		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, cm *corev1.ConfigMap) []reconcile.Request {
+			return r.getComponentRequest(ctx, cm)
+		}),
+	)
 }
