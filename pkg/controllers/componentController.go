@@ -7,15 +7,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
-
-	"github.com/Masterminds/semver/v3"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
@@ -71,11 +73,12 @@ type ComponentReconciler struct {
 	namespace        string
 	timeout          time.Duration
 	yamlSerializer   yaml.Serializer
+	reader           configMapRefReader
 }
 
 // NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer) *ComponentReconciler {
-	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
+func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration) *ComponentReconciler {
+	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace, requeueTime)
 	return &ComponentReconciler{
 		clientSet: clientSet,
 		recorder:  recorder,
@@ -85,11 +88,13 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 			health.NewManager(namespace, clientSet),
 			recorder,
 			timeout,
+			configref.NewConfigMapRefReader(clientSet.CoreV1().ConfigMaps(namespace)),
 		),
 		helmClient:     helmClient,
 		requeueHandler: componentRequeueHandler,
 		namespace:      namespace,
 		yamlSerializer: yamlSerializer,
+		reader:         reader,
 	}
 }
 
@@ -294,6 +299,7 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 		HelmClient:     r.helmClient,
 		Timeout:        r.timeout,
 		YamlSerializer: r.yamlSerializer,
+		Reader:         r.reader,
 	})
 	if err != nil {
 		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
@@ -357,5 +363,35 @@ func (r *ComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		WithOptions(options).
 		For(&k8sv1.Component{}).
+		WatchesRawSource(r.getConfigMapKind(mgr)).
 		Complete(r)
+}
+
+func (r *ComponentReconciler) getComponentRequest(ctx context.Context, cm *corev1.ConfigMap) []reconcile.Request {
+	list, err := r.clientSet.ComponentV1Alpha1().Components(r.namespace).List(ctx, v1.ListOptions{})
+	if err != nil {
+		return nil
+	}
+	var componentRequest []reconcile.Request
+	for _, component := range list.Items {
+		if component.Spec.ValuesConfigRef != nil && component.Spec.ValuesConfigRef.Name == cm.Name {
+			componentRequest = append(componentRequest, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      component.Name,
+					Namespace: r.namespace,
+				},
+			})
+		}
+	}
+	return componentRequest
+}
+
+func (r *ComponentReconciler) getConfigMapKind(mgr ctrl.Manager) source.TypedSyncingSource[reconcile.Request] {
+	return source.TypedKind(
+		mgr.GetCache(),
+		&corev1.ConfigMap{},
+		handler.TypedEnqueueRequestsFromMapFunc(func(ctx context.Context, cm *corev1.ConfigMap) []reconcile.Request {
+			return r.getComponentRequest(ctx, cm)
+		}),
+	)
 }

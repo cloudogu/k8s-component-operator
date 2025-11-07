@@ -1,10 +1,10 @@
 package client
 
 import (
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
-	"helm.sh/helm/v3/pkg/postrender"
 	"io"
 	"time"
+
+	"helm.sh/helm/v3/pkg/postrender"
 
 	"k8s.io/client-go/rest"
 
@@ -79,21 +79,24 @@ type ChartSpec struct {
 	// Namespace where the chart release is deployed.
 	// Note that client.Options.Namespace should ideally match the namespace configured here.
 	Namespace string `json:"namespace"`
-	// ValuesYaml is the values.yaml content.
+	// ValuesYamlOverwrite is the values.yaml content.
 	// use string instead of map[string]interface{}
 	// https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
 	// and https://github.com/kubernetes-sigs/controller-tools/pull/317
 	// +optional
-	ValuesYaml string `json:"valuesYaml,omitempty"`
+	ValuesYamlOverwrite string `json:"valuesYamlOverwrite,omitempty"`
 	// MappedValuesYaml is the values.yaml content, but generated from component-values-metadata.yaml file
 	// use string instead of map[string]interface{}
 	// https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
 	// and https://github.com/kubernetes-sigs/controller-tools/pull/317
 	// +optional
 	MappedValuesYaml string `json:"mappedValuesYaml,omitempty"`
+	// ValuesConfigRef is used for configuration
+	// +optional
+	ValuesConfigRefYaml string `json:"valuesConfigRefYaml,omitempty"`
 	// Specify values similar to the cli
 	// +optional
-	ValuesOptions values.Options `json:"valuesOptions,omitempty"`
+	ValuesOptions valuesOptions `json:"valuesOptions,omitempty"`
 	// Version of the chart release.
 	// +optional
 	Version string `json:"version,omitempty"`

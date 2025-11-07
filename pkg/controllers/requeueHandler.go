@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,17 +18,19 @@ import (
 
 // componentRequeueHandler is responsible to requeue a component resource after it failed.
 type componentRequeueHandler struct {
-	clientSet componentEcosystemInterface
-	namespace string
-	recorder  record.EventRecorder
+	clientSet   componentEcosystemInterface
+	namespace   string
+	recorder    record.EventRecorder
+	requeueTime time.Duration
 }
 
 // NewComponentRequeueHandler creates a new component requeue handler.
-func NewComponentRequeueHandler(clientSet componentEcosystemInterface, recorder record.EventRecorder, namespace string) *componentRequeueHandler {
+func NewComponentRequeueHandler(clientSet componentEcosystemInterface, recorder record.EventRecorder, namespace string, requeueTime time.Duration) *componentRequeueHandler {
 	return &componentRequeueHandler{
-		clientSet: clientSet,
-		namespace: namespace,
-		recorder:  recorder,
+		clientSet:   clientSet,
+		namespace:   namespace,
+		recorder:    recorder,
+		requeueTime: requeueTime,
 	}
 }
 
@@ -38,7 +41,7 @@ func (d *componentRequeueHandler) Handle(ctx context.Context, contextMessage str
 		return d.noLongerHandleRequeueing(ctx, component)
 	}
 
-	requeueTime := requeueableErr.GetRequeueTime(component.Status.RequeueTimeNanos)
+	requeueTime := requeueableErr.GetRequeueTime(component.Status.RequeueTimeNanos, d.requeueTime)
 
 	updateError := retry.OnConflict(func() error {
 		compClient := d.clientSet.ComponentV1Alpha1().Components(d.namespace)

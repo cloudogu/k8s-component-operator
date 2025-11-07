@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/stretchr/testify/mock"
@@ -15,10 +16,11 @@ import (
 
 var ctxWithoutCancel = context.WithoutCancel(testCtx)
 var defaultHelmClientTimeoutMins = 15 * time.Minute
+var defaultRequeueTime = 3 * time.Second
 
 func TestNewComponentInstallManager(t *testing.T) {
 	// when
-	manager := NewComponentInstallManager(nil, nil, nil, nil, defaultHelmClientTimeoutMins)
+	manager := NewComponentInstallManager(nil, nil, nil, nil, defaultHelmClientTimeoutMins, nil)
 
 	// then
 	require.NotNil(t, manager)
@@ -27,6 +29,7 @@ func TestNewComponentInstallManager(t *testing.T) {
 func Test_componentInstallManager_Install(t *testing.T) {
 	namespace := "ecosystem"
 	component := getComponent(namespace, "k8s", "", "dogu-op", "0.1.0")
+	component.Spec.ValuesConfigRef = &k8sv1.Reference{}
 
 	t.Run("should install component", func(t *testing.T) {
 		// given
@@ -34,12 +37,15 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctxWithoutCancel, component).Return(component, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, mock.Anything).Return(nil)
@@ -52,6 +58,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -64,12 +71,15 @@ func Test_componentInstallManager_Install(t *testing.T) {
 	t.Run("dependency check failed", func(t *testing.T) {
 		// given
 		mockComponentClient := newMockComponentInterface(t)
-
 		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(assert.AnError)
 
@@ -81,6 +91,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			helmClient:      mockHelmClient,
 			recorder:        mockRecorder,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -97,12 +108,15 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// given
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(nil, assert.AnError)
-
 		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 
@@ -110,6 +124,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -127,12 +142,15 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(nil, assert.AnError)
-
 		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 
@@ -140,6 +158,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -157,18 +176,22 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
-
 		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		chartSpec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(assert.AnError)
 
@@ -176,6 +199,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -194,18 +218,22 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctxWithoutCancel, component).Return(component, assert.AnError)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		chartSpec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(nil)
 
@@ -216,6 +244,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -234,18 +263,22 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctxWithoutCancel, component).Return(component, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		chartSpec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(nil)
 
@@ -257,6 +290,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -272,6 +306,8 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		// given
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
 		componentWithVersion := getComponent(namespace, "k8s", "", "dogu-op", "4.8.3")
+		componentWithVersion.Spec.ValuesConfigRef = &k8sv1.Reference{}
+		componentWithoutVersion.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, componentWithVersion).Return(componentWithVersion, nil)
 		mockComponentClient.EXPECT().UpdateStatusInstalled(ctxWithoutCancel, componentWithVersion).Return(componentWithVersion, nil)
@@ -280,10 +316,13 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("4.8.3", nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
 		spec, _ := helm.GetHelmChartSpec(testCtx, componentWithVersion, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),
 			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, spec).Return(nil)
@@ -296,6 +335,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			healthManager:   mockHealthManager,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -308,15 +348,18 @@ func Test_componentInstallManager_Install(t *testing.T) {
 	t.Run("should fail to update version of component on error while getting the latest version", func(t *testing.T) {
 		// given
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
+		componentWithoutVersion.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockComponentClient := newMockComponentInterface(t)
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("", assert.AnError)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when
@@ -332,16 +375,19 @@ func Test_componentInstallManager_Install(t *testing.T) {
 	t.Run("should fail to update expected version of component", func(t *testing.T) {
 		// given
 		componentWithoutVersion := getComponent(namespace, "k8s", "", "dogu-op", "")
+		componentWithoutVersion.Spec.ValuesConfigRef = &k8sv1.Reference{}
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateExpectedComponentVersion(testCtx, component.Name, "4.8.3").Return(componentWithoutVersion, assert.AnError)
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("4.8.3", nil)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
 
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
 			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
 		}
 
 		// when

@@ -1,47 +1,47 @@
 package client
 
 import (
-	"context"
-	"fmt"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client/values"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
 	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/v3/pkg/getter"
 )
 
 // GetValuesMap returns the merged mapped out values of a chart,
-// using both ValuesYaml and ValuesOptions
+// using both ValuesYamlOverwrite and ValuesOptions
 func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{}, error) {
-	logger := log.FromContext(context.TODO())
-	originalValuesYaml := map[string]interface{}{}
+	valuesYamlOverwrite := map[string]interface{}{}
 
-	err := yaml.Unmarshal([]byte(spec.ValuesYaml), &originalValuesYaml)
+	err := yaml.Unmarshal([]byte(spec.ValuesYamlOverwrite), &valuesYamlOverwrite)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Parse ValuesYaml")
+		return nil, errors.Wrap(err, "Failed to Parse ValuesYamlOverwrite")
 	}
 
-	valuesOptions, err := spec.ValuesOptions.MergeValues(p)
+	configRefValues := map[string]interface{}{}
+	err = yaml.Unmarshal([]byte(spec.ValuesConfigRefYaml), &configRefValues)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Parse ValuesOptions")
+		return nil, err
+	}
+	commandLineOptionValues := map[string]interface{}{}
+	if spec.ValuesOptions != nil {
+		commandLineOptionValues, err = spec.ValuesOptions.MergeValues(p)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to Parse ValuesOptions")
+		}
 	}
 
-	mergedValuesYamlOverwrite := values.MergeMaps(originalValuesYaml, valuesOptions)
-
-	mappedValuesYaml := map[string]interface{}{}
-	err = yaml.Unmarshal([]byte(spec.MappedValuesYaml), &mappedValuesYaml)
+	mappedValues := map[string]interface{}{}
+	err = yaml.Unmarshal([]byte(spec.MappedValuesYaml), &mappedValues)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Parse ValuesYaml")
+		return nil, errors.Wrap(err, "Failed to Parse mappedValues")
 	}
 
-	conflict := hasSameValuesConfigured(mergedValuesYamlOverwrite, mappedValuesYaml)
-	if conflict {
-		logger.Error(fmt.Errorf("conflicting values in valuesYamlOverwrite and mappedValues"), "you cannot set log mapped values via valuesYamlOverwrite and mappedValues. Configured value in mappedValues has priority")
-	}
+	result := values.MergeMaps(mappedValues, commandLineOptionValues)
+	result = values.MergeMaps(valuesYamlOverwrite, result)
+	result = values.MergeMaps(configRefValues, result)
 
-	return values.MergeMaps(mergedValuesYamlOverwrite, mappedValuesYaml), nil
+	return result, nil
 }
 
 func hasSameValuesConfigured(a, b map[string]interface{}) bool {

@@ -16,8 +16,8 @@ func (gre *genericRequeueableError) Error() string {
 }
 
 // GetRequeueTime returns the time until the component should be requeued.
-func (gre *genericRequeueableError) GetRequeueTime(requeueTimeNanos time.Duration) time.Duration {
-	return getRequeueTime(requeueTimeNanos)
+func (gre *genericRequeueableError) GetRequeueTime(requeueTimeNanos time.Duration, defaultRequeueTimeNanos time.Duration) time.Duration {
+	return getRequeueTime(requeueTimeNanos, defaultRequeueTimeNanos)
 }
 
 // Unwrap returns the root error.
@@ -25,19 +25,8 @@ func (gre *genericRequeueableError) Unwrap() error {
 	return gre.err
 }
 
-func getRequeueTime(currentRequeueTime time.Duration) time.Duration {
-	const initialRequeueTime = 15 * time.Second
-	const linearCutoffThreshold6Hours = 6 * time.Hour
-
-	if currentRequeueTime == 0 {
-		return initialRequeueTime
-	}
-
-	nextRequeueTime := currentRequeueTime * 2
-
-	if nextRequeueTime >= linearCutoffThreshold6Hours {
-		return linearCutoffThreshold6Hours
-	}
-
-	return nextRequeueTime
+func getRequeueTime(_ time.Duration, defaultRequeueTimeNanos time.Duration) time.Duration {
+	// Do not use parameter because we only want to use defaultRequeueTime as the requeueTime.
+	// We don't want to change the interface.
+	return defaultRequeueTimeNanos
 }

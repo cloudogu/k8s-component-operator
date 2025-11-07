@@ -66,17 +66,17 @@ func (_c *mockRequeuableError_Error_Call) RunAndReturn(run func() string) *mockR
 	return _c
 }
 
-// GetRequeueTime provides a mock function with given fields: requeueTimeNanos
-func (_m *mockRequeuableError) GetRequeueTime(requeueTimeNanos time.Duration) time.Duration {
-	ret := _m.Called(requeueTimeNanos)
+// GetRequeueTime provides a mock function with given fields: requeueTimeNanos, defaultRequeueTimeNanos
+func (_m *mockRequeuableError) GetRequeueTime(requeueTimeNanos time.Duration, defaultRequeueTimeNanos time.Duration) time.Duration {
+	ret := _m.Called(requeueTimeNanos, defaultRequeueTimeNanos)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRequeueTime")
 	}
 
 	var r0 time.Duration
-	if rf, ok := ret.Get(0).(func(time.Duration) time.Duration); ok {
-		r0 = rf(requeueTimeNanos)
+	if rf, ok := ret.Get(0).(func(time.Duration, time.Duration) time.Duration); ok {
+		r0 = rf(requeueTimeNanos, defaultRequeueTimeNanos)
 	} else {
 		r0 = ret.Get(0).(time.Duration)
 	}
@@ -91,13 +91,14 @@ type mockRequeuableError_GetRequeueTime_Call struct {
 
 // GetRequeueTime is a helper method to define mock.On call
 //   - requeueTimeNanos time.Duration
-func (_e *mockRequeuableError_Expecter) GetRequeueTime(requeueTimeNanos interface{}) *mockRequeuableError_GetRequeueTime_Call {
-	return &mockRequeuableError_GetRequeueTime_Call{Call: _e.mock.On("GetRequeueTime", requeueTimeNanos)}
+//   - defaultRequeueTimeNanos time.Duration
+func (_e *mockRequeuableError_Expecter) GetRequeueTime(requeueTimeNanos interface{}, defaultRequeueTimeNanos interface{}) *mockRequeuableError_GetRequeueTime_Call {
+	return &mockRequeuableError_GetRequeueTime_Call{Call: _e.mock.On("GetRequeueTime", requeueTimeNanos, defaultRequeueTimeNanos)}
 }
 
-func (_c *mockRequeuableError_GetRequeueTime_Call) Run(run func(requeueTimeNanos time.Duration)) *mockRequeuableError_GetRequeueTime_Call {
+func (_c *mockRequeuableError_GetRequeueTime_Call) Run(run func(requeueTimeNanos time.Duration, defaultRequeueTimeNanos time.Duration)) *mockRequeuableError_GetRequeueTime_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(time.Duration))
+		run(args[0].(time.Duration), args[1].(time.Duration))
 	})
 	return _c
 }
@@ -107,7 +108,7 @@ func (_c *mockRequeuableError_GetRequeueTime_Call) Return(_a0 time.Duration) *mo
 	return _c
 }
 
-func (_c *mockRequeuableError_GetRequeueTime_Call) RunAndReturn(run func(time.Duration) time.Duration) *mockRequeuableError_GetRequeueTime_Call {
+func (_c *mockRequeuableError_GetRequeueTime_Call) RunAndReturn(run func(time.Duration, time.Duration) time.Duration) *mockRequeuableError_GetRequeueTime_Call {
 	_c.Call.Return(run)
 	return _c
 }

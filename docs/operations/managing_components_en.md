@@ -93,15 +93,17 @@ A component CR consists of various fields. This section describes these:
 - `.spec.deployNamespace`: (optional) The k8s-namespace, where all resources of the component should be deployed. If this is empty the namespace of the component-operator will be used.
 - `.spec.mappedValues`: (optional) Helm values used to override configurations from the Helm `values.yaml` file. These values are mapped according to the configuration defined in the `component-values-metadata.yaml` file.
 - `.spec.valuesYamlOverwrite`: (optional) Helm-Values to overwrite configurations of the default values.yaml file. Should be written as a [multiline-yaml](https://yaml-multiline.info/) string for readability.
+- `.spec.valuesYamlOverwrite`: (optional) Reference to a key in a ConfigMap (`valuesConfigRef.name`, `valuesConfigRef.key`). Used to override configurations from the Helm file values.yaml. The values should be written to the key as [multiline-yaml](https://yaml-multiline.info/).
 
 > [!WARNING]
-> `.spec.mappedValues` and `.spec.valuesYamlOverwrite` should not be used at the same time.  
-> If both values are configured, `mappedValues` will take precedence.
+`.spec.mappedValues`, `.spec.valuesYamlOverwrite` and `.spec.valuesConfigRef` should not be used simultaneously. If both values are configured, the mappedValues take precedence.
+`mappedValues` have priority over `valuesYamlOverwrite` and `valuesYamlOverwrite` have priority over `valuesConfigRef`
 
 > [!WARNING]
-> `.spec.mappedValues` and `.spec.valuesYamlOverwrite` must not overwrite list entries. 
-> Due to the structure of YAML, it is not possible to set individual elements within a list.
-> Only the entire list can ever be overwritten.
+> `.spec.mappedValues`, `.spec.valuesYamlOverwrite` and `.spec.valuesConfigRef` must not overwrite list entries. Due to the structure of Yaml, it is not possible to set individual elements within a list.
+> Only the entire list can be overwritten.
+
+Translated with DeepL.com (free version)
 
 ## Uninstall components
 

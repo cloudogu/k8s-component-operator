@@ -2,16 +2,17 @@ package controllers
 
 import (
 	"context"
+	"testing"
+
 	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func TestNewComponentManager(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		// when
-		sut := NewComponentManager(nil, nil, nil, nil, defaultHelmClientTimeoutMins)
+		sut := NewComponentManager(nil, nil, nil, nil, defaultHelmClientTimeoutMins, nil)
 
 		// then
 		require.NotNil(t, sut)

@@ -3,11 +3,12 @@ package config
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/Masterminds/semver/v3"
 
@@ -28,9 +29,13 @@ const (
 	runtimeEnvironmentVariable = "RUNTIME"
 	// runtimeLocal is the name for the local-runtime on a developer-machine
 	runtimeLocal = "local"
+	// RequeueTimeInNanosecondsEnvironmentVariable is the name of the environment variable containing the configured requeueTime
+	RequeueTimeInNanosecondsEnvironmentVariable = "REQUEUE_TIME_IN_NANOSECONDS"
 	// helmRepositoryConfigMapName is the name
 	helmRepositoryConfigMapName = "component-operator-helm-repository"
 )
+
+const defaultRequeueTime = time.Second * 3
 
 var (
 	Stage               = StageProduction
@@ -107,6 +112,7 @@ type OperatorConfig struct {
 	HelmRepositoryData     *HelmRepositoryData `json:"helm_repository"`
 	HelmClientTimeoutMins  time.Duration
 	HealthSyncIntervalMins time.Duration
+	RequeueTime            time.Duration
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
@@ -133,11 +139,17 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 	}
 	log.Info(fmt.Sprintf("Deploying the k8s component operator in namespace %s", namespace))
 
+	requeueTime, err := readReconcilerRequeueTime()
+	if err != nil {
+		log.Error(err, fmt.Sprintf("failed to read requeue time. Using default requeue time %s", defaultRequeueTime))
+	}
+
 	return &OperatorConfig{
 		Namespace:              namespace,
 		Version:                parsedVersion,
 		HelmClientTimeoutMins:  readMinuteDurationEnv(envHelmClientTimeoutMins, defaultHelmClientTimeoutMins),
 		HealthSyncIntervalMins: readMinuteDurationEnv(envHealthSyncIntervalMins, defaultHealthSyncIntervalMins),
+		RequeueTime:            requeueTime,
 	}, nil
 }
 
@@ -249,4 +261,20 @@ func readMinuteDurationEnv(env string, defaultValue time.Duration) time.Duration
 	}
 
 	return time.Duration(valueParsed) * time.Minute
+}
+
+func readReconcilerRequeueTime() (time.Duration, error) {
+	requeueTimeString, err := getEnvVar(RequeueTimeInNanosecondsEnvironmentVariable)
+	if err != nil {
+		return defaultRequeueTime, newEnvVarError(envVarNamespace, err)
+	}
+	requeueTime, err := strconv.ParseFloat(requeueTimeString, 64)
+	if err != nil {
+		return defaultRequeueTime, err
+	}
+	return time.Duration(requeueTime), nil
+}
+
+func newEnvVarError(envVar string, err error) error {
+	return fmt.Errorf("failed to get env var [%s]: %w", envVar, err)
 }

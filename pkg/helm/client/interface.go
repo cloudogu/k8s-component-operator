@@ -6,6 +6,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/release"
 )
 
@@ -84,4 +85,8 @@ type getReleaseAction interface {
 type rollbackReleaseAction interface {
 	rollbackRelease(releaseName string) error
 	raw() *action.Rollback
+}
+
+type valuesOptions interface {
+	MergeValues(p getter.Providers) (map[string]interface{}, error)
 }

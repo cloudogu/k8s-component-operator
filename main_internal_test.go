@@ -4,10 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/config"
 	"testing"
+
+	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
@@ -94,7 +95,7 @@ func Test_startDoguOperator(t *testing.T) {
 			SkipNameValidation: &skipNameValidation,
 		}},
 		"Add":             {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
-		"GetCache":        {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
+		"GetCache":        {ReturnValue: nil},
 		"AddHealthzCheck": {Arguments: []interface{}{mock.Anything, mock.Anything}, ReturnValue: nil},
 		"AddReadyzCheck":  {Arguments: []interface{}{mock.Anything, mock.Anything}, ReturnValue: nil},
 		"Start":           {Arguments: []interface{}{mock.Anything}, ReturnValue: nil},
@@ -147,7 +148,6 @@ func Test_startDoguOperator(t *testing.T) {
 			Arguments:   adaptedMockDefinitions["Add"].Arguments,
 			ReturnValue: expectedError,
 		}
-		delete(adaptedMockDefinitions, "GetCache")
 		delete(adaptedMockDefinitions, "AddHealthzCheck")
 		delete(adaptedMockDefinitions, "AddReadyzCheck")
 		delete(adaptedMockDefinitions, "Start")

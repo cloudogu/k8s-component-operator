@@ -20,16 +20,18 @@ type ComponentInstallManager struct {
 	healthManager   healthManager
 	recorder        record.EventRecorder
 	timeout         time.Duration
+	reader          configMapRefReader
 }
 
 // NewComponentInstallManager creates a new instance of ComponentInstallManager.
-func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration) *ComponentInstallManager {
+func NewComponentInstallManager(componentClient componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configMapRefReader) *ComponentInstallManager {
 	return &ComponentInstallManager{
 		componentClient: componentClient,
 		helmClient:      helmClient,
 		healthManager:   healthManager,
 		recorder:        recorder,
 		timeout:         timeout,
+		reader:          reader,
 	}
 }
 
@@ -59,6 +61,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		HelmClient:     cim.helmClient,
 		Timeout:        cim.timeout,
 		YamlSerializer: yaml.NewSerializer(),
+		Reader:         cim.reader,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get helm chart spec: %w", err)
