@@ -46,6 +46,8 @@ github.com/cloudogu/k8s-apply-lib v0.5.0 h1:XeQKwTgT8FIozpqyPO/b09LAenPswBilmatw
 github.com/cloudogu/k8s-apply-lib v0.5.0/go.mod h1:jR/+7q47O5gb++4gVsmEElT8/EJoi+Msw2dVzArTPW0=
 github.com/cloudogu/k8s-component-lib v0.0.0-20251030085513-31d34f0a1d08 h1:JTrNaF6WWF0zmBsBLi48ej8q3JcmozffpgdIelirKL8=
 github.com/cloudogu/k8s-component-lib v0.0.0-20251030085513-31d34f0a1d08/go.mod h1:koDJZ6cn9OdF3B4/7iEhaNKHsZf+I92Yq7LyA4lCvH0=
+github.com/cloudogu/k8s-component-lib v1.13.0 h1:xHpXHXzTSf5QZhnx+A+pKYvqdcQoWELUPv/9mmrG8Hk=
+github.com/cloudogu/k8s-component-lib v1.13.0/go.mod h1:koDJZ6cn9OdF3B4/7iEhaNKHsZf+I92Yq7LyA4lCvH0=
 github.com/cloudogu/retry-lib v0.1.0 h1:gaAmtyjUqgHbxfCWMeUn0qnGbDH4TtZVSQkbZ1Nq6eI=
 github.com/cloudogu/retry-lib v0.1.0/go.mod h1:iG9y6zx8oJZT5ULtl9koZkYJLRsqam/2mTU+rgjxQ0g=
 github.com/containerd/containerd v1.7.28 h1:Nsgm1AtcmEh4AHAJ4gGlNSaKgXiNccU270Dnf81FQ3c=
