@@ -25,13 +25,8 @@ func (gre *genericRequeueableError) Unwrap() error {
 	return gre.err
 }
 
-func getRequeueTime(currentRequeueTime time.Duration, defaultRequeueTimeNanos time.Duration) time.Duration {
-
-	if currentRequeueTime == 0 {
-		return defaultRequeueTimeNanos
-	}
-
-	nextRequeueTime := defaultRequeueTimeNanos
-
-	return nextRequeueTime
+func getRequeueTime(_ time.Duration, defaultRequeueTimeNanos time.Duration) time.Duration {
+	// Do not use parameter because we only want to use defaultRequeueTime as the requeueTime.
+	// We don't want to change the interface.
+	return defaultRequeueTimeNanos
 }
