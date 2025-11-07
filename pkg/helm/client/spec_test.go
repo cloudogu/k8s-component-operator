@@ -29,6 +29,15 @@ var valuesBytes []byte
 //go:embed testdata/values/result.yaml
 var resultBytes []byte
 
+//go:embed testdata/values/valuesYamlOverwriteOverwritesConfigReferenceValues/valuesYamlOverwrite.yaml
+var vyocrvValuesYamlOverwriteBytes []byte
+
+//go:embed testdata/values/valuesYamlOverwriteOverwritesConfigReferenceValues/configMapData.yaml
+var vyocrvConfigMapDataBytes []byte
+
+//go:embed testdata/values/valuesYamlOverwriteOverwritesConfigReferenceValues/result.yaml
+var vyocrvResultBytes []byte
+
 func Test_haveSameKeyWithDifferentValues(t *testing.T) {
 	tests := []struct {
 		name string
@@ -174,6 +183,38 @@ func TestChartSpec_GetValuesMap(t *testing.T) {
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
+			name: "values yaml overwrite overwrites config reference values",
+			fields: fields{
+				MappedValuesYamlFn: func(t *testing.T) string {
+					return ""
+				},
+				ValuesOptionsFn: func(t *testing.T) valuesOptions {
+					mck := newMockValuesOptions(t)
+					valuesYamlOverwrite := map[string]interface{}{}
+
+					mck.EXPECT().MergeValues(mock.Anything).Return(valuesYamlOverwrite, nil)
+					return mck
+				},
+				ValuesConfigRefYamlFn: func(t *testing.T) string {
+					return string(vyocrvConfigMapDataBytes)
+				},
+				ValuesYamlFn: func(t *testing.T) string {
+					return string(vyocrvValuesYamlOverwriteBytes)
+				},
+			},
+			args: args{
+				p: make(getter.Providers, 0),
+			},
+			wantErr: assert.NoError,
+			wantFn: func(t *testing.T) map[string]interface{} {
+				var resultYaml map[string]interface{}
+				serializer := yaml2.NewSerializer()
+				err := serializer.Unmarshal(vyocrvResultBytes, &resultYaml)
+				require.NoError(t, err)
+				return resultYaml
+			},
+		},
+		{
 			name: "mappedValues before values yaml overwrite. values yaml overwrite before configmap reference. Config map reference before values yaml",
 			fields: fields{
 				MappedValuesYamlFn: func(t *testing.T) string {
@@ -182,7 +223,7 @@ func TestChartSpec_GetValuesMap(t *testing.T) {
 				ValuesOptionsFn: func(t *testing.T) valuesOptions {
 					mck := newMockValuesOptions(t)
 					valuesYamlOverwrite := map[string]interface{}{}
-					err := yaml.Unmarshal(valuesYamlOverwriteBytes, &valuesYamlOverwrite)
+					err := yaml.Unmarshal(valuesBytes, &valuesYamlOverwrite)
 					require.NoError(t, err)
 
 					mck.EXPECT().MergeValues(mock.Anything).Return(valuesYamlOverwrite, nil)
@@ -192,7 +233,7 @@ func TestChartSpec_GetValuesMap(t *testing.T) {
 					return string(configMapDataBytes)
 				},
 				ValuesYamlFn: func(t *testing.T) string {
-					return string(valuesBytes)
+					return string(valuesYamlOverwriteBytes)
 				},
 			},
 			args: args{
@@ -211,7 +252,7 @@ func TestChartSpec_GetValuesMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			spec := &ChartSpec{
-				ValuesYaml:          tt.fields.ValuesYamlFn(t),
+				ValuesYamlOverwrite: tt.fields.ValuesYamlFn(t),
 				MappedValuesYaml:    tt.fields.MappedValuesYamlFn(t),
 				ValuesConfigRefYaml: tt.fields.ValuesConfigRefYamlFn(t),
 				ValuesOptions:       tt.fields.ValuesOptionsFn(t),

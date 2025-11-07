@@ -79,12 +79,12 @@ type ChartSpec struct {
 	// Namespace where the chart release is deployed.
 	// Note that client.Options.Namespace should ideally match the namespace configured here.
 	Namespace string `json:"namespace"`
-	// ValuesYaml is the values.yaml content.
+	// ValuesYamlOverwrite is the values.yaml content.
 	// use string instead of map[string]interface{}
 	// https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483
 	// and https://github.com/kubernetes-sigs/controller-tools/pull/317
 	// +optional
-	ValuesYaml string `json:"valuesYaml,omitempty"`
+	ValuesYamlOverwrite string `json:"valuesYamlOverwrite,omitempty"`
 	// MappedValuesYaml is the values.yaml content, but generated from component-values-metadata.yaml file
 	// use string instead of map[string]interface{}
 	// https://github.com/kubernetes-sigs/kubebuilder/issues/528#issuecomment-466449483

@@ -4,7 +4,6 @@ manager:
     logLevel: debug
     stage: development
     helmClientTimeoutMins: "15"
-    rollbackReleaseTimeoutMins: "12"
     healthSyncIntervalMins: "2"
   resourceLimits:
     memory: 105M

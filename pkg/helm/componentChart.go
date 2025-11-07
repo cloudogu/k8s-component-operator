@@ -66,11 +66,11 @@ func GetHelmChartSpec(ctx context.Context, c *componentV1.Component, opts ...Hel
 	}
 
 	chartSpec := &client.ChartSpec{
-		ReleaseName: c.Spec.Name,
-		ChartName:   GetHelmChartName(c),
-		Namespace:   deployNamespace,
-		Version:     c.Spec.Version,
-		ValuesYaml:  c.Spec.ValuesYamlOverwrite,
+		ReleaseName:         c.Spec.Name,
+		ChartName:           GetHelmChartName(c),
+		Namespace:           deployNamespace,
+		Version:             c.Spec.Version,
+		ValuesYamlOverwrite: c.Spec.ValuesYamlOverwrite,
 		// Rollback to previous release on failure.
 		Atomic: true,
 		// This timeout prevents context exceeded errors from the used k8s client from the helm library.

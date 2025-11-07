@@ -1,8 +1,8 @@
 manager:
   imagePullPolicy: IfNotPresent
   env:
-    logLevel: info
-    stage: test
+    logLevel: debug
+    stage: development
     helmClientTimeoutMins: "15"
     rollbackReleaseTimeoutMins: "15"
     healthSyncIntervalMins: "2"

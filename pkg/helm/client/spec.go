@@ -9,13 +9,13 @@ import (
 )
 
 // GetValuesMap returns the merged mapped out values of a chart,
-// using both ValuesYaml and ValuesOptions
+// using both ValuesYamlOverwrite and ValuesOptions
 func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{}, error) {
-	originalValues := map[string]interface{}{}
+	valuesYamlOverwrite := map[string]interface{}{}
 
-	err := yaml.Unmarshal([]byte(spec.ValuesYaml), &originalValues)
+	err := yaml.Unmarshal([]byte(spec.ValuesYamlOverwrite), &valuesYamlOverwrite)
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to Parse ValuesYaml")
+		return nil, errors.Wrap(err, "Failed to Parse ValuesYamlOverwrite")
 	}
 
 	configRefValues := map[string]interface{}{}
@@ -23,9 +23,9 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 	if err != nil {
 		return nil, err
 	}
-	valuesYamlOverwrite := map[string]interface{}{}
+	commandLineOptionValues := map[string]interface{}{}
 	if spec.ValuesOptions != nil {
-		valuesYamlOverwrite, err = spec.ValuesOptions.MergeValues(p)
+		commandLineOptionValues, err = spec.ValuesOptions.MergeValues(p)
 		if err != nil {
 			return nil, errors.Wrap(err, "Failed to Parse ValuesOptions")
 		}
@@ -37,9 +37,9 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 		return nil, errors.Wrap(err, "Failed to Parse mappedValues")
 	}
 
-	result := values.MergeMaps(valuesYamlOverwrite, mappedValues)
+	result := values.MergeMaps(mappedValues, commandLineOptionValues)
+	result = values.MergeMaps(valuesYamlOverwrite, result)
 	result = values.MergeMaps(configRefValues, result)
-	result = values.MergeMaps(originalValues, result)
 
 	return result, nil
 }

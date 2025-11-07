@@ -372,12 +372,12 @@ func TestHelmClient_GetReleaseValues(t *testing.T) {
 }
 
 func TestHelmClient_GetChartSpecValues(t *testing.T) {
-	t.Run("should use ValuesYaml when no ValuesOptions are set", func(t *testing.T) {
+	t.Run("should use ValuesYamlOverwrite when no ValuesOptions are set", func(t *testing.T) {
 		// given
 		spec := &ChartSpec{
 			ReleaseName: "test-release",
 			ChartName:   "test-chart",
-			ValuesYaml: `
+			ValuesYamlOverwrite: `
 testYaml:
   key1: val1
   key2: val2
@@ -402,7 +402,7 @@ testYaml:
 		assert.Equal(t, actual, expected)
 	})
 
-	t.Run("should use ValuesOptions when no ValuesYaml are set", func(t *testing.T) {
+	t.Run("should use ValuesOptions when no ValuesYamlOverwrite are set", func(t *testing.T) {
 		// given
 		spec := &ChartSpec{
 			ReleaseName: "test-release",
@@ -430,7 +430,7 @@ testYaml:
 		assert.Equal(t, actual, expected)
 	})
 
-	t.Run("should merge ValuesOptions and ValuesYaml when both are set with Options having priority", func(t *testing.T) {
+	t.Run("should merge ValuesOptions and ValuesYamlOverwrite when both are set with Options having priority", func(t *testing.T) {
 		// given
 		spec := &ChartSpec{
 			ReleaseName: "test-release",
@@ -438,7 +438,7 @@ testYaml:
 			ValuesOptions: &values.Options{
 				StringValues: []string{"testYaml.key2=val3", "testYaml.key3=val4"},
 			},
-			ValuesYaml: `
+			ValuesYamlOverwrite: `
 testYaml:
   key1: val1
   key2: val2
@@ -461,7 +461,7 @@ testYaml:
 			},
 		}
 		require.NoError(t, err)
-		assert.Equal(t, actual, expected)
+		assert.Equal(t, expected, actual)
 	})
 
 	t.Run("should return empty map when nothing set", func(t *testing.T) {
@@ -489,7 +489,7 @@ testYaml:
 		spec := &ChartSpec{
 			ReleaseName: "test-release",
 			ChartName:   "test-chart",
-			ValuesYaml: `
+			ValuesYamlOverwrite: `
 NoYaml{}
 `,
 		}
@@ -504,7 +504,7 @@ NoYaml{}
 		// then
 		require.Error(t, err)
 		assert.Nil(t, actual)
-		assert.ErrorContains(t, err, "Failed to Parse ValuesYaml")
+		assert.ErrorContains(t, err, "Failed to Parse ValuesYamlOverwrite")
 		assert.ErrorContains(t, err, "failed to get additional values.yaml-values from")
 	})
 
@@ -691,9 +691,9 @@ func TestHelmClient_InstallChart(t *testing.T) {
 	t.Run("should fail to get values", func(t *testing.T) {
 		// given
 		spec := &ChartSpec{
-			ChartName:   "test-chart",
-			ReleaseName: "test-release",
-			ValuesYaml:  "invalid YAML",
+			ChartName:           "test-chart",
+			ReleaseName:         "test-release",
+			ValuesYamlOverwrite: "invalid YAML",
 		}
 		installAction := &action.Install{}
 		envSettings := &cli.EnvSettings{
@@ -837,9 +837,9 @@ func TestHelmClient_UpgradeChart(t *testing.T) {
 	t.Run("should fail to get values for release", func(t *testing.T) {
 		// given
 		spec := &ChartSpec{
-			ChartName:   "test-chart",
-			ReleaseName: "test-release",
-			ValuesYaml:  "invalid YAML",
+			ChartName:           "test-chart",
+			ReleaseName:         "test-release",
+			ValuesYamlOverwrite: "invalid YAML",
 		}
 		upgradeAction := &action.Upgrade{}
 		envSettings := &cli.EnvSettings{
