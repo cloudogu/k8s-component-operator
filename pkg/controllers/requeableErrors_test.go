@@ -42,12 +42,10 @@ func Test_genericRequeueableError_GetRequeueTime(t *testing.T) {
 		args args
 		want time.Duration
 	}{
-		// double the value until the threshold jumps in
-		{"1st interval", args{0 * time.Second, 5 * time.Second}, 5 * time.Second},
-		{"2nd interval", args{15 * time.Second, 5 * time.Second}, 5 * time.Second},
-		{"3rd interval", args{30 * time.Second, 5 * time.Second}, 5 * time.Second},
-		{"11th interval", args{128 * time.Minute, 5 * time.Second}, 5 * time.Second},
-		{"cutoff interval ", args{256 * time.Minute, 5 * time.Second}, 5 * time.Second},
+		{"always return defaultRequeueTime case 1", args{0 * time.Second, 5 * time.Second}, 5 * time.Second},
+		{"always return defaultRequeueTime case 2", args{15 * time.Second, 5 * time.Second}, 5 * time.Second},
+		{"always return defaultRequeueTime case 3", args{30 * time.Second, 5 * time.Second}, 5 * time.Second},
+		{"always return defaultRequeueTime case 3", args{256 * time.Second, 5 * time.Second}, 5 * time.Second},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
