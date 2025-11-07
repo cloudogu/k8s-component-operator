@@ -98,6 +98,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	t := &testing.T{}
 	helmClientMock = newMockHelmClient(t)
 	recorderMock = newMockEventRecorder(t)
+	configMapRefReaderMock := newMockConfigMapRefReader(t)
 
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
@@ -105,7 +106,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	componentClientSet, err = client.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace, defaultHelmClientTimeoutMins, yaml.NewSerializer())
+	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace, defaultHelmClientTimeoutMins, yaml.NewSerializer(), configMapRefReaderMock, defaultRequeueTime)
 
 	err = reconciler.SetupWithManager(k8sManager)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -170,8 +171,9 @@ func configureReconciler(ctx context.Context, k8sManager manager.Manager, client
 	}
 
 	yamlSerializer := yaml.NewSerializer()
+	reader := configref.NewConfigMapRefReader(clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
 
-	componentReconciler := controllers.NewComponentReconciler(clientSet, helmClient, eventRecorder, operatorConfig.Namespace, operatorConfig.HelmClientTimeoutMins, yamlSerializer)
+	componentReconciler := controllers.NewComponentReconciler(clientSet, helmClient, eventRecorder, operatorConfig.Namespace, operatorConfig.HelmClientTimeoutMins, yamlSerializer, reader, operatorConfig.RequeueTime)
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)

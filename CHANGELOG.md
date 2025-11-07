@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.12.0] - 2025-11-07
+### Added
+- [#100] Added a reference to a config map to the component cr
+  - config map contains a multiline yaml to overwrite values
+
 ## [v1.11.0] - 2025-10-07
 ### Changed
 - [#98] Extracted Component-CRD and associated clients to own [repository](https://github.com/cloudogu/k8s-component-lib)

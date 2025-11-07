@@ -1,0 +1,12 @@
+manager:
+  imagePullPolicy: IfNotPresent
+  env:
+    logLevel: info
+    stage: test
+  resourceLimits:
+    memory: 105M
+  resourceRequests:
+    cpu: 15m
+    memory: 105M
+  networkPolicies:
+    enabled: true

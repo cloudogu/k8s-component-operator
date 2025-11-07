@@ -5,7 +5,6 @@ import (
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
@@ -20,11 +19,11 @@ type DefaultComponentManager struct {
 }
 
 // NewComponentManager creates a new instance of DefaultComponentManager.
-func NewComponentManager(clientset componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration) *DefaultComponentManager {
+func NewComponentManager(clientset componentInterface, helmClient helmClient, healthManager healthManager, recorder record.EventRecorder, timeout time.Duration, reader configMapRefReader) *DefaultComponentManager {
 	return &DefaultComponentManager{
-		installManager: NewComponentInstallManager(clientset, helmClient, healthManager, recorder, timeout),
+		installManager: NewComponentInstallManager(clientset, helmClient, healthManager, recorder, timeout, reader),
 		deleteManager:  NewComponentDeleteManager(clientset, helmClient),
-		upgradeManager: NewComponentUpgradeManager(clientset, helmClient, healthManager, recorder, timeout),
+		upgradeManager: NewComponentUpgradeManager(clientset, helmClient, healthManager, recorder, timeout, reader),
 		recorder:       recorder,
 	}
 }

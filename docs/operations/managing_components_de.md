@@ -95,12 +95,16 @@ Ein Komponenten-CR besteht aus unterschiedlichen Feldern. Dieser Abschnitt erlä
 - `.spec.deployNamespace`: (optional) Der k8s-Namespace, in dem alle Ressourcen der Komponente deployed werden sollen. Wenn dieser leer ist, wird der Namespace des Komponenten-Operators verwendet.
 - `.spec.mappedValues`: (optional) Helm-Werte zum Überschreiben von Konfigurationen aus der Helm-Datei values.yaml. Diese Werte werden durch die Konfiguration in component-values-metadata.yaml gemappt. 
 - `.spec.valuesYamlOverwrite`: (optional) Helm-Werte zum Überschreiben von Konfigurationen aus der Helm-Datei values.yaml. Sollte aus Gründen der Lesbarkeit als [multiline-yaml](https://yaml-multiline.info/) geschrieben werden.
+- `.spec.valuesConfigRef`: (optional) Referenz auf einen Key einer ConfigMap (`valuesConfigRef.name`, `valuesConfigRef.key`). zum Überschreiben von Konfigurationen aus der Helm-Datei values.yaml. Die Werte sollten als [multiline-yaml](https://yaml-multiline.info/) in den Key geschrieben sein.
+
+
 
 > [!WARNING]
-> `.spec.mappedValues` und `.spec.valuesYamlOverwrite` sollten nicht gleichzeitig verwendet werden. Sind beide Werte konfiguriert, so bekommen die mappedValues den Vorzug. 
+> `.spec.mappedValues`, `.spec.valuesYamlOverwrite` und `.spec.valuesConfigRef` sollten nicht gleichzeitig verwendet werden. Sind beide Werte konfiguriert, so bekommen die mappedValues den Vorzug. 
+> Priorität haben `mappedValues` vor `valuesYamlOverwrite` und `valuesYamlOverwrite` vor `valuesConfigRef`
 
 > [!WARNING]
-> `.spec.mappedValues` und `.spec.valuesYamlOverwrite` dürfen keine Listeneinträge überschreiben. Es ist durch die Struktur von Yaml nicht möglich einzelne Elemente innerhalb einer Liste zu setzen. 
+> `.spec.mappedValues`, `.spec.valuesYamlOverwrite` und `.spec.valuesConfigRef` dürfen keine Listeneinträge überschreiben. Es ist durch die Struktur von Yaml nicht möglich einzelne Elemente innerhalb einer Liste zu setzen. 
 >  Es kann immer nur die gesamte Liste überschrieben werden.
 
 ## Komponenten deinstallieren
