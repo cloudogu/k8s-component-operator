@@ -224,6 +224,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockRecorder := newMockEventRecorder(t)
 		manager := NewMockComponentManager(t)
@@ -443,6 +444,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(nil, assert.AnError)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -550,6 +552,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -577,6 +580,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -604,6 +608,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -631,6 +636,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,

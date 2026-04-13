@@ -18,6 +18,12 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 		return nil, errors.Wrap(err, "Failed to Parse ValuesYamlOverwrite")
 	}
 
+	configSystemRefValues := map[string]interface{}{}
+	err = yaml.Unmarshal([]byte(spec.ValuesSystemConfigRefYaml), &configSystemRefValues)
+	if err != nil {
+		return nil, err
+	}
+
 	configRefValues := map[string]interface{}{}
 	err = yaml.Unmarshal([]byte(spec.ValuesConfigRefYaml), &configRefValues)
 	if err != nil {
@@ -40,6 +46,7 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 	result := values.MergeMaps(mappedValues, commandLineOptionValues)
 	result = values.MergeMaps(valuesYamlOverwrite, result)
 	result = values.MergeMaps(configRefValues, result)
+	result = values.MergeMaps(configSystemRefValues, result)
 
 	return result, nil
 }

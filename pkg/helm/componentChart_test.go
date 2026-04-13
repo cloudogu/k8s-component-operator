@@ -54,6 +54,7 @@ func TestComponent_GetHelmChartSpec(t *testing.T) {
 				creationOptsFn: func(t *testing.T) *HelmChartCreationOpts {
 					readerMock := newMockConfigMapRefReader(t)
 					readerMock.EXPECT().GetValues(testCtx, &componentV1.Reference{}).Return("", nil)
+					readerMock.EXPECT().GetSystemValues(testCtx, &componentV1.Component{ObjectMeta: v1.ObjectMeta{Namespace: "ecosystem"}, Spec: componentV1.ComponentSpec{DeployNamespace: "", ValuesConfigRef: &componentV1.Reference{}}}).Return("", nil)
 					return &HelmChartCreationOpts{
 						HelmClient:     NewMockChartGetter(t),
 						Timeout:        0,
