@@ -120,7 +120,7 @@ overwrite-dev-version: ##
 .PHONY: helm-apply
 helm-apply: overwrite-dev-version check-k8s-namespace-env-var image-import ## Generates the component operator image, pushes it to the registry and then updates the component operator version in the ecosystem-core helm chart
 	@echo "Apply generated helm chart"
-	@${BINARY_HELM} --kube-context="${KUBE_CONTEXT_NAME}" upgrade -i ecosystem-core oci://registry.cloudogu.com/k8s/ecosystem-core --namespace ${NAMESPACE} --reuse-values --set k8s-component-operator.manager.image.tag=${COMPONENT_DEV_VERSION} --set k8s-component-operator.manager.image.registry=registry.cloudogu.com --set k8s-component-operator.manager.image.repository=testing/$(ARTIFACT_ID)/$(GIT_BRANCH)
+	@${BINARY_HELM} --kube-context="${KUBE_CONTEXT_NAME}" upgrade -i ecosystem-core oci://registry.cloudogu.com/k8s/ecosystem-core:$$(helm history ecosystem-core -n ${NAMESPACE} -o json | jq -r '.[-1].app_version') --namespace ${NAMESPACE} --reuse-values --set k8s-component-operator.manager.image.tag=${COMPONENT_DEV_VERSION} --set k8s-component-operator.manager.image.registry=registry.cloudogu.com --set k8s-component-operator.manager.image.repository=testing/$(ARTIFACT_ID)/$(GIT_BRANCH)
 
 .PHONY: component-apply
 component-apply: ## component-apply cannot be used with ecosystem-core enabled
