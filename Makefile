@@ -127,11 +127,11 @@ component-apply: ## component-apply cannot be used with ecosystem-core enabled
 	@echo "component-apply cannot be used with the component-operator when ecosystem-core is enabled. Use helm-apply instead."
 
 .PHONY: component-delete
-component-delete:
+component-delete: ## component-delete cannot be used with ecosystem-core enabled
 	@echo "component-delete cannot be used with the component-operator."
 
 .PHONY: helm-delete
-helm-delete:
+helm-delete: ## helm-delete cannot be used with ecosystem-core enabled
 	@echo "helm-delete cannot be used with the component-operator."
 
 endif
