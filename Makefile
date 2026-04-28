@@ -118,9 +118,17 @@ overwrite-dev-version: ##
 	$(eval IMAGE_DEV_VERSION=$(IMAGE_DEV):$(COMPONENT_DEV_VERSION))
 
 .PHONY: helm-apply
-helm-apply: overwrite-dev-version check-k8s-namespace-env-var image-import ## Generates the component operator image, pushes it to the registry and then updates the component operator version in the ecosystem-core helm chart
-	@echo "Apply generated helm chart"
-	@${BINARY_HELM} --kube-context="${KUBE_CONTEXT_NAME}" upgrade -i ecosystem-core oci://registry.cloudogu.com/k8s/ecosystem-core:$$(helm history ecosystem-core -n ${NAMESPACE} -o json | jq -r '.[-1].app_version') --namespace ${NAMESPACE} --reuse-values --set k8s-component-operator.manager.image.tag=${COMPONENT_DEV_VERSION} --set k8s-component-operator.manager.image.registry=registry.cloudogu.com --set k8s-component-operator.manager.image.repository=testing/$(ARTIFACT_ID)/$(GIT_BRANCH)
+helm-apply: overwrite-dev-version check-k8s-namespace-env-var image-import helm-chart-import ## Generates the component operator image, pushes it to the registry and then pulls the ecosystem-core chart to locally update the component operator version in the ecosystem-core helm chart (values.yaml and Chart.yaml)
+	@echo "Pulling ecosystem-core chart for modification"
+	@rm -rf ${K8S_RESOURCE_TEMP_FOLDER}/tmp
+	@mkdir -p ${K8S_RESOURCE_TEMP_FOLDER}/tmp/ecosystem-core
+	@${BINARY_HELM} pull oci://registry.cloudogu.com/k8s/ecosystem-core:$$(helm history ecosystem-core -n ${NAMESPACE} -o json | jq -r '.[-1].app_version') --untar --untardir ${K8S_RESOURCE_TEMP_FOLDER}/tmp
+	@echo "Modifying Chart.yaml..."
+	@${BINARY_YQ} -i '(.dependencies[] | select(.name == "k8s-component-operator") | .version) = "${COMPONENT_DEV_VERSION}"' ${K8S_RESOURCE_TEMP_FOLDER}/tmp/ecosystem-core/Chart.yaml
+	@${BINARY_YQ} -i '(.dependencies[] | select(.name == "k8s-component-operator") | .repository) = "oci://registry.cloudogu.com/testing/k8s"' ${K8S_RESOURCE_TEMP_FOLDER}/tmp/ecosystem-core/Chart.yaml
+	@${BINARY_HELM} dependency update ${K8S_RESOURCE_TEMP_FOLDER}/tmp/ecosystem-core
+	@echo "Apply modified ecosystem-core helm chart"
+	@${BINARY_HELM} --kube-context="${KUBE_CONTEXT_NAME}" upgrade -i ecosystem-core ${K8S_RESOURCE_TEMP_FOLDER}/tmp/ecosystem-core --namespace ${NAMESPACE} --reuse-values --set k8s-component-operator.manager.image.tag=${COMPONENT_DEV_VERSION} --set k8s-component-operator.manager.image.registry=registry.cloudogu.com --set k8s-component-operator.manager.image.repository=testing/$(ARTIFACT_ID)/$(GIT_BRANCH)
 
 .PHONY: component-apply
 component-apply: ## component-apply cannot be used with ecosystem-core enabled
