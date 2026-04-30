@@ -39,6 +39,39 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestNewClientFactory(t *testing.T) {
+	t.Run("should create client factory", func(t *testing.T) {
+		debugLog := func(string, ...interface{}) {}
+		helmRepoData := &config.HelmRepositoryData{PlainHttp: true}
+
+		actual := NewClientFactory("ecosystem", helmRepoData, true, debugLog)
+
+		require.NotNil(t, actual)
+		assert.Equal(t, "ecosystem", actual.namespace)
+		assert.Same(t, helmRepoData, actual.helmRepoData)
+		assert.True(t, actual.debug)
+		assert.NotNil(t, actual.debugLog)
+	})
+}
+
+func TestClientFactory_NewHelmClient(t *testing.T) {
+	t.Run("should create new helm client", func(t *testing.T) {
+		oldGetConfigOrDieDelegate := ctrl.GetConfigOrDie
+		defer func() { ctrl.GetConfigOrDie = oldGetConfigOrDieDelegate }()
+		ctrl.GetConfigOrDie = func() *rest.Config {
+			return &rest.Config{}
+		}
+
+		sut := NewClientFactory("ecosystem", &config.HelmRepositoryData{PlainHttp: true}, false, nil)
+
+		actual, err := sut.NewHelmClient()
+
+		require.NoError(t, err)
+		require.NotNil(t, actual)
+		assert.Equal(t, sut.helmRepoData, actual.helmRepoData)
+	})
+}
+
 func TestClient_InstallOrUpgrade(t *testing.T) {
 	t.Run("should install or upgrade chart", func(t *testing.T) {
 		chartSpec := &client.ChartSpec{

@@ -41,6 +41,14 @@ type healthManager interface {
 	health.ComponentManager
 }
 
+type helmClientFactory interface {
+	NewHelmClient() (helmClient, error)
+}
+
+type componentManagerFactory interface {
+	NewComponentManager(helmClient helmClient) ComponentManager
+}
+
 // helmClient is an interface for managing components with helm.
 type helmClient interface {
 	// InstallOrUpgrade takes a helmChart and applies it.

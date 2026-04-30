@@ -106,7 +106,10 @@ var _ = ginkgo.BeforeSuite(func() {
 	componentClientSet, err = client.NewComponentClientset(k8sManager.GetConfig(), clientSet)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	reconciler := NewComponentReconciler(componentClientSet, helmClientMock, recorderMock, namespace, defaultHelmClientTimeoutMins, yaml.NewSerializer(), configMapRefReaderMock, defaultRequeueTime)
+	helmClientFactoryMock := newMockHelmClientFactory(t)
+	helmClientFactoryMock.EXPECT().NewHelmClient().Return(helmClientMock, nil).Maybe()
+
+	reconciler := newComponentReconciler(componentClientSet, helmClientFactoryMock, recorderMock, namespace, defaultHelmClientTimeoutMins, yaml.NewSerializer(), configMapRefReaderMock, defaultRequeueTime)
 
 	err = reconciler.SetupWithManager(k8sManager)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())

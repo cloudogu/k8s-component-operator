@@ -9,8 +9,6 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
-	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"helm.sh/helm/v3/pkg/release"
@@ -55,6 +53,12 @@ const (
 	Ignore = operation("Ignore")
 )
 
+type newHelmClientFunc func() (*helm.Client, error)
+
+func (f newHelmClientFunc) NewHelmClient() (helmClient, error) {
+	return f()
+}
+
 // ComponentManager abstracts the simple component operations in a k8s CES.
 type ComponentManager interface {
 	installManager
@@ -64,37 +68,40 @@ type ComponentManager interface {
 
 // ComponentReconciler watches every Component object in the cluster and handles them accordingly.
 type ComponentReconciler struct {
-	clientSet          componentEcosystemInterface
-	recorder           record.EventRecorder
-	componentManager   ComponentManager
-	helmClient         helmClient
-	requeueHandler     requeueHandler
-	namespace          string
-	timeout            time.Duration
-	yamlSerializer     yaml.Serializer
-	reader             configMapRefReader
+	clientSet        componentEcosystemInterface
+	recorder         record.EventRecorder
+	componentManager ComponentManager
+	helmClient       helmClient
+	requeueHandler   requeueHandler
+	namespace        string
+	timeout          time.Duration
+	yamlSerializer   yaml.Serializer
+	reader           configMapRefReader
 	configMapInterface configMapInterface
 }
 
-// NewComponentReconciler creates a new component reconciler.
-func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient helmClient, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration) *ComponentReconciler {
+func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient newHelmClientFunc, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace, requeueTime)
+
+	//hcf := &defaultHelmClientFactory{
+	//	newHelmClient: newHelmClient,
+	//}
+
 	return &ComponentReconciler{
 		clientSet: clientSet,
 		recorder:  recorder,
-		componentManager: NewComponentManager(
-			clientSet.ComponentV1Alpha1().Components(namespace),
-			helmClient,
-			health.NewManager(namespace, clientSet),
-			recorder,
-			timeout,
-			configref.NewConfigMapRefReader(clientSet.CoreV1().ConfigMaps(namespace)),
-		),
-		helmClient:         helmClient,
-		requeueHandler:     componentRequeueHandler,
-		namespace:          namespace,
-		yamlSerializer:     yamlSerializer,
-		reader:             reader,
+		componentManagerFactory: &defaultComponentManagerFactory{
+			namespace: namespace,
+			clientSet: clientSet,
+			recorder:  recorder,
+			timeout:   timeout,
+		},
+		helmClientFactory: newHelmClient,
+		requeueHandler:    componentRequeueHandler,
+		namespace:         namespace,
+		yamlSerializer:    yamlSerializer,
+		reader:            reader,
+		timeout:           timeout,
 		configMapInterface: clientSet.CoreV1().ConfigMaps(namespace),
 	}
 }
@@ -104,8 +111,8 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile this component", "component", req.Name)
-	component, err := r.clientSet.ComponentV1Alpha1().Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 
+	component, err := r.clientSet.ComponentV1Alpha1().Components(req.Namespace).Get(ctx, req.Name, v1.GetOptions{})
 	if err != nil {
 		logger.Info(fmt.Sprintf("failed to get component %+v: %s", req, err))
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -117,19 +124,26 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return finishOperation()
 	}
 
-	operation, err := r.evaluateRequiredOperation(ctx, component)
+	hc, err := r.helmClientFactory.NewHelmClient()
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to create helm client: %w", err)
+	}
+
+	operation, err := r.evaluateRequiredOperation(ctx, component, hc)
 	if err != nil {
 		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
 	}
 	logger.Info(fmt.Sprintf("Required operation is %s", operation))
 
+	componentManager := r.componentManagerFactory.NewComponentManager(hc)
+
 	switch operation {
 	case Install:
-		return r.performInstallOperation(ctx, component)
+		return r.performInstallOperation(ctx, component, componentManager)
 	case Delete:
-		return r.performDeleteOperation(ctx, component)
+		return r.performDeleteOperation(ctx, component, componentManager)
 	case Upgrade:
-		return r.performUpgradeOperation(ctx, component)
+		return r.performUpgradeOperation(ctx, component, componentManager)
 	case Downgrade:
 		return r.performDowngradeOperation(component)
 	case Ignore:
@@ -148,16 +162,16 @@ func (r *ComponentReconciler) validateName(component *k8sv1.Component) (success 
 	return true
 }
 
-func (r *ComponentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
-	return r.performOperation(ctx, component, InstallEventReason, k8sv1.ComponentStatusTryToInstall, r.componentManager.Install)
+func (r *ComponentReconciler) performInstallOperation(ctx context.Context, component *k8sv1.Component, componentManager ComponentManager) (ctrl.Result, error) {
+	return r.performOperation(ctx, component, InstallEventReason, k8sv1.ComponentStatusTryToInstall, componentManager.Install)
 }
 
-func (r *ComponentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
-	return r.performOperation(ctx, component, UpgradeEventReason, k8sv1.ComponentStatusTryToUpgrade, r.componentManager.Upgrade)
+func (r *ComponentReconciler) performUpgradeOperation(ctx context.Context, component *k8sv1.Component, componentManager ComponentManager) (ctrl.Result, error) {
+	return r.performOperation(ctx, component, UpgradeEventReason, k8sv1.ComponentStatusTryToUpgrade, componentManager.Upgrade)
 }
 
-func (r *ComponentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component) (ctrl.Result, error) {
-	return r.performOperation(ctx, component, DeinstallationEventReason, k8sv1.ComponentStatusTryToDelete, r.componentManager.Delete)
+func (r *ComponentReconciler) performDeleteOperation(ctx context.Context, component *k8sv1.Component, componentManager ComponentManager) (ctrl.Result, error) {
+	return r.performOperation(ctx, component, DeinstallationEventReason, k8sv1.ComponentStatusTryToDelete, componentManager.Delete)
 }
 
 func (r *ComponentReconciler) performDowngradeOperation(component *k8sv1.Component) (ctrl.Result, error) {
@@ -228,7 +242,7 @@ func finishOperation() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
+func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component, hc helmClient) (operation, error) {
 	logger := log.FromContext(ctx)
 	if component.DeletionTimestamp != nil && !component.DeletionTimestamp.IsZero() {
 		return Delete, nil
@@ -238,7 +252,7 @@ func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	case k8sv1.ComponentStatusNotInstalled, k8sv1.ComponentStatusTryToInstall:
 		return Install, nil
 	case k8sv1.ComponentStatusInstalled, k8sv1.ComponentStatusTryToUpgrade, k8sv1.ComponentStatusTryToDelete:
-		operation, err := r.getChangeOperation(ctx, component)
+		operation, err := r.getChangeOperation(ctx, component, hc)
 		if err != nil {
 			return "", err
 		}
@@ -256,10 +270,10 @@ func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, com
 	}
 }
 
-func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component) (operation, error) {
+func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component, hc helmClient) (operation, error) {
 	logger := log.FromContext(ctx)
 
-	deployedReleases, err := r.helmClient.ListDeployedReleases()
+	deployedReleases, err := hc.ListDeployedReleases()
 	if err != nil {
 		return "", fmt.Errorf("failed to get deployed helm releases: %w", err)
 	}
@@ -279,7 +293,7 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 			logger.Info("Found existing release for reconciled component",
 				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
 			if existsReleaseInTargetNamespace {
-				return r.getChangeOperationForRelease(ctx, component, deployedRelease)
+				return r.getChangeOperationForRelease(ctx, component, deployedRelease, hc)
 			} else {
 				r.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Deploy namespace mismatch (CR: %q; deployed: %q). Deploy namespace declaration is only allowed on install. Revert deploy namespace change to prevent failing upgrade.", targetNamespace, deployedRelease.Namespace)
 				return "", fmt.Errorf("component does not exist in target namespace (%q), but in namespace %q", targetNamespace, deployedRelease.Namespace)
@@ -290,14 +304,14 @@ func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component 
 	return Ignore, nil
 }
 
-func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelease *release.Release, component *k8sv1.Component) (bool, error) {
-	deployedValues, err := r.helmClient.GetReleaseValues(deployedRelease.Name, false)
+func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelease *release.Release, component *k8sv1.Component, hc helmClient) (bool, error) {
+	deployedValues, err := hc.GetReleaseValues(deployedRelease.Name, false)
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
 	}
 
 	chartSpec, err := helm.GetHelmChartSpec(ctx, component, helm.HelmChartCreationOpts{
-		HelmClient:     r.helmClient,
+		HelmClient:     hc,
 		Timeout:        r.timeout,
 		YamlSerializer: r.yamlSerializer,
 		Reader:         r.reader,
@@ -306,7 +320,7 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
 	}
 
-	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
+	chartSpecValues, err := hc.GetChartSpecValues(chartSpec)
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
 	}
@@ -322,7 +336,7 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
 }
 
-func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release) (operation, error) {
+func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release, hc helmClient) (operation, error) {
 	chart := release.Chart
 	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
 	if err != nil {
@@ -342,7 +356,7 @@ func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, 
 		return Downgrade, nil
 	}
 
-	isValuesChanged, err := r.isValuesChanged(ctx, release, component)
+	isValuesChanged, err := r.isValuesChanged(ctx, release, component, hc)
 	if err != nil {
 		return "", fmt.Errorf("failed to compare Values.yaml files of component %s: %w", component.Name, err)
 	}
