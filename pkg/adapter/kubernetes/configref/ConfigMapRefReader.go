@@ -43,7 +43,8 @@ func (reader ConfigMapRefReader) GetSystemValues(ctx context.Context, component 
 	cmLabelSelector := labels.ValidatedSetSelector{
 		"k8s.cloudogu.com/component.config": component.Name,
 	}.String()
-	configMaps, err := reader.configMapClient.List(ctx, metav1.ListOptions{LabelSelector: cmLabelSelector})
+	cmFieldSelector := "metadata.name!=initial-exposed-ports-config"
+	configMaps, err := reader.configMapClient.List(ctx, metav1.ListOptions{LabelSelector: cmLabelSelector, FieldSelector: cmFieldSelector})
 	if err != nil {
 		return "", err
 	}

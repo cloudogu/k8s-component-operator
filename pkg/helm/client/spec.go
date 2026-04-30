@@ -21,7 +21,7 @@ func (spec *ChartSpec) GetValuesMap(p getter.Providers) (map[string]interface{},
 	configSystemRefValues := map[string]interface{}{}
 	err = yaml.Unmarshal([]byte(spec.ValuesSystemConfigRefYaml), &configSystemRefValues)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "Failed to Parse System Values")
 	}
 
 	configRefValues := map[string]interface{}{}
