@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - [#108] overwrite dev make targets when ecosystem-core is enabled
+- [#111] add k8s proxy server docs
 
 ## [v1.12.2] - 2026-03-25
 ### Security
