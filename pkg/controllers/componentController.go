@@ -13,20 +13,19 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
 	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 type operation string
@@ -65,15 +64,16 @@ type ComponentManager interface {
 
 // ComponentReconciler watches every Component object in the cluster and handles them accordingly.
 type ComponentReconciler struct {
-	clientSet        componentEcosystemInterface
-	recorder         record.EventRecorder
-	componentManager ComponentManager
-	helmClient       helmClient
-	requeueHandler   requeueHandler
-	namespace        string
-	timeout          time.Duration
-	yamlSerializer   yaml.Serializer
-	reader           configMapRefReader
+	clientSet          componentEcosystemInterface
+	recorder           record.EventRecorder
+	componentManager   ComponentManager
+	helmClient         helmClient
+	requeueHandler     requeueHandler
+	namespace          string
+	timeout            time.Duration
+	yamlSerializer     yaml.Serializer
+	reader             configMapRefReader
+	configMapInterface configMapInterface
 }
 
 // NewComponentReconciler creates a new component reconciler.
@@ -90,11 +90,12 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, helmClient he
 			timeout,
 			configref.NewConfigMapRefReader(clientSet.CoreV1().ConfigMaps(namespace)),
 		),
-		helmClient:     helmClient,
-		requeueHandler: componentRequeueHandler,
-		namespace:      namespace,
-		yamlSerializer: yamlSerializer,
-		reader:         reader,
+		helmClient:         helmClient,
+		requeueHandler:     componentRequeueHandler,
+		namespace:          namespace,
+		yamlSerializer:     yamlSerializer,
+		reader:             reader,
+		configMapInterface: clientSet.CoreV1().ConfigMaps(namespace),
 	}
 }
 
@@ -304,6 +305,7 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 	if err != nil {
 		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
 	}
+
 	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
@@ -381,6 +383,17 @@ func (r *ComponentReconciler) getComponentRequest(ctx context.Context, cm *corev
 					Namespace: r.namespace,
 				},
 			})
+		}
+		labels := cm.Labels
+		for key, label := range labels {
+			if key == "k8s.cloudogu.com/component.config" && label == component.Name {
+				componentRequest = append(componentRequest, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      component.Name,
+						Namespace: r.namespace,
+					},
+				})
+			}
 		}
 	}
 	return componentRequest

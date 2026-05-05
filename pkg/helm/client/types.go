@@ -94,6 +94,9 @@ type ChartSpec struct {
 	// ValuesConfigRef is used for configuration
 	// +optional
 	ValuesConfigRefYaml string `json:"valuesConfigRefYaml,omitempty"`
+	// ValuesSystemConfigRefYaml is used for configuration of exposed ports
+	// +optional
+	ValuesSystemConfigRefYaml string `json:"valuesSystemConfigRefYaml,omitempty"`
 	// Specify values similar to the cli
 	// +optional
 	ValuesOptions valuesOptions `json:"valuesOptions,omitempty"`

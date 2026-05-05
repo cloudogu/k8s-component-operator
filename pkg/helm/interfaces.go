@@ -9,6 +9,7 @@ import (
 
 type configMapRefReader interface {
 	GetValues(ctx context.Context, configMapReference *k8sv1.Reference) (string, error)
+	GetSystemValues(ctx context.Context, c *k8sv1.Component) (string, error)
 }
 
 //nolint:unused
