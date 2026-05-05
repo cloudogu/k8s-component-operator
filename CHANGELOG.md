@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.13.0] - 2026-05-05
+### Added
+- [#106] reconcile on a configmap with the label `k8s.cloudogu.com/component.config`
+  - config map contains a multiline yaml to overwrite values
+### Changed
+- [#108] overwrite dev make targets when ecosystem-core is enabled
+
 ## [v1.12.2] - 2026-03-25
 ### Security
 - [#104] Fix `google.golang.org/grpc` CVE-2026-33186

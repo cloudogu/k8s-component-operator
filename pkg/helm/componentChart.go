@@ -96,6 +96,11 @@ func GetHelmChartSpec(ctx context.Context, c *componentV1.Component, opts ...Hel
 		if err != nil {
 			return nil, fmt.Errorf("failed to create values config references: %w", err)
 		}
+
+		chartSpec.ValuesSystemConfigRefYaml, err = reader.GetSystemValues(ctx, c)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create values config references: %w", err)
+		}
 	}
 
 	return chartSpec, nil

@@ -39,6 +39,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -74,6 +75,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
@@ -111,6 +113,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
@@ -145,6 +148,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
@@ -179,6 +183,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient := newMockHelmClient(t)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
@@ -220,6 +225,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -265,6 +271,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -318,6 +325,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		mockHelmClient.EXPECT().GetLatestVersion("k8s/dogu-op").Return("4.8.3", nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, componentWithVersion).Return("", nil)
 		spec, _ := helm.GetHelmChartSpec(testCtx, componentWithVersion, helm.HelmChartCreationOpts{
 			HelmClient:     mockHelmClient,
 			YamlSerializer: yaml.NewSerializer(),

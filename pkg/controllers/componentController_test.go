@@ -224,6 +224,7 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockRecorder := newMockEventRecorder(t)
 		manager := NewMockComponentManager(t)
@@ -443,6 +444,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(nil, assert.AnError)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -550,6 +552,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "xyz"}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -577,6 +580,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{"foo": "bar", "baz": "buz"}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -604,6 +608,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -631,6 +636,7 @@ func Test_componentReconciler_getChangeOperation(t *testing.T) {
 		mockHelmClient.EXPECT().GetChartSpecValues(mock.Anything).Return(map[string]interface{}{}, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		sut := ComponentReconciler{
 			helmClient:     mockHelmClient,
@@ -881,6 +887,34 @@ func TestComponentReconciler_getComponentRequest(t *testing.T) {
 			Name: "configmap",
 			Key:  "key",
 		}
+		componentV1InterfaceMock := newMockComponentV1Alpha1Interface(t)
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentInterfaceMock.EXPECT().List(testCtx, v1.ListOptions{}).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{*component}}, nil)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentV1InterfaceMock)
+		componentV1InterfaceMock.EXPECT().Components("ecosystem").Return(componentInterfaceMock)
+
+		sut := ComponentReconciler{
+			namespace: "ecosystem",
+			clientSet: clientSetMock,
+		}
+
+		// when
+		requests := sut.getComponentRequest(testCtx, cm)
+
+		// then
+		assert.NotEmpty(t, requests)
+		assert.Equal(t, reconcile.Request{NamespacedName: types.NamespacedName{Name: "dogu-op", Namespace: "ecosystem"}}, requests[0])
+	})
+	t.Run("should get component list with default config config map", func(t *testing.T) {
+		// given
+		cm := &corev1.ConfigMap{ObjectMeta: v1.ObjectMeta{
+			Name: "dogu-op-config",
+			Labels: map[string]string{
+				"k8s.cloudogu.com/component.config": "dogu-op",
+			},
+		}}
+		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
 		componentV1InterfaceMock := newMockComponentV1Alpha1Interface(t)
 		componentInterfaceMock := newMockComponentInterface(t)
 		componentInterfaceMock.EXPECT().List(testCtx, v1.ListOptions{}).Return(&k8sv1.ComponentList{Items: []k8sv1.Component{*component}}, nil)
