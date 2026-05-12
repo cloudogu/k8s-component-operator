@@ -68,16 +68,16 @@ type ComponentManager interface {
 
 // ComponentReconciler watches every Component object in the cluster and handles them accordingly.
 type ComponentReconciler struct {
-	clientSet        componentEcosystemInterface
-	recorder         record.EventRecorder
-	componentManager ComponentManager
-	helmClient       helmClient
-	requeueHandler   requeueHandler
-	namespace        string
-	timeout          time.Duration
-	yamlSerializer   yaml.Serializer
-	reader           configMapRefReader
-	configMapInterface configMapInterface
+	clientSet               componentEcosystemInterface
+	recorder                record.EventRecorder
+	componentManagerFactory componentManagerFactory
+	helmClientFactory       helmClientFactory
+	requeueHandler          requeueHandler
+	namespace               string
+	timeout                 time.Duration
+	yamlSerializer          yaml.Serializer
+	reader                  configMapRefReader
+	configMapInterface      configMapInterface
 }
 
 func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient newHelmClientFunc, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration) *ComponentReconciler {
@@ -96,12 +96,12 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient
 			recorder:  recorder,
 			timeout:   timeout,
 		},
-		helmClientFactory: newHelmClient,
-		requeueHandler:    componentRequeueHandler,
-		namespace:         namespace,
-		yamlSerializer:    yamlSerializer,
-		reader:            reader,
-		timeout:           timeout,
+		helmClientFactory:  newHelmClient,
+		requeueHandler:     componentRequeueHandler,
+		namespace:          namespace,
+		yamlSerializer:     yamlSerializer,
+		reader:             reader,
+		timeout:            timeout,
 		configMapInterface: clientSet.CoreV1().ConfigMaps(namespace),
 	}
 }

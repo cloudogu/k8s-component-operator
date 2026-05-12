@@ -30,7 +30,11 @@ const testRequeueTime = time.Second
 
 func TestNewComponentReconciler(t *testing.T) {
 	// given
+	coreV1Mock := newMockCoreV1Interface(t)
+	coreV1Mock.EXPECT().ConfigMaps(testNamespace).Return(newMockConfigMapInterface(t))
 	clientSetMock := newMockComponentEcosystemInterface(t)
+	clientSetMock.EXPECT().CoreV1().Return(coreV1Mock)
+
 	configMapRefReaderMock := newMockConfigMapRefReader(t)
 
 	newHelmClientFunc := func() (*helm.Client, error) { return nil, nil }
