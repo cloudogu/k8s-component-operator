@@ -306,7 +306,26 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
 	}
 
+	/*
+		err, cm := r.getComponentConfigMap(ctx, component)
+		if cm.Data != nil {
+			valuesYamlOverwrite := map[string]interface{}{}
+
+			err = yaml2.Unmarshal([]byte(chartSpec.ValuesYamlOverwrite), &valuesYamlOverwrite)
+			if err != nil {
+				return false, errors.Wrap(err, "Failed to Parse ValuesYamlOverwrite")
+			}
+			cmValues := cm.Data["values"]
+			cmConfigValues := map[string]interface{}{}
+			err = yaml2.Unmarshal([]byte(cmValues), &cmConfigValues)
+
+			chartSpec.ValuesSystemConfigRefYaml = cm.Data["values"]
+		}
+	*/
+
 	chartSpecValues, err := r.helmClient.GetChartSpecValues(chartSpec)
+	log.FromContext(ctx).Info(fmt.Sprintf("--- Chart Values: %s ", chartSpecValues))
+	log.FromContext(ctx).Info(fmt.Sprintf("--- Deployed Values: %s ", deployedValues))
 	if err != nil {
 		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
 	}
@@ -320,6 +339,14 @@ func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelea
 	}
 
 	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
+}
+
+func toInterfaceMap(m map[string]string) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
 }
 
 func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release) (operation, error) {
@@ -407,4 +434,21 @@ func (r *ComponentReconciler) getConfigMapKind(mgr ctrl.Manager) source.TypedSyn
 			return r.getComponentRequest(ctx, cm)
 		}),
 	)
+}
+
+func (r *ComponentReconciler) getComponentConfigMap(ctx context.Context, component *k8sv1.Component) (error, corev1.ConfigMap) {
+	list, err := r.configMapInterface.List(ctx, v1.ListOptions{})
+	if err != nil {
+		return err, corev1.ConfigMap{}
+	}
+
+	for _, cm := range list.Items {
+		for key, label := range cm.Labels {
+			if key == "k8s.cloudogu.com/component.config" && label == component.Name {
+				log.FromContext(ctx).Info(fmt.Sprintf("---\n %v \n---", cm.Data))
+				return nil, cm
+			}
+		}
+	}
+	return nil, corev1.ConfigMap{}
 }
