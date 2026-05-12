@@ -83,10 +83,6 @@ type ComponentReconciler struct {
 func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient newHelmClientFunc, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration) *ComponentReconciler {
 	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace, requeueTime)
 
-	//hcf := &defaultHelmClientFactory{
-	//	newHelmClient: newHelmClient,
-	//}
-
 	return &ComponentReconciler{
 		clientSet: clientSet,
 		recorder:  recorder,
