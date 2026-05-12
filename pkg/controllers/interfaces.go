@@ -6,7 +6,6 @@ import (
 
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"helm.sh/helm/v3/pkg/chart"
-	"k8s.io/client-go/kubernetes"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
@@ -76,7 +75,6 @@ type requeueHandler interface {
 }
 
 type componentEcosystemInterface interface {
-	kubernetes.Interface
 	componentClient.ComponentEcosystemInterface
 }
 
@@ -105,7 +103,6 @@ type componentV1Alpha1Interface interface {
 
 type configMapRefReader interface {
 	GetValues(ctx context.Context, configMapReference *k8sv1.Reference) (string, error)
-	GetSystemValues(ctx context.Context, c *k8sv1.Component) (string, error)
 }
 
 //nolint:unused
