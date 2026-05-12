@@ -3,15 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
-	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -68,16 +65,17 @@ type ComponentManager interface {
 
 // ComponentReconciler watches every Component object in the cluster and handles them accordingly.
 type ComponentReconciler struct {
-	clientSet               componentEcosystemInterface
-	recorder                record.EventRecorder
-	componentManagerFactory componentManagerFactory
-	helmClientFactory       helmClientFactory
-	requeueHandler          requeueHandler
-	namespace               string
-	timeout                 time.Duration
-	yamlSerializer          yaml.Serializer
-	reader                  configMapRefReader
-	configMapInterface      configMapInterface
+	clientSet                 componentEcosystemInterface
+	recorder                  record.EventRecorder
+	componentManagerFactory   componentManagerFactory
+	helmClientFactory         helmClientFactory
+	operationEvaluatorFactory operationEvaluatorFactory
+	requeueHandler            requeueHandler
+	namespace                 string
+	timeout                   time.Duration
+	yamlSerializer            yaml.Serializer
+	reader                    configMapRefReader
+	configMapInterface        configMapInterface
 }
 
 func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient newHelmClientFunc, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration) *ComponentReconciler {
@@ -92,7 +90,13 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient
 			recorder:  recorder,
 			timeout:   timeout,
 		},
-		helmClientFactory:  newHelmClient,
+		helmClientFactory: newHelmClient,
+		operationEvaluatorFactory: &defaultOperationEvaluatorFactory{
+			recorder:       recorder,
+			timeout:        timeout,
+			yamlSerializer: yamlSerializer,
+			reader:         reader,
+		},
 		requeueHandler:     componentRequeueHandler,
 		namespace:          namespace,
 		yamlSerializer:     yamlSerializer,
@@ -125,7 +129,8 @@ func (r *ComponentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, fmt.Errorf("failed to create helm client: %w", err)
 	}
 
-	operation, err := r.evaluateRequiredOperation(ctx, component, hc)
+	operationEvaluator := r.operationEvaluatorFactory.NewOperationEvaluator(hc)
+	operation, err := operationEvaluator.EvaluateRequiredOperation(ctx, component)
 	if err != nil {
 		return requeueWithError(fmt.Errorf("failed to evaluate required operation: %w", err))
 	}
@@ -236,131 +241,6 @@ func requeueOrFinishOperation(result ctrl.Result) (ctrl.Result, error) {
 // Use requeueOrFinishOperation() or requeueWithError() if the reconciler should requeue the operation.
 func finishOperation() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
-}
-
-func (r *ComponentReconciler) evaluateRequiredOperation(ctx context.Context, component *k8sv1.Component, hc helmClient) (operation, error) {
-	logger := log.FromContext(ctx)
-	if component.DeletionTimestamp != nil && !component.DeletionTimestamp.IsZero() {
-		return Delete, nil
-	}
-
-	switch component.Status.Status {
-	case k8sv1.ComponentStatusNotInstalled, k8sv1.ComponentStatusTryToInstall:
-		return Install, nil
-	case k8sv1.ComponentStatusInstalled, k8sv1.ComponentStatusTryToUpgrade, k8sv1.ComponentStatusTryToDelete:
-		operation, err := r.getChangeOperation(ctx, component, hc)
-		if err != nil {
-			return "", err
-		}
-
-		return operation, nil
-	case k8sv1.ComponentStatusInstalling:
-		return Ignore, nil
-	case k8sv1.ComponentStatusDeleting:
-		return Ignore, nil
-	case k8sv1.ComponentStatusUpgrading:
-		return Ignore, nil
-	default:
-		logger.Info(fmt.Sprintf("Found unknown operation for component status: %s", component.Status.Status))
-		return Ignore, nil
-	}
-}
-
-func (r *ComponentReconciler) getChangeOperation(ctx context.Context, component *k8sv1.Component, hc helmClient) (operation, error) {
-	logger := log.FromContext(ctx)
-
-	deployedReleases, err := hc.ListDeployedReleases()
-	if err != nil {
-		return "", fmt.Errorf("failed to get deployed helm releases: %w", err)
-	}
-
-	for _, deployedRelease := range deployedReleases {
-
-		isComponentToBeChanged := deployedRelease.Name == component.Spec.Name
-		targetNamespace := component.Spec.DeployNamespace
-
-		if targetNamespace == "" {
-			targetNamespace = component.Namespace
-		}
-
-		existsReleaseInTargetNamespace := deployedRelease.Namespace == targetNamespace
-
-		if isComponentToBeChanged {
-			logger.Info("Found existing release for reconciled component",
-				"releaseNamespace", deployedRelease.Namespace, "targetNamespace", targetNamespace)
-			if existsReleaseInTargetNamespace {
-				return r.getChangeOperationForRelease(ctx, component, deployedRelease, hc)
-			} else {
-				r.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Deploy namespace mismatch (CR: %q; deployed: %q). Deploy namespace declaration is only allowed on install. Revert deploy namespace change to prevent failing upgrade.", targetNamespace, deployedRelease.Namespace)
-				return "", fmt.Errorf("component does not exist in target namespace (%q), but in namespace %q", targetNamespace, deployedRelease.Namespace)
-			}
-		}
-	}
-
-	return Ignore, nil
-}
-
-func (r *ComponentReconciler) isValuesChanged(ctx context.Context, deployedRelease *release.Release, component *k8sv1.Component, hc helmClient) (bool, error) {
-	deployedValues, err := hc.GetReleaseValues(deployedRelease.Name, false)
-	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from release %s: %w", deployedRelease.Name, err)
-	}
-
-	chartSpec, err := helm.GetHelmChartSpec(ctx, component, helm.HelmChartCreationOpts{
-		HelmClient:     hc,
-		Timeout:        r.timeout,
-		YamlSerializer: r.yamlSerializer,
-		Reader:         r.reader,
-	})
-	if err != nil {
-		return false, fmt.Errorf("failed to get helm chart spec: %w", err)
-	}
-
-	chartSpecValues, err := hc.GetChartSpecValues(chartSpec)
-	if err != nil {
-		return false, fmt.Errorf("failed to get values.yaml from component %s: %w", chartSpec.ChartName, err)
-	}
-
-	// if no additional values are set, the maps will look like this:
-	// deployedValues=map[string]interface {}(nil)                                                                                                                                        │
-	// chartSpecValues=map[string]interface {}{}
-	// this is treated as a difference by DeepEqual, so we have to handle this edge case manually
-	if len(deployedValues) == 0 && len(chartSpecValues) == 0 {
-		return false, nil
-	}
-
-	return !reflect.DeepEqual(deployedValues, chartSpecValues), nil
-}
-
-func (r *ComponentReconciler) getChangeOperationForRelease(ctx context.Context, component *k8sv1.Component, release *release.Release, hc helmClient) (operation, error) {
-	chart := release.Chart
-	deployedAppVersion, err := semver.NewVersion(chart.AppVersion())
-	if err != nil {
-		return "", fmt.Errorf("failed to parse app version %s from helm chart %s: %w", chart.AppVersion(), chart.Name(), err)
-	}
-
-	componentVersion, err := semver.NewVersion(component.Spec.Version)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse component version %s from %s: %w", component.Spec.Version, component.Spec.Name, err)
-	}
-
-	if deployedAppVersion.LessThan(componentVersion) {
-		return Upgrade, nil
-	}
-
-	if deployedAppVersion.GreaterThan(componentVersion) {
-		return Downgrade, nil
-	}
-
-	isValuesChanged, err := r.isValuesChanged(ctx, release, component, hc)
-	if err != nil {
-		return "", fmt.Errorf("failed to compare Values.yaml files of component %s: %w", component.Name, err)
-	}
-	if isValuesChanged {
-		return Upgrade, nil
-	}
-
-	return Ignore, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
