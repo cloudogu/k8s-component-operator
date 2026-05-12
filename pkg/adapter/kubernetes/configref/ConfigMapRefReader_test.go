@@ -110,7 +110,7 @@ func TestConfigMapRefReader_GetSystemValues(t *testing.T) {
 		cmLabelSelector := labels.ValidatedSetSelector{
 			"k8s.cloudogu.com/component.config": component.Name,
 		}.String()
-		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector, FieldSelector: "metadata.name!=initial-exposed-ports-config"}).Return(&corev1.ConfigMapList{}, nil)
+		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector}).Return(&corev1.ConfigMapList{}, nil)
 		refReader := NewConfigMapRefReader(configMapMock)
 
 		result, err := refReader.GetSystemValues(testCtx, component)
@@ -131,7 +131,7 @@ func TestConfigMapRefReader_GetSystemValues(t *testing.T) {
 		cmLabelSelector := labels.ValidatedSetSelector{
 			"k8s.cloudogu.com/component.config": component.Name,
 		}.String()
-		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector, FieldSelector: "metadata.name!=initial-exposed-ports-config"}).Return(&corev1.ConfigMapList{Items: []corev1.ConfigMap{*cm}}, nil)
+		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector}).Return(&corev1.ConfigMapList{Items: []corev1.ConfigMap{*cm}}, nil)
 		refReader := NewConfigMapRefReader(configMapMock)
 
 		result, err := refReader.GetSystemValues(testCtx, component)
@@ -156,7 +156,7 @@ func TestConfigMapRefReader_GetSystemValues(t *testing.T) {
 		cmLabelSelector := labels.ValidatedSetSelector{
 			"k8s.cloudogu.com/component.config": component.Name,
 		}.String()
-		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector, FieldSelector: "metadata.name!=initial-exposed-ports-config"}).Return(&corev1.ConfigMapList{Items: []corev1.ConfigMap{*cm}}, nil)
+		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector}).Return(&corev1.ConfigMapList{Items: []corev1.ConfigMap{*cm}}, nil)
 		refReader := NewConfigMapRefReader(configMapMock)
 
 		result, err := refReader.GetSystemValues(testCtx, component)
