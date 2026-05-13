@@ -165,15 +165,17 @@ func configureReconciler(ctx context.Context, k8sManager manager.Manager, client
 	operatorConfig.HelmRepositoryData = helmRepoData
 
 	debug := config.Stage == config.StageDevelopment
-	helmClient, err := helm.NewClient(operatorConfig.Namespace, operatorConfig.HelmRepositoryData, debug, logging.FormattingLoggerWithName("helm-client", ctrl.Log.Info))
-	if err != nil {
-		return fmt.Errorf("failed to create helm client: %w", err)
-	}
+	helmClientFactory := helm.NewClientFactory(
+		operatorConfig.Namespace,
+		operatorConfig.HelmRepositoryData,
+		debug,
+		logging.FormattingLoggerWithName("helm-client", ctrl.Log.Info),
+	)
 
 	yamlSerializer := yaml.NewSerializer()
 	reader := configref.NewConfigMapRefReader(clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
 
-	componentReconciler := controllers.NewComponentReconciler(clientSet, helmClient, eventRecorder, operatorConfig.Namespace, operatorConfig.HelmClientTimeoutMins, yamlSerializer, reader, operatorConfig.RequeueTime)
+	componentReconciler := controllers.NewComponentReconciler(clientSet, helmClientFactory.NewHelmClient, eventRecorder, operatorConfig.Namespace, operatorConfig.HelmClientTimeoutMins, yamlSerializer, reader, operatorConfig.RequeueTime)
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
 		return fmt.Errorf("failed to setup reconciler with manager: %w", err)

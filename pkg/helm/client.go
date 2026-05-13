@@ -30,6 +30,26 @@ type HelmClient interface {
 	client.Client
 }
 
+type ClientFactory struct {
+	namespace    string
+	helmRepoData *config.HelmRepositoryData
+	debug        bool
+	debugLog     action.DebugLog
+}
+
+func NewClientFactory(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog) *ClientFactory {
+	return &ClientFactory{
+		namespace:    namespace,
+		helmRepoData: helmRepoData,
+		debug:        debug,
+		debugLog:     debugLog,
+	}
+}
+
+func (f *ClientFactory) NewHelmClient() (*Client, error) {
+	return NewClient(f.namespace, f.helmRepoData, f.debug, f.debugLog)
+}
+
 // Client wraps the HelmClient with config.HelmRepositoryData
 type Client struct {
 	helmClient        HelmClient

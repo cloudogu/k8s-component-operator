@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	v1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -16,6 +17,44 @@ func TestNewComponentManager(t *testing.T) {
 
 		// then
 		require.NotNil(t, sut)
+	})
+}
+
+func Test_defaultComponentManagerFactory_NewComponentManager(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		componentInterfaceMock := newMockComponentInterface(t)
+		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
+		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock).Twice()
+
+		configMapClientMock := newMockConfigMapInterface(t)
+		coreV1Mock := newMockCoreV1Interface(t)
+		coreV1Mock.EXPECT().ConfigMaps(testNamespace).Return(configMapClientMock)
+
+		appsV1Mock := newMockAppsV1Interface(t)
+		clientSetMock := newMockComponentEcosystemInterface(t)
+		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock).Twice()
+		clientSetMock.EXPECT().CoreV1().Return(coreV1Mock)
+		clientSetMock.EXPECT().AppsV1().Return(appsV1Mock)
+
+		recorderMock := newMockEventRecorder(t)
+		helmClientMock := newMockHelmClient(t)
+
+		sut := &defaultComponentManagerFactory{
+			namespace: testNamespace,
+			clientSet: clientSetMock,
+			recorder:  recorderMock,
+			timeout:   defaultHelmClientTimeoutMins,
+		}
+
+		actual := sut.NewComponentManager(helmClientMock)
+
+		require.NotNil(t, actual)
+		defaultManager, ok := actual.(*DefaultComponentManager)
+		require.True(t, ok)
+		assert.NotNil(t, defaultManager.installManager)
+		assert.NotNil(t, defaultManager.deleteManager)
+		assert.NotNil(t, defaultManager.upgradeManager)
+		assert.Same(t, recorderMock, defaultManager.recorder)
 	})
 }
 
