@@ -3,13 +3,11 @@
 package client
 
 import (
-	action "helm.sh/helm/v3/pkg/action"
-	chart "helm.sh/helm/v3/pkg/chart"
-
 	context "context"
 
 	mock "github.com/stretchr/testify/mock"
-
+	action "helm.sh/helm/v3/pkg/action"
+	chart "helm.sh/helm/v3/pkg/chart"
 	release "helm.sh/helm/v3/pkg/release"
 )
 

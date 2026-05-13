@@ -5,6 +5,8 @@ import (
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
+	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
+	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 )
@@ -44,4 +46,22 @@ func (m *DefaultComponentManager) Delete(ctx context.Context, component *k8sv1.C
 func (m *DefaultComponentManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	m.recorder.Event(component, corev1.EventTypeNormal, UpgradeEventReason, "Starting upgrade...")
 	return m.upgradeManager.Upgrade(ctx, component)
+}
+
+type defaultComponentManagerFactory struct {
+	namespace string
+	clientSet componentEcosystemInterface
+	recorder  record.EventRecorder
+	timeout   time.Duration
+}
+
+func (d *defaultComponentManagerFactory) NewComponentManager(helmClient helmClient) ComponentManager {
+	return NewComponentManager(
+		d.clientSet.ComponentV1Alpha1().Components(d.namespace),
+		helmClient,
+		health.NewManager(d.namespace, d.clientSet),
+		d.recorder,
+		d.timeout,
+		configref.NewConfigMapRefReader(d.clientSet.CoreV1().ConfigMaps(d.namespace)),
+	)
 }

@@ -5,11 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- [#110] Fix stale Helm capabilities in the component operator
+    - a fresh Helm client gets created for each reconcile, so newly available CRDs are picked up without restarting the operator
 
 ## [v1.13.0] - 2026-05-05
 ### Added
 - [#106] reconcile on a configmap with the label `k8s.cloudogu.com/component.config`
   - config map contains a multiline yaml to overwrite values
+
 ### Changed
 - [#108] overwrite dev make targets when ecosystem-core is enabled
 - [#111] add k8s proxy server docs
