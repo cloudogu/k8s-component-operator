@@ -119,11 +119,17 @@ var _ = ginkgo.BeforeSuite(func() {
 			timeout:   defaultHelmClientTimeoutMins,
 		},
 		helmClientFactory: helmClientFactoryMock,
-		requeueHandler:    NewComponentRequeueHandler(componentClientSet, recorderMock, namespace, defaultRequeueTime),
-		namespace:         namespace,
-		timeout:           defaultHelmClientTimeoutMins,
-		yamlSerializer:    yaml.NewSerializer(),
-		reader:            configMapRefReaderMock,
+		operationEvaluatorFactory: &defaultOperationEvaluatorFactory{
+			recorder:       recorderMock,
+			timeout:        defaultHelmClientTimeoutMins,
+			yamlSerializer: yaml.NewSerializer(),
+			reader:         configMapRefReaderMock,
+		},
+		requeueHandler: NewComponentRequeueHandler(componentClientSet, recorderMock, namespace, defaultRequeueTime),
+		namespace:      namespace,
+		timeout:        defaultHelmClientTimeoutMins,
+		yamlSerializer: yaml.NewSerializer(),
+		reader:         configMapRefReaderMock,
 	}
 
 	err = reconciler.SetupWithManager(k8sManager)
