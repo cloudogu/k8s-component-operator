@@ -3,17 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
-	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
-	"helm.sh/helm/v3/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
