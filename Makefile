@@ -1,10 +1,10 @@
 # Set these to the desired values
 ARTIFACT_ID=k8s-component-operator
-VERSION=1.13.0
+VERSION=1.13.1
 ## Image URL to use all building/pushing image targets
 IMAGE=cloudogu/${ARTIFACT_ID}:${VERSION}
 GOTAG=1.26.0
-MAKEFILES_VERSION=10.7.3
+MAKEFILES_VERSION=10.9.0
 LINT_VERSION=v2.9.0
 MOCKERY_VERSION=v2.53.6
 
@@ -30,8 +30,6 @@ include build/make/clean.mk
 include build/make/digital-signature.mk
 include build/make/mocks.mk
 include build/make/k8s-controller.mk
-
-BINARY_HELM_VERSION=v3.18.3
 
 .PHONY: build-boot
 build-boot: helm-apply kill-operator-pod ## Builds a new version of the dogu and deploys it into the K8s-EcoSystem.

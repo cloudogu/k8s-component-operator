@@ -40,6 +40,22 @@ type healthManager interface {
 	health.ComponentManager
 }
 
+type helmClientFactory interface {
+	NewHelmClient() (helmClient, error)
+}
+
+type operationEvaluator interface {
+	EvaluateRequiredOperation(ctx context.Context, component *k8sv1.Component) (operation, error)
+}
+
+type operationEvaluatorFactory interface {
+	NewOperationEvaluator(helmClient helmClient) operationEvaluator
+}
+
+type componentManagerFactory interface {
+	NewComponentManager(helmClient helmClient) ComponentManager
+}
+
 // helmClient is an interface for managing components with helm.
 type helmClient interface {
 	// InstallOrUpgrade takes a helmChart and applies it.
