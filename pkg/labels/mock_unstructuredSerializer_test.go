@@ -7,6 +7,7 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
