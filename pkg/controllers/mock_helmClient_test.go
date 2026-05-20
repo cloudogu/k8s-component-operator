@@ -6,8 +6,10 @@ import (
 	context "context"
 
 	client "github.com/cloudogu/k8s-component-operator/pkg/helm/client"
-	mock "github.com/stretchr/testify/mock"
 	chart "helm.sh/helm/v3/pkg/chart"
+
+	mock "github.com/stretchr/testify/mock"
+
 	release "helm.sh/helm/v3/pkg/release"
 )
 

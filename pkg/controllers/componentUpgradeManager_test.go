@@ -51,7 +51,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusInstalled(mock.Anything, component).Return(component, nil)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
-		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -83,7 +82,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		mockComponentClient := newMockComponentInterface(t)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
-		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -132,7 +130,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
-		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -173,7 +170,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
-		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -220,7 +216,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
-		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
@@ -270,7 +265,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
-		configMapRefReaderMock.EXPECT().GetSystemValues(testCtx, component).Return("", nil)
 
 		mockHelmClient := newMockHelmClient(t)
 		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{

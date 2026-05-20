@@ -3,12 +3,15 @@
 package helm
 
 import (
-	context "context"
-
-	client "github.com/cloudogu/k8s-component-operator/pkg/helm/client"
-	mock "github.com/stretchr/testify/mock"
 	action "helm.sh/helm/v3/pkg/action"
 	chart "helm.sh/helm/v3/pkg/chart"
+
+	client "github.com/cloudogu/k8s-component-operator/pkg/helm/client"
+
+	context "context"
+
+	mock "github.com/stretchr/testify/mock"
+
 	release "helm.sh/helm/v3/pkg/release"
 )
 

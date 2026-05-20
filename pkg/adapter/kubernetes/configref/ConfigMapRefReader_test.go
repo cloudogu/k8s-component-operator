@@ -9,12 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 var testCtx = context.Background()
-
-const componentName = "testComponent"
 
 var (
 	valuesConfigMap = &corev1.ConfigMap{
@@ -92,75 +89,5 @@ func TestConfigMapRefReader_GetValues(t *testing.T) {
 		})
 		require.Error(t, err)
 		assert.Equal(t, "", result)
-	})
-}
-
-func TestConfigMapRefReader_GetSystemValues(t *testing.T) {
-	t.Run("component is nil", func(t *testing.T) {
-		configMapMock := newMockConfigMapClient(t)
-		refReader := NewConfigMapRefReader(configMapMock)
-
-		result, err := refReader.GetSystemValues(testCtx, nil)
-		require.NoError(t, err)
-		assert.Equal(t, "", result)
-	})
-	t.Run("no configmap found", func(t *testing.T) {
-		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: componentName}}
-		configMapMock := newMockConfigMapClient(t)
-		cmLabelSelector := labels.ValidatedSetSelector{
-			"k8s.cloudogu.com/component.config": component.Name,
-		}.String()
-		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector, FieldSelector: "metadata.name!=initial-exposed-ports-config"}).Return(&corev1.ConfigMapList{}, nil)
-		refReader := NewConfigMapRefReader(configMapMock)
-
-		result, err := refReader.GetSystemValues(testCtx, component)
-		require.NoError(t, err)
-		assert.Equal(t, "", result)
-	})
-	t.Run("configmap contains no keys", func(t *testing.T) {
-		cm := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "testComponent-config",
-				Labels: map[string]string{
-					"k8s.cloudogu.com/component.config": componentName,
-				},
-			},
-		}
-		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: componentName}}
-		configMapMock := newMockConfigMapClient(t)
-		cmLabelSelector := labels.ValidatedSetSelector{
-			"k8s.cloudogu.com/component.config": component.Name,
-		}.String()
-		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector, FieldSelector: "metadata.name!=initial-exposed-ports-config"}).Return(&corev1.ConfigMapList{Items: []corev1.ConfigMap{*cm}}, nil)
-		refReader := NewConfigMapRefReader(configMapMock)
-
-		result, err := refReader.GetSystemValues(testCtx, component)
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "key `values` does not exist in configmap")
-		assert.Equal(t, "", result)
-	})
-	t.Run("successfully get configmap values", func(t *testing.T) {
-		cm := &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "testComponent-config",
-				Labels: map[string]string{
-					"k8s.cloudogu.com/component.config": componentName,
-				},
-			},
-			Data: map[string]string{
-				"values": "test",
-			},
-		}
-		component := &v1.Component{ObjectMeta: metav1.ObjectMeta{Name: componentName}}
-		configMapMock := newMockConfigMapClient(t)
-		cmLabelSelector := labels.ValidatedSetSelector{
-			"k8s.cloudogu.com/component.config": component.Name,
-		}.String()
-		configMapMock.EXPECT().List(testCtx, metav1.ListOptions{LabelSelector: cmLabelSelector, FieldSelector: "metadata.name!=initial-exposed-ports-config"}).Return(&corev1.ConfigMapList{Items: []corev1.ConfigMap{*cm}}, nil)
-		refReader := NewConfigMapRefReader(configMapMock)
-
-		result, err := refReader.GetSystemValues(testCtx, component)
-		require.NoError(t, err)
-		assert.Equal(t, "test", result)
 	})
 }

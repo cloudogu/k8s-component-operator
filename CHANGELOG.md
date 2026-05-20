@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.14.0] - 2026-05-20
+### Fixed
+- [#114] Revert reconciling configmaps
+
 ## [v1.13.1] - 2026-05-13
 ### Fixed
 - [#110] Fix stale Helm capabilities in the component operator

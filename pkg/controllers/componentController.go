@@ -274,17 +274,6 @@ func (r *ComponentReconciler) getComponentRequest(ctx context.Context, cm *corev
 				},
 			})
 		}
-		labels := cm.Labels
-		for key, label := range labels {
-			if key == "k8s.cloudogu.com/component.config" && label == component.Name {
-				componentRequest = append(componentRequest, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      component.Name,
-						Namespace: r.namespace,
-					},
-				})
-			}
-		}
 	}
 	return componentRequest
 }
