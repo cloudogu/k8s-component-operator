@@ -1,4 +1,4 @@
-# Entwicklung mit einem Proxy fuer externe Abfragen an Dogu-Container oder Helm-Registry
+# Entwicklung mit einem Proxy für externe Abfragen an Dogu-Container oder Helm-Registry
 
 Die Komponente kann einen Proxy einbinden, der im Secret `ces-proxy` gespeichert ist.
 Um dieses Verhalten zu testen, stelle sicher, dass der Proxy in den Setup-Values des Helm-Charts des Setups konfiguriert ist,
@@ -30,7 +30,7 @@ oder erstelle das Secret manuell mit:
 - `echo "localhost k3ces.local" >> /etc/hosts`
 - `squid -k reconfigure`
 
-### Zugriffslogs pruefen
+### Zugriffslogs prüfen
 
 - `docker logs -f squid`
 
@@ -110,7 +110,7 @@ spec:
   type: ClusterIP
 ```
 
-#### 2. Proxy-Einstellungen zur global-config hinzufuegen
+#### 2. Proxy-Einstellungen zur global-config hinzufügen
 
 ```
     proxy:
