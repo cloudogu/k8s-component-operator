@@ -48,16 +48,14 @@ func (e *defaultOperationEvaluator) EvaluateRequiredOperation(ctx context.Contex
 	}
 
 	switch component.Status.Status {
-	case k8sv1.ComponentStatusNotInstalled, k8sv1.ComponentStatusTryToInstall:
+	case k8sv1.ComponentStatusNotInstalled, k8sv1.ComponentStatusTryToInstall, k8sv1.ComponentStatusInstalling:
 		return Install, nil
 	case k8sv1.ComponentStatusInstalled, k8sv1.ComponentStatusTryToUpgrade, k8sv1.ComponentStatusTryToDelete:
 		return e.getChangeOperation(ctx, component)
-	case k8sv1.ComponentStatusInstalling:
-		return Ignore, nil
 	case k8sv1.ComponentStatusDeleting:
-		return Ignore, nil
+		return Delete, nil
 	case k8sv1.ComponentStatusUpgrading:
-		return Ignore, nil
+		return Upgrade, nil
 	default:
 		logger.Info(fmt.Sprintf("Found unknown operation for component status: %s", component.Status.Status))
 		return Ignore, nil

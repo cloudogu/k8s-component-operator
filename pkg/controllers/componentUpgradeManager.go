@@ -7,6 +7,8 @@ import (
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"github.com/go-errors/errors"
+	"helm.sh/helm/v3/pkg/storage/driver"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 
@@ -74,9 +76,11 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
 	}
 
-	component, err = cum.componentClient.UpdateStatusUpgrading(ctx, component)
-	if err != nil {
-		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-upgrading for component %s", component.Spec.Name), err: err}
+	if component.Status.Status != k8sv1.ComponentStatusUpgrading {
+		component, err = cum.componentClient.UpdateStatusUpgrading(ctx, component)
+		if err != nil {
+			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-upgrading for component %s", component.Spec.Name), err: err}
+		}
 	}
 
 	logger.Info("Upgrade helm chart...")
@@ -85,8 +89,26 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// this allows self-upgrades
 	helmCtx := context.WithoutCancel(ctx)
 
-	if err := cum.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
-		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
+	rel, err := cum.helmClient.GetRelease(component.Spec.Name)
+
+	switch {
+	// install helm release if it does not exist
+	case errors.Is(err, driver.ErrReleaseNotFound):
+		logger.Info(fmt.Sprintf("No release found for component %q, creating helm release", component.Spec.Name))
+		if err := cum.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
+		}
+	// requeue if an error happens with the helm client
+	case err != nil:
+		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
+	// throw an error if the release is still pending
+	case rel.Info.Status.IsPending():
+		return fmt.Errorf("cannot upgrade pending release of component %q", component.Spec.Name)
+	// upgrade release in all other cases
+	default:
+		if err := cum.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
+		}
 	}
 
 	component, err = cum.componentClient.UpdateStatusInstalled(helmCtx, component)

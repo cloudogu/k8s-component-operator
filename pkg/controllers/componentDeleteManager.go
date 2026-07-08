@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"helm.sh/helm/v3/pkg/action"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -34,9 +35,9 @@ func (cdm *componentDeleteManager) Delete(ctx context.Context, component *k8sv1.
 		return &genericRequeueableError{fmt.Sprintf("failed to update status-deleting for component %s", component.Spec.Name), err}
 	}
 
-	deployedReleases, err := cdm.helmClient.ListDeployedReleases()
+	deployedReleases, err := cdm.helmClient.ListReleasesByStateMask(action.ListAll)
 	if err != nil {
-		return &genericRequeueableError{"could not list deployed Helm releases", err}
+		return &genericRequeueableError{"could not list Helm releases", err}
 	}
 
 	// Check if Helm Chart is still present before uninstalling; maybe someone has already removed it manually

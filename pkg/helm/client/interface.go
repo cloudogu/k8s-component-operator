@@ -27,6 +27,7 @@ type Client interface {
 	UninstallReleaseByName(name string) error
 	GetChart(spec *ChartSpec) (*chart.Chart, string, error)
 	TagResolver
+	MarkReleaseAsFailed(name string, reason string) error
 }
 
 type TagResolver interface {
@@ -46,6 +47,7 @@ type actionProvider interface {
 	newGetReleaseValues() getReleaseValuesAction
 	newGetRelease() getReleaseAction
 	newRollbackRelease() rollbackReleaseAction
+	markReleaseFailed(releaseName, reason string) error
 }
 
 type installAction interface {

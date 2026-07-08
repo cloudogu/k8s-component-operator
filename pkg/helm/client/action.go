@@ -2,11 +2,13 @@ package client
 
 import (
 	"context"
-	"github.com/sirupsen/logrus"
-	"helm.sh/helm/v3/pkg/cli"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"helm.sh/helm/v3/pkg/cli"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -67,6 +69,22 @@ func (p *provider) newRollbackRelease() rollbackReleaseAction {
 	rollbackAction := action.NewRollback(p.Configuration)
 	rollbackAction.Timeout = readRollbackReleaseTimeoutMinsEnv() * time.Minute
 	return &rollbackRelease{Rollback: rollbackAction}
+}
+
+// markReleaseFailed marks the release as failed.
+// This is used to set releases that have the status “pending-install“ to “failed“ after the operator crashed to
+// prevent the release from becoming unrecoverable.
+// @param reason the reason why the release failed
+func (p *provider) markReleaseFailed(name string, reason string) error {
+	rel, err := p.Releases.Last(name)
+	if err != nil {
+		return fmt.Errorf("failed to get release %q: %w", name, err)
+	}
+
+	rel.Info.Status = release.StatusFailed
+	rel.Info.Description = reason
+
+	return p.Releases.Update(rel)
 }
 
 type install struct {

@@ -2,12 +2,16 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -72,27 +76,47 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
 	}
 
-	component, err = cim.componentClient.UpdateStatusInstalling(ctx, component)
-	if err != nil {
-		return &genericRequeueableError{errMsg: "failed to set status installing", err: err}
+	if component.Status.Status != k8sv1.ComponentStatusInstalling {
+		component, err = cim.componentClient.UpdateStatusInstalling(ctx, component)
+		if err != nil {
+			return &genericRequeueableError{errMsg: "failed to set status installing", err: err}
+		}
 	}
 
 	// Set the finalizer at the beginning of the installation procedure.
 	// This is required because an error during installation would leave a component resource with its
 	// k8s resources in the cluster. A deletion would tidy up those resources but would not start the
 	// deletion procedure from the controller.
-	component, err = cim.componentClient.AddFinalizer(ctx, component, k8sv1.FinalizerName)
-	if err != nil {
-		return &genericRequeueableError{"failed to add finalizer " + k8sv1.FinalizerName, err}
+	if !slices.Contains(component.Finalizers, k8sv1.FinalizerName) {
+		component, err = cim.componentClient.AddFinalizer(ctx, component, k8sv1.FinalizerName)
+		if err != nil {
+			return &genericRequeueableError{"failed to add finalizer " + k8sv1.FinalizerName, err}
+		}
 	}
-
-	logger.Info("Install helm chart...")
 
 	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.WithoutCancel(ctx)
 
-	if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
-		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
+	rel, err := cim.helmClient.GetRelease(component.Spec.Name)
+
+	switch {
+	// install helm release if it does not exist
+	case errors.Is(err, driver.ErrReleaseNotFound):
+		logger.Info(fmt.Sprintf("No release found for component %q, creating helm release", component.Spec.Name))
+		if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+			return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
+		}
+	// requeue if an error happens with the helm client
+	case err != nil:
+		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
+	case rel.Info.Status.IsPending():
+		return fmt.Errorf("cannot reinstall pending release of component %q", component.Spec.Name)
+	// do nothing if the release is already deployed
+	case rel.Info.Status != release.StatusDeployed:
+		logger.Info(fmt.Sprintf("Release found with status %q for component %q, trying to install/upgrade", rel.Info.Status, component.Spec.Name))
+		if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+			return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
+		}
 	}
 
 	component, err = cim.componentClient.UpdateStatusInstalled(helmCtx, component)

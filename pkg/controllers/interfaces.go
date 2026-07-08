@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
+	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -64,6 +65,8 @@ type helmClient interface {
 	Uninstall(releaseName string) error
 	// ListDeployedReleases returns all deployed helm releases
 	ListDeployedReleases() ([]*release.Release, error)
+	ListReleasesByStateMask(action.ListStates) ([]*release.Release, error)
+	GetRelease(name string) (*release.Release, error)
 	// GetReleaseValues returns the (optionally, all computed) values for the specified release.
 	GetReleaseValues(name string, allValues bool) (map[string]interface{}, error)
 	// GetReleaseVersion returns the version for the specified release (if the release exists).
@@ -78,6 +81,7 @@ type helmClient interface {
 	GetLatestVersion(chartName string) (string, error)
 	// GetChart returns the helm chart for a chart spec
 	GetChart(ctx context.Context, spec *client.ChartSpec) (*chart.Chart, error)
+	MarkReleaseAsFailed(name string, reason string) error
 }
 
 // eventRecorder embeds the record.EventRecorder interface for usage in this package.
