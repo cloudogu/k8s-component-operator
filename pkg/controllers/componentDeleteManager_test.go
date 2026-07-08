@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"helm.sh/helm/v3/pkg/action"
 
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +47,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component.Spec.Name).Return(nil)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+		mockHelmClient.EXPECT().ListReleasesByStateMask(action.ListAll).Return([]*release.Release{{
 			Name: componentName,
 		}}, nil)
 
@@ -101,7 +102,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 		mockComponentClient.EXPECT().UpdateStatusDeleting(ctx, component).Return(component, nil)
 
 		mockHelmClient := newMockHelmClient(t)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().ListReleasesByStateMask(action.ListAll).Return(nil, assert.AnError)
 
 		manager := &componentDeleteManager{
 			componentClient: mockComponentClient,
@@ -111,7 +112,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		require.ErrorIs(t, err, assert.AnError)
 		assert.IsType(t, err, &genericRequeueableError{})
-		assert.ErrorContains(t, err, "could not list deployed Helm releases")
+		assert.ErrorContains(t, err, "could not list Helm releases")
 	})
 
 	t.Run("should fail to delete component on error while uninstalling chart", func(t *testing.T) {
@@ -131,7 +132,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component.Spec.Name).Return(assert.AnError)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+		mockHelmClient.EXPECT().ListReleasesByStateMask(action.ListAll).Return([]*release.Release{{
 			Name: componentName,
 		}}, nil)
 
@@ -165,7 +166,7 @@ func Test_componentDeleteManager_Delete(t *testing.T) {
 
 		mockHelmClient := newMockHelmClient(t)
 		mockHelmClient.EXPECT().Uninstall(component.Spec.Name).Return(nil)
-		mockHelmClient.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+		mockHelmClient.EXPECT().ListReleasesByStateMask(action.ListAll).Return([]*release.Release{{
 			Name: componentName,
 		}}, nil)
 

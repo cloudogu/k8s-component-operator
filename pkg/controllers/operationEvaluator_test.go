@@ -326,7 +326,7 @@ func Test_defaultOperationEvaluator_getChangeOperation(t *testing.T) {
 }
 
 func Test_defaultOperationEvaluator_EvaluateRequiredOperation(t *testing.T) {
-	t.Run("should return ignore on status installing", func(t *testing.T) {
+	t.Run("should return install on status installing", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "installing"
@@ -337,10 +337,10 @@ func Test_defaultOperationEvaluator_EvaluateRequiredOperation(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, Ignore, requiredOperation)
+		assert.Equal(t, Install, requiredOperation)
 	})
 
-	t.Run("should return ignore on status deleting", func(t *testing.T) {
+	t.Run("should return delete on status deleting", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "deleting"
@@ -351,10 +351,10 @@ func Test_defaultOperationEvaluator_EvaluateRequiredOperation(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, Ignore, requiredOperation)
+		assert.Equal(t, Delete, requiredOperation)
 	})
 
-	t.Run("should return ignore on status upgrading", func(t *testing.T) {
+	t.Run("should return upgrade on status upgrading", func(t *testing.T) {
 		// given
 		component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.0.0")
 		component.Status.Status = "upgrading"
@@ -365,7 +365,7 @@ func Test_defaultOperationEvaluator_EvaluateRequiredOperation(t *testing.T) {
 
 		// then
 		require.NoError(t, err)
-		assert.Equal(t, Ignore, requiredOperation)
+		assert.Equal(t, Upgrade, requiredOperation)
 	})
 
 	t.Run("should return ignore on unrecognized status", func(t *testing.T) {

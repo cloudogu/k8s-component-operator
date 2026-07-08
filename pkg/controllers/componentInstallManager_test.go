@@ -9,6 +9,8 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/stretchr/testify/mock"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage/driver"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,6 +49,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			Timeout:        defaultHelmClientTimeoutMins,
 			Reader:         configMapRefReaderMock,
 		})
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(nil, driver.ErrReleaseNotFound)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, mock.Anything).Return(nil)
 
@@ -194,7 +197,10 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(assert.AnError)
-
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusUnknown},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(rel, nil)
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
@@ -210,6 +216,116 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		assert.ErrorIs(t, err, assert.AnError)
 		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to install chart")
+	})
+
+	t.Run("failed to install release", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		chartSpec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
+		})
+		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(assert.AnError)
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(nil, driver.ErrReleaseNotFound)
+		sut := ComponentInstallManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
+		}
+
+		// when
+		err := sut.Install(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, err, &genericRequeueableError{})
+		assert.ErrorContains(t, err, "failed to install chart for component")
+	})
+
+	t.Run("failed to get release", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(nil, assert.AnError)
+		sut := ComponentInstallManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
+		}
+
+		// when
+		err := sut.Install(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
+		assert.ErrorContains(t, err, "failed to get release for component")
+	})
+
+	t.Run("failed with pending release", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
+		})
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusPendingInstall},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(rel, nil)
+		sut := ComponentInstallManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
+		}
+
+		// when
+		err := sut.Install(testCtx, component)
+
+		// then
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "cannot reinstall pending release of component")
 	})
 
 	t.Run("failed set status installed", func(t *testing.T) {
@@ -236,7 +352,10 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			Reader:         configMapRefReaderMock,
 		})
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, chartSpec).Return(nil)
-
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusUnknown},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(rel, nil)
 		mockHealthManager := newMockHealthManager(t)
 
 		sut := ComponentInstallManager{
@@ -284,7 +403,10 @@ func Test_componentInstallManager_Install(t *testing.T) {
 
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(assert.AnError)
-
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusUnknown},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(rel, nil)
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			healthManager:   mockHealthManager,
@@ -326,7 +448,10 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		})
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(ctxWithoutCancel, spec).Return(nil)
-
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusUnknown},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(rel, nil)
 		mockHealthManager := newMockHealthManager(t)
 		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, componentWithVersion.Spec.Version).Return(nil)
 
