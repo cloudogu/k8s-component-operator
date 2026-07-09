@@ -300,7 +300,7 @@ func TestStartupManager_setInstallingComponentsToFailed(t *testing.T) {
 		sut := NewStartupManager(helmClientMock, componentClientMock)
 
 		// when
-		err := sut.setInstallingComponentsToFailed(testCtx)
+		err := sut.setPendingComponentsToFailed(testCtx)
 
 		// then
 		require.Error(t, err)
@@ -318,7 +318,7 @@ func TestStartupManager_setInstallingComponentsToFailed(t *testing.T) {
 		sut := NewStartupManager(helmClientMock, componentClientMock)
 
 		// when
-		err := sut.setInstallingComponentsToFailed(testCtx)
+		err := sut.setPendingComponentsToFailed(testCtx)
 
 		// then
 		require.NoError(t, err)
@@ -343,7 +343,7 @@ func TestStartupManager_setInstallingComponentsToFailed(t *testing.T) {
 		sut := NewStartupManager(helmClientMock, componentClientMock)
 
 		// when
-		err := sut.setInstallingComponentsToFailed(testCtx)
+		err := sut.setPendingComponentsToFailed(testCtx)
 
 		// then
 		require.NoError(t, err)
@@ -373,7 +373,7 @@ func TestStartupManager_setInstallingComponentsToFailed(t *testing.T) {
 		sut := NewStartupManager(helmClientMock, componentClientMock)
 
 		// when
-		err := sut.setInstallingComponentsToFailed(testCtx)
+		err := sut.setPendingComponentsToFailed(testCtx)
 
 		// then
 		require.NoError(t, err)
@@ -403,7 +403,7 @@ func TestStartupManager_setInstallingComponentsToFailed(t *testing.T) {
 		sut := NewStartupManager(helmClientMock, componentClientMock)
 
 		// when
-		err := sut.setInstallingComponentsToFailed(testCtx)
+		err := sut.setPendingComponentsToFailed(testCtx)
 
 		// then
 		require.NoError(t, err)

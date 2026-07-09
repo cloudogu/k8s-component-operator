@@ -29,20 +29,21 @@ type StartupManager struct {
 // * Sets the helm releases of all components that are currently installing or upgrading to failed.
 func (s *StartupManager) Start(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	err := s.setInstallingComponentsToFailed(ctx)
+	err := s.setPendingComponentsToFailed(ctx)
 	if err != nil {
 		logger.Info("failed to set installing components to failed: %w", err)
 	}
 	return nil
 }
 
-// setInstallingComponentsToFailed sets the helm releases of all components that are currently installing or upgrading to failed.
+// setPendingComponentsToFailed sets the helm releases of all components that are currently installing or upgrading to failed.
 //
 // After the operator startup some components will still be in status installing|upgrading|tryToInstall|tryToUpgrade and will be
 // reconciled. If the helm release was not reset, the install/upgrade operation will fail because helm thinks that another operation
 // is still in progress.
-func (s *StartupManager) setInstallingComponentsToFailed(ctx context.Context) error {
+func (s *StartupManager) setPendingComponentsToFailed(ctx context.Context) error {
 	var err error
+	logger := log.FromContext(ctx)
 	resettableStatuses := []string{v1.ComponentStatusInstalling, v1.ComponentStatusTryToInstall, v1.ComponentStatusUpgrading, v1.ComponentStatusTryToUpgrade, v1.ComponentStatusDeleting, v1.ComponentStatusTryToDelete}
 	components, err := s.componentClient.List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -50,6 +51,7 @@ func (s *StartupManager) setInstallingComponentsToFailed(ctx context.Context) er
 	}
 	for _, component := range components.Items {
 		if slices.Contains(resettableStatuses, component.Status.Status) {
+			logger.Info(fmt.Sprintf("Setting unrecoverable release to failed for component %s", component.Name))
 			if err := s.helmClient.MarkReleaseAsFailed(component.Name, "setting unrecoverable release to failed for the next reconciliation"); err != nil {
 				err = fmt.Errorf("failed to mark helm release as failed for component %s: %w", component.Name, err)
 			}

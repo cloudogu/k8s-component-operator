@@ -51,6 +51,10 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().SatisfiesDependencies(mock.Anything, mock.Anything).Return(nil)
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
+			rel := &release.Release{
+				Info: &release.Info{Status: release.StatusUnknown},
+			}
+			helmClientMock.EXPECT().GetRelease(mock.Anything).Return(rel, nil)
 			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Starting installation...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Installation", "Installation successful")
@@ -83,6 +87,10 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			helmClientMock.EXPECT().SatisfiesDependencies(mock.Anything, mock.Anything).Return(nil)
 			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{Name: installComponent.Spec.Name, Namespace: installComponent.Namespace, Chart: &chart.Chart{Metadata: &chart.Metadata{AppVersion: "0.1.0"}}}}, nil)
 			helmClientMock.EXPECT().InstallOrUpgrade(mock.Anything, mock.Anything).Return(nil)
+			rel := &release.Release{
+				Info: &release.Info{Status: release.StatusUnknown},
+			}
+			helmClientMock.EXPECT().GetRelease(mock.Anything).Return(rel, nil)
 			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Starting upgrade...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Upgrade", "Upgrade successful")
@@ -124,9 +132,11 @@ var _ = Describe("Dogu Upgrade Tests", func() {
 			By("Delete component resource")
 			*helmClientMock = mockHelmClient{}
 			helmClientMock.EXPECT().Uninstall(mock.Anything).Return(nil)
-			helmClientMock.EXPECT().ListDeployedReleases().Return([]*release.Release{{
+			rel := &release.Release{
+				Info: &release.Info{Status: release.StatusUnknown},
 				Name: "k8s-dogu-operator",
-			}}, nil)
+			}
+			helmClientMock.EXPECT().ListReleasesByStateMask(mock.Anything).Return([]*release.Release{rel}, nil)
 			*recorderMock = mockEventRecorder{}
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Starting deinstallation...")
 			recorderMock.EXPECT().Event(mock.Anything, "Normal", "Deinstallation", "Deinstallation successful")
