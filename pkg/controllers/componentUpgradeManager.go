@@ -40,19 +40,19 @@ func NewComponentUpgradeManager(componentClient componentInterface, helmClient h
 }
 
 // Upgrade upgrades a given component resource.
-func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
+func (cupm *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv1.Component) error {
 	logger := log.FromContext(ctx)
 
 	var err error
 	// set the installed version in the component CR to use it for version-comparison in future upgrades
 	var version string
 	if component.Spec.Version == "" {
-		version, err = cum.helmClient.GetLatestVersion(helm.GetHelmChartName(component))
+		version, err = cupm.helmClient.GetLatestVersion(helm.GetHelmChartName(component))
 		if err != nil {
 			return &genericRequeueableError{fmt.Sprintf("failed to get latest version for component %q", component.Spec.Name), err}
 		}
 
-		component, err = cum.componentClient.UpdateExpectedComponentVersion(ctx, component.Spec.Name, version)
+		component, err = cupm.componentClient.UpdateExpectedComponentVersion(ctx, component.Spec.Name, version)
 		if err != nil {
 			return &genericRequeueableError{fmt.Sprintf("failed to update expected version for component %q", component.Spec.Name), err}
 		}
@@ -61,23 +61,23 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	}
 
 	chartSpec, err := helm.GetHelmChartSpec(ctx, component, helm.HelmChartCreationOpts{
-		HelmClient:     cum.helmClient,
-		Timeout:        cum.timeout,
+		HelmClient:     cupm.helmClient,
+		Timeout:        cupm.timeout,
 		YamlSerializer: yaml.NewSerializer(),
-		Reader:         cum.reader,
+		Reader:         cupm.reader,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get helm chart spec: %w", err)
 	}
 
-	err = cum.helmClient.SatisfiesDependencies(ctx, chartSpec)
+	err = cupm.helmClient.SatisfiesDependencies(ctx, chartSpec)
 	if err != nil {
-		cum.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
+		cupm.recorder.Eventf(component, corev1.EventTypeWarning, UpgradeEventReason, "Dependency check failed: %s", err.Error())
 		return &genericRequeueableError{errMsg: "failed to check dependencies", err: err}
 	}
 
 	if component.Status.Status != k8sv1.ComponentStatusUpgrading {
-		component, err = cum.componentClient.UpdateStatusUpgrading(ctx, component)
+		component, err = cupm.componentClient.UpdateStatusUpgrading(ctx, component)
 		if err != nil {
 			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-upgrading for component %s", component.Spec.Name), err: err}
 		}
@@ -89,13 +89,13 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 	// this allows self-upgrades
 	helmCtx := context.WithoutCancel(ctx)
 
-	rel, err := cum.helmClient.GetRelease(component.Spec.Name)
-
+	rel, err := cupm.helmClient.GetRelease(component.Spec.Name)
+	logger.Info(fmt.Sprintf("Helm release for component %q: %+v", component.Spec.Name, rel))
 	switch {
 	// install helm release if it does not exist
 	case errors.Is(err, driver.ErrReleaseNotFound):
 		logger.Info(fmt.Sprintf("No release found for component %q, creating helm release", component.Spec.Name))
-		if err := cum.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+		if err := cupm.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
 			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
 		}
 	// requeue if an error happens with the helm client
@@ -106,17 +106,17 @@ func (cum *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8sv
 		return fmt.Errorf("cannot upgrade pending release of component %q", component.Spec.Name)
 	// upgrade release in all other cases
 	default:
-		if err := cum.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+		if err := cupm.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
 			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
 		}
 	}
 
-	component, err = cum.componentClient.UpdateStatusInstalled(helmCtx, component)
+	component, err = cupm.componentClient.UpdateStatusInstalled(helmCtx, component)
 	if err != nil {
 		return &genericRequeueableError{errMsg: fmt.Sprintf("failed to update status-installed for component %s", component.Spec.Name), err: err}
 	}
 
-	err = cum.healthManager.UpdateComponentHealthWithInstalledVersion(helmCtx, component.Spec.Name, component.Namespace, version)
+	err = cupm.healthManager.UpdateComponentHealthWithInstalledVersion(helmCtx, component.Spec.Name, component.Namespace, version)
 	if err != nil {
 		return fmt.Errorf("failed to update health status for component %q: %w", component.Spec.Name, err)
 	}
