@@ -90,7 +90,7 @@ func (cupm *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8s
 	helmCtx := context.WithoutCancel(ctx)
 
 	rel, err := cupm.helmClient.GetRelease(component.Spec.Name)
-	logger.Info(fmt.Sprintf("Helm release for component %q: %+v", component.Spec.Name, rel))
+
 	switch {
 	// install helm release if it does not exist
 	case errors.Is(err, driver.ErrReleaseNotFound):
