@@ -2,6 +2,7 @@ package operator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -52,10 +53,15 @@ func (s *StartupManager) setPendingComponentsToFailed(ctx context.Context) error
 	for _, component := range components.Items {
 		if slices.Contains(resettableStatuses, component.Status.Status) {
 			logger.Info(fmt.Sprintf("Setting unrecoverable release to failed for component %s", component.Name))
-			if err := s.helmClient.MarkReleaseAsFailed(component.Name, "setting unrecoverable release to failed for the next reconciliation"); err != nil {
-				err = fmt.Errorf("failed to mark helm release as failed for component %s: %w", component.Name, err)
+
+			err = s.helmClient.MarkReleaseAsFailed(component.Name, "setting unrecoverable release to failed for the next reconciliation")
+			if err != nil {
+				err = errors.Join(err, fmt.Errorf("failed to mark helm release as failed for component %s: %w", component.Name, err))
 			}
 		}
+	}
+	if err != nil {
+		return fmt.Errorf("failed to set pending components to failed: %w", err)
 	}
 	return nil
 }
