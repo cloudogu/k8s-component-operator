@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/go-errors/errors"
+	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
@@ -91,24 +93,8 @@ func (cupm *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8s
 
 	rel, err := cupm.helmClient.GetRelease(component.Spec.Name)
 
-	switch {
-	// install helm release if it does not exist
-	case errors.Is(err, driver.ErrReleaseNotFound):
-		logger.Info(fmt.Sprintf("No release found for component %q, creating helm release", component.Spec.Name))
-		if err := cupm.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
-			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
-		}
-	// requeue if an error happens with the helm client
-	case err != nil:
-		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
-	// throw an error if the release is still pending
-	case rel.Info.Status.IsPending():
-		return fmt.Errorf("cannot upgrade pending release of component %q", component.Spec.Name)
-	// upgrade release in all other cases
-	default:
-		if err := cupm.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
-			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
-		}
+	if err := cupm.handleHelmRelease(helmCtx, component, chartSpec, rel, err); err != nil {
+		return err
 	}
 
 	component, err = cupm.componentClient.UpdateStatusInstalled(helmCtx, component)
@@ -122,6 +108,39 @@ func (cupm *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8s
 	}
 
 	logger.Info(fmt.Sprintf("Upgraded component %s.", component.Spec.Name))
+
+	return nil
+}
+
+// handleHelmRelease encapsulates the switch-case logic deciding how to deal with the helm release.
+func (cupm *ComponentUpgradeManager) handleHelmRelease(
+	ctx context.Context,
+	component *k8sv1.Component,
+	chartSpec *client.ChartSpec,
+	rel *release.Release,
+	err error,
+) error {
+	logger := log.FromContext(ctx)
+
+	switch {
+	// install helm release if it does not exist
+	case errors.Is(err, driver.ErrReleaseNotFound):
+		logger.Info(fmt.Sprintf("No release found for component %q, creating helm release", component.Spec.Name))
+		if err := cupm.helmClient.InstallOrUpgrade(ctx, chartSpec); err != nil {
+			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
+		}
+	// requeue if an error happens with the helm client
+	case err != nil:
+		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
+	// throw an error if the release is still pending
+	case rel.Info.Status.IsPending():
+		return fmt.Errorf("cannot upgrade pending release of component %q", component.Spec.Name)
+	// upgrade release in all other cases
+	default:
+		if err := cupm.helmClient.InstallOrUpgrade(ctx, chartSpec); err != nil {
+			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to upgrade chart for component %s", component.Spec.Name), err: err}
+		}
+	}
 
 	return nil
 }
