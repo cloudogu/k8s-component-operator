@@ -2,13 +2,18 @@ package client
 
 import (
 	"bytes"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
-	"os"
-	"testing"
-	"time"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage"
+	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
 func Test_provider_newInstall(t *testing.T) {
@@ -134,6 +139,61 @@ func Test_provider_newRollbackRelease(t *testing.T) {
 
 	// then
 	assert.NotEmpty(t, result.raw())
+}
+
+func Test_provider_markReleaseFailed_success(t *testing.T) {
+	// given
+	memDriver := driver.NewMemory()
+	store := storage.Init(memDriver)
+
+	existingRelease := &release.Release{
+		Name:    "my-release",
+		Version: 1,
+		Chart:   &chart.Chart{},
+		Info: &release.Info{
+			Status:      release.StatusDeployed,
+			Description: "old description",
+		},
+	}
+	err := store.Create(existingRelease)
+	require.NoError(t, err)
+
+	sut := &provider{
+		Configuration: &action.Configuration{
+			Releases: store,
+		},
+	}
+
+	// when
+	reason := "marking as failed from test"
+	err = sut.markReleaseFailed("my-release", reason)
+
+	// then
+	require.NoError(t, err)
+
+	updatedRelease, err := sut.Releases.Last("my-release")
+	require.NoError(t, err)
+	assert.Equal(t, release.StatusFailed, updatedRelease.Info.Status)
+	assert.Equal(t, reason, updatedRelease.Info.Description)
+}
+
+func Test_provider_markReleaseFailed_releaseNotFound(t *testing.T) {
+	// given
+	memDriver := driver.NewMemory()
+	store := storage.Init(memDriver)
+
+	sut := &provider{
+		Configuration: &action.Configuration{
+			Releases: store,
+		},
+	}
+
+	// when
+	err := sut.markReleaseFailed("non-existent-release", "some reason")
+
+	// then
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `failed to get release "non-existent-release"`)
 }
 
 func Test_readRollbackReleaseTimeoutMinsEnv(t *testing.T) {
