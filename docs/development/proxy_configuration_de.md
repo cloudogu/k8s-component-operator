@@ -2,7 +2,7 @@
 
 Der k8s-component-operator kann einen Proxy aus dem Secret `ces-proxy` benutzen.
 Um dieses Verhalten zu testen, muss der Proxy in den Setup-Werte des Setup-Helm-Charts konfiguriert werden,
-oder der Secret manuell erstellt werden:
+oder das Secret manuell erstellt werden:
 
 `kubectl create secret generic ces-proxy --from-literal=url=http://test:test@192.168.56.1:3128 -n ecosystem`
 
