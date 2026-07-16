@@ -1,14 +1,14 @@
-# Entwicklung mit einem Proxy für externe Abfragen an Dogu-Container oder Helm-Registry
+# Mit einem Proxy für externe Anfragen zu Dogu-Containern oder Helm-Registry entwickeln
 
-Die Komponente kann einen Proxy einbinden, der im Secret `ces-proxy` gespeichert ist.
-Um dieses Verhalten zu testen, stelle sicher, dass der Proxy in den Setup-Values des Helm-Charts des Setups konfiguriert ist,
-oder erstelle das Secret manuell mit:
+Der k8s-component-operator kann einen Proxy aus dem Secret `ces-proxy` benutzen.
+Um dieses Verhalten zu testen, muss der Proxy in den Setup-Werte des Setup-Helm-Charts konfiguriert werden,
+oder das Secret manuell erstellt werden:
 
 `kubectl create secret generic ces-proxy --from-literal=url=http://test:test@192.168.56.1:3128 -n ecosystem`
 
-## Lokalen Proxy in Docker einrichten
+## Lokalen Proxy in Docker konfigurieren
 
-### Container mit Host-Netzwerkmodus starten, um bei Bedarf die Entwicklungs-Registry im Cluster zu erreichen.
+### Den Container im Host-Netzwerk-Modus starten, um die Entwicklungs-Registry im Cluster zu erreichen
 
 - `docker run --net=host -d --name squid -e TZ=UTC -p 3128:3128 ubuntu/squid:5.2-22.04_beta`
 
@@ -30,11 +30,11 @@ oder erstelle das Secret manuell mit:
 - `echo "localhost k3ces.local" >> /etc/hosts`
 - `squid -k reconfigure`
 
-### Zugriffslogs prüfen
+### Zugriffslog ausgeben
 
 - `docker logs -f squid`
 
-## Lokalen Proxy in k8s einrichten
+## Lokalen Proxy in Kubernetes konfigurieren
 
 #### 1. Squid-Proxy-Server installieren
 
@@ -110,7 +110,7 @@ spec:
   type: ClusterIP
 ```
 
-#### 2. Proxy-Einstellungen zur global-config hinzufügen
+#### 2. Proxy-Einstellungen in global-config hinzufügen
 
 ```
     proxy:
