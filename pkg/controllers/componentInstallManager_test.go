@@ -552,17 +552,11 @@ func TestComponentInstallManager_handlePendingRelease_MarkFailedError(t *testing
 		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 		Return(assert.AnError)
 
-	sut := &ComponentInstallManager{
-		helmClient: mockHelmClient,
-		// keep timeout reasonably high; it won't be reached because we fail earlier
-		timeout: 10 * time.Second,
-	}
-
 	helmCtx := context.Background()
 	chartSpec := &client.ChartSpec{}
 
 	// when
-	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+	err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 10*time.Second)
 
 	// then
 	require.Error(t, err)
@@ -580,17 +574,11 @@ func TestComponentInstallManager_handlePendingRelease_TimeoutWhileWaiting(t *tes
 		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 		Return(nil)
 
-	// timeout very small so that the context is done before the first poll
-	sut := &ComponentInstallManager{
-		helmClient: mockHelmClient,
-		timeout:    1 * time.Nanosecond,
-	}
-
 	helmCtx := context.Background()
 	chartSpec := &client.ChartSpec{}
 
 	// when
-	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+	err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 1*time.Nanosecond)
 
 	// then
 	require.Error(t, err)
@@ -608,12 +596,6 @@ func TestComponentInstallManager_handlePendingRelease_GetReleaseError(t *testing
 		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 		Return(nil)
 
-	// give a timeout that is larger than the polling interval so that the poll actually happens
-	sut := &ComponentInstallManager{
-		helmClient: mockHelmClient,
-		timeout:    2 * time.Second,
-	}
-
 	mockHelmClient.EXPECT().
 		GetRelease(component.Spec.Name).
 		Return(nil, assert.AnError)
@@ -622,7 +604,7 @@ func TestComponentInstallManager_handlePendingRelease_GetReleaseError(t *testing
 	chartSpec := &client.ChartSpec{}
 
 	// when
-	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+	err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 2*time.Second)
 
 	// then
 	require.Error(t, err)
@@ -639,12 +621,6 @@ func TestComponentInstallManager_handlePendingRelease_InstallOrUpgradeError(t *t
 	mockHelmClient.EXPECT().
 		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 		Return(nil)
-
-	// enough timeout so that at least one poll happens
-	sut := &ComponentInstallManager{
-		helmClient: mockHelmClient,
-		timeout:    10 * time.Second,
-	}
 
 	pendingRel := &release.Release{
 		Info: &release.Info{Status: release.StatusPendingInstall},
@@ -671,7 +647,7 @@ func TestComponentInstallManager_handlePendingRelease_InstallOrUpgradeError(t *t
 		Return(assert.AnError)
 
 	// when
-	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+	err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 10*time.Second)
 
 	// then
 	require.Error(t, err)

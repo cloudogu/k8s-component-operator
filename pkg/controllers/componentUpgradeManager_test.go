@@ -419,16 +419,11 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 			Return(assert.AnError)
 
-		sut := &ComponentUpgradeManager{
-			helmClient: mockHelmClient,
-			timeout:    10 * time.Second,
-		}
-
 		helmCtx := context.Background()
 		chartSpec := &client.ChartSpec{}
 
 		// when
-		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 10*time.Second)
 
 		// then
 		require.Error(t, err)
@@ -445,16 +440,11 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 			Return(nil)
 
-		sut := &ComponentUpgradeManager{
-			helmClient: mockHelmClient,
-			timeout:    1 * time.Nanosecond,
-		}
-
 		helmCtx := context.Background()
 		chartSpec := &client.ChartSpec{}
 
 		// when
-		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 1*time.Nanosecond)
 
 		// then
 		require.Error(t, err)
@@ -471,11 +461,6 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 			Return(nil)
 
-		sut := &ComponentUpgradeManager{
-			helmClient: mockHelmClient,
-			timeout:    3 * time.Second,
-		}
-
 		mockHelmClient.EXPECT().
 			GetRelease(component.Spec.Name).
 			Return(nil, assert.AnError)
@@ -484,7 +469,7 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 		chartSpec := &client.ChartSpec{}
 
 		// when
-		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 3*time.Second)
 
 		// then
 		require.Error(t, err)
@@ -500,11 +485,6 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 		mockHelmClient.EXPECT().
 			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
 			Return(nil)
-
-		sut := &ComponentUpgradeManager{
-			helmClient: mockHelmClient,
-			timeout:    10 * time.Second,
-		}
 
 		nonPendingRel := &release.Release{
 			Info: &release.Info{Status: release.StatusFailed},
@@ -522,7 +502,7 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 			Return(assert.AnError)
 
 		// when
-		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 10*time.Second)
 
 		// then
 		require.Error(t, err)
