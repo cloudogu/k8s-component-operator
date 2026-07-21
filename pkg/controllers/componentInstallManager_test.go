@@ -7,7 +7,9 @@ import (
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
@@ -293,11 +295,16 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to get release for component")
 	})
 
-	t.Run("failed with pending release", func(t *testing.T) {
+	t.Run("install succeeds with pending release that is marked failed and reinstalled", func(t *testing.T) {
 		// given
 		mockComponentClient := newMockComponentInterface(t)
 		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
 		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(ctxWithoutCancel, component).Return(component, nil)
+
+		mockHealthManager := newMockHealthManager(t)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(nil)
+
 		mockHelmClient := newMockHelmClient(t)
 		configMapRefReaderMock := newMockConfigMapRefReader(t)
 		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
@@ -308,14 +315,24 @@ func Test_componentInstallManager_Install(t *testing.T) {
 			Timeout:        defaultHelmClientTimeoutMins,
 			Reader:         configMapRefReaderMock,
 		})
+
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
-		rel := &release.Release{
+
+		pendingRel := &release.Release{
 			Info: &release.Info{Status: release.StatusPendingInstall},
 		}
-		mockHelmClient.EXPECT().GetRelease(component.Name).Return(rel, nil)
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(pendingRel, nil).Once()
+		mockHelmClient.EXPECT().MarkReleaseAsFailed(component.Name, "failing pending release before reinstall").Return(nil)
+		nonPendingRel := &release.Release{
+			Info: &release.Info{Status: release.StatusFailed},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(nonPendingRel, nil).Once()
+		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, spec).Return(nil)
+
 		sut := ComponentInstallManager{
 			componentClient: mockComponentClient,
 			helmClient:      mockHelmClient,
+			healthManager:   mockHealthManager,
 			timeout:         defaultHelmClientTimeoutMins,
 			reader:          configMapRefReaderMock,
 		}
@@ -324,8 +341,7 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		err := sut.Install(testCtx, component)
 
 		// then
-		require.Error(t, err)
-		assert.ErrorContains(t, err, "cannot reinstall pending release of component")
+		require.NoError(t, err)
 	})
 
 	t.Run("failed set status installed", func(t *testing.T) {
@@ -524,4 +540,141 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to update expected version for component \"dogu-op\"")
 	})
+}
+
+func TestComponentInstallManager_handlePendingRelease_MarkFailedError(t *testing.T) {
+	// given
+	logger := logr.Discard()
+	component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
+
+	mockHelmClient := newMockHelmClient(t)
+	mockHelmClient.EXPECT().
+		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+		Return(assert.AnError)
+
+	sut := &ComponentInstallManager{
+		helmClient: mockHelmClient,
+		// keep timeout reasonably high; it won't be reached because we fail earlier
+		timeout: 10 * time.Second,
+	}
+
+	helmCtx := context.Background()
+	chartSpec := &client.ChartSpec{}
+
+	// when
+	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+	// then
+	require.Error(t, err)
+	assert.IsType(t, &genericRequeueableError{}, err)
+	assert.ErrorContains(t, err, "failed to mark release as failed")
+}
+
+func TestComponentInstallManager_handlePendingRelease_TimeoutWhileWaiting(t *testing.T) {
+	// given
+	logger := logr.Discard()
+	component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
+
+	mockHelmClient := newMockHelmClient(t)
+	mockHelmClient.EXPECT().
+		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+		Return(nil)
+
+	// timeout very small so that the context is done before the first poll
+	sut := &ComponentInstallManager{
+		helmClient: mockHelmClient,
+		timeout:    1 * time.Nanosecond,
+	}
+
+	helmCtx := context.Background()
+	chartSpec := &client.ChartSpec{}
+
+	// when
+	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+	// then
+	require.Error(t, err)
+	assert.IsType(t, &genericRequeueableError{}, err)
+	assert.ErrorContains(t, err, "timed out waiting for release status update after marking as failed")
+}
+
+func TestComponentInstallManager_handlePendingRelease_GetReleaseError(t *testing.T) {
+	// given
+	logger := logr.Discard()
+	component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
+
+	mockHelmClient := newMockHelmClient(t)
+	mockHelmClient.EXPECT().
+		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+		Return(nil)
+
+	// give a timeout that is larger than the polling interval so that the poll actually happens
+	sut := &ComponentInstallManager{
+		helmClient: mockHelmClient,
+		timeout:    2 * time.Second,
+	}
+
+	mockHelmClient.EXPECT().
+		GetRelease(component.Spec.Name).
+		Return(nil, assert.AnError)
+
+	helmCtx := context.Background()
+	chartSpec := &client.ChartSpec{}
+
+	// when
+	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+	// then
+	require.Error(t, err)
+	assert.IsType(t, &genericRequeueableError{}, err)
+	assert.ErrorContains(t, err, "failed to get release while waiting for status update")
+}
+
+func TestComponentInstallManager_handlePendingRelease_InstallOrUpgradeError(t *testing.T) {
+	// given
+	logger := logr.Discard()
+	component := getComponent("ecosystem", "k8s", "", "dogu-op", "0.1.0")
+
+	mockHelmClient := newMockHelmClient(t)
+	mockHelmClient.EXPECT().
+		MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+		Return(nil)
+
+	// enough timeout so that at least one poll happens
+	sut := &ComponentInstallManager{
+		helmClient: mockHelmClient,
+		timeout:    10 * time.Second,
+	}
+
+	pendingRel := &release.Release{
+		Info: &release.Info{Status: release.StatusPendingInstall},
+	}
+	nonPendingRel := &release.Release{
+		Info: &release.Info{Status: release.StatusFailed},
+	}
+
+	// first call: still pending, second call: not pending anymore
+	mockHelmClient.EXPECT().
+		GetRelease(component.Spec.Name).
+		Return(pendingRel, nil).
+		Once()
+	mockHelmClient.EXPECT().
+		GetRelease(component.Spec.Name).
+		Return(nonPendingRel, nil).
+		Once()
+
+	helmCtx := context.Background()
+	chartSpec := &client.ChartSpec{}
+
+	mockHelmClient.EXPECT().
+		InstallOrUpgrade(helmCtx, chartSpec).
+		Return(assert.AnError)
+
+	// when
+	err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+	// then
+	require.Error(t, err)
+	assert.IsType(t, &genericRequeueableError{}, err)
+	assert.ErrorContains(t, err, "failed to install chart for component ")
 }

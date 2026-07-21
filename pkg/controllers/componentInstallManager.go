@@ -9,7 +9,9 @@ import (
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	corev1 "k8s.io/api/core/v1"
@@ -109,8 +111,12 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// requeue if an error happens with the helm client
 	case err != nil:
 		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
+	// mark pending release as failed before reinstall
 	case rel.Info.Status.IsPending():
-		return fmt.Errorf("cannot reinstall pending release of component %q", component.Spec.Name)
+		err := cim.handlePendingRelease(logger, component, helmCtx, chartSpec)
+		if err != nil {
+			return &genericRequeueableError{"failed to handle pending helm release for component " + component.Spec.Name, err}
+		}
 	// do nothing if the release is already deployed
 	case rel.Info.Status != release.StatusDeployed:
 		logger.Info(fmt.Sprintf("Release found with status %q for component %q, trying to install/upgrade", rel.Info.Status, component.Spec.Name))
@@ -130,6 +136,46 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	}
 
 	logger.Info(fmt.Sprintf("Installed component %s.", component.Spec.Name))
+
+	return nil
+}
+
+// handlePendingRelease sets the pending release as failed, waits for it to update, and installs the component
+func (cim *ComponentInstallManager) handlePendingRelease(logger logr.Logger, component *k8sv1.Component, helmCtx context.Context, chartSpec *client.ChartSpec) error {
+	logger.Info(fmt.Sprintf("marking pending release for component %q as failed before reinstall", component.Spec.Name))
+	err := cim.helmClient.MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall")
+	if err != nil {
+		return &genericRequeueableError{"failed to mark release as failed", err}
+	}
+	waitCtx, cancel := context.WithTimeout(helmCtx, cim.timeout)
+	defer cancel()
+
+	done := false
+	for !done {
+		select {
+		case <-waitCtx.Done():
+			return &genericRequeueableError{
+				"timed out waiting for release status update after marking as failed",
+				waitCtx.Err(),
+			}
+		case <-time.After(1 * time.Second):
+			updatedRel, getErr := cim.helmClient.GetRelease(component.Spec.Name)
+			if getErr != nil {
+				return &genericRequeueableError{
+					"failed to get release while waiting for status update",
+					getErr,
+				}
+			}
+
+			if !updatedRel.Info.Status.IsPending() {
+				logger.Info(fmt.Sprintf("release status for component %q updated to %q", component.Spec.Name, updatedRel.Info.Status))
+				done = true
+			}
+		}
+	}
+	if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+		return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
+	}
 
 	return nil
 }

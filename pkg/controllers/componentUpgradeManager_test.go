@@ -3,9 +3,12 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
+	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -246,48 +249,6 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to get release for component")
 	})
 
-	t.Run("should fail on pending release", func(t *testing.T) {
-		ctx := context.Background()
-		component := &k8sv1.Component{
-			Spec: k8sv1.ComponentSpec{
-				Namespace:       "ecosystem",
-				Name:            "testComponent",
-				Version:         "1.0",
-				ValuesConfigRef: &k8sv1.Reference{},
-			},
-			Status: k8sv1.ComponentStatus{Status: "installed"},
-		}
-
-		mockComponentClient := newMockComponentInterface(t)
-		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
-
-		configMapRefReaderMock := newMockConfigMapRefReader(t)
-		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
-
-		mockHelmClient := newMockHelmClient(t)
-		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
-			HelmClient:     mockHelmClient,
-			Timeout:        defaultHelmClientTimeoutMins,
-			YamlSerializer: yaml.NewSerializer(),
-			Reader:         configMapRefReaderMock,
-		})
-		rel := &release.Release{
-			Info: &release.Info{Status: release.StatusPendingUpgrade},
-		}
-		mockHelmClient.EXPECT().GetRelease("testComponent").Return(rel, nil)
-		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
-
-		manager := &ComponentUpgradeManager{
-			componentClient: mockComponentClient,
-			helmClient:      mockHelmClient,
-			timeout:         defaultHelmClientTimeoutMins,
-			reader:          configMapRefReaderMock,
-		}
-		err := manager.Upgrade(ctx, component)
-
-		assert.ErrorContains(t, err, "cannot upgrade pending release of component")
-	})
-
 	t.Run("should fail while installing non-existing component", func(t *testing.T) {
 		ctx := context.Background()
 		component := &k8sv1.Component{
@@ -433,5 +394,139 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		require.ErrorIs(t, err, assert.AnError)
 		assert.ErrorContains(t, err, "failed to update health status for component")
+	})
+}
+
+func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
+	component := &k8sv1.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testComponent",
+			Namespace: "ecosystem",
+		},
+		Spec: k8sv1.ComponentSpec{
+			Namespace: "ecosystem",
+			Name:      "testComponent",
+			Version:   "1.0.0",
+		},
+	}
+
+	t.Run("fails when MarkReleaseAsFailed returns error", func(t *testing.T) {
+		// given
+		logger := logr.Discard()
+		mockHelmClient := newMockHelmClient(t)
+
+		mockHelmClient.EXPECT().
+			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+			Return(assert.AnError)
+
+		sut := &ComponentUpgradeManager{
+			helmClient: mockHelmClient,
+			timeout:    10 * time.Second,
+		}
+
+		helmCtx := context.Background()
+		chartSpec := &client.ChartSpec{}
+
+		// when
+		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to mark release as failed")
+	})
+
+	t.Run("fails on timeout while waiting for status update", func(t *testing.T) {
+		// given
+		logger := logr.Discard()
+		mockHelmClient := newMockHelmClient(t)
+
+		mockHelmClient.EXPECT().
+			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+			Return(nil)
+
+		sut := &ComponentUpgradeManager{
+			helmClient: mockHelmClient,
+			timeout:    1 * time.Nanosecond,
+		}
+
+		helmCtx := context.Background()
+		chartSpec := &client.ChartSpec{}
+
+		// when
+		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "timed out waiting for release status update after marking as failed")
+	})
+
+	t.Run("fails when GetRelease returns error while waiting", func(t *testing.T) {
+		// given
+		logger := logr.Discard()
+		mockHelmClient := newMockHelmClient(t)
+
+		mockHelmClient.EXPECT().
+			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+			Return(nil)
+
+		sut := &ComponentUpgradeManager{
+			helmClient: mockHelmClient,
+			timeout:    3 * time.Second,
+		}
+
+		mockHelmClient.EXPECT().
+			GetRelease(component.Spec.Name).
+			Return(nil, assert.AnError)
+
+		helmCtx := context.Background()
+		chartSpec := &client.ChartSpec{}
+
+		// when
+		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to get release while waiting for status update")
+	})
+
+	t.Run("fails when InstallOrUpgrade returns error after status is not pending anymore", func(t *testing.T) {
+		// given
+		logger := logr.Discard()
+		mockHelmClient := newMockHelmClient(t)
+
+		mockHelmClient.EXPECT().
+			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+			Return(nil)
+
+		sut := &ComponentUpgradeManager{
+			helmClient: mockHelmClient,
+			timeout:    10 * time.Second,
+		}
+
+		nonPendingRel := &release.Release{
+			Info: &release.Info{Status: release.StatusFailed},
+		}
+		mockHelmClient.EXPECT().
+			GetRelease(component.Spec.Name).
+			Return(nonPendingRel, nil).
+			Once()
+
+		helmCtx := context.Background()
+		chartSpec := &client.ChartSpec{}
+
+		mockHelmClient.EXPECT().
+			InstallOrUpgrade(helmCtx, chartSpec).
+			Return(assert.AnError)
+
+		// when
+		err := sut.handlePendingRelease(logger, component, helmCtx, chartSpec)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to install chart for component ")
 	})
 }

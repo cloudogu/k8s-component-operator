@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/adapter/kubernetes/configref"
-	"github.com/cloudogu/k8s-component-operator/pkg/operator"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -82,42 +81,37 @@ func startOperator() error {
 
 	ctx := ctrl.SetupSignalHandler()
 
-	startupManager, err := configureManager(ctx, k8sManager, operatorConfig)
+	err = configureManager(ctx, k8sManager, operatorConfig)
 	if err != nil {
 		return fmt.Errorf("failed to configure manager: %w", err)
-	}
-
-	err = startupManager.Start(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to run startup tasks: %w", err)
 	}
 
 	return startK8sManager(ctx, k8sManager)
 }
 
-func configureManager(ctx context.Context, k8sManager manager.Manager, operatorConfig *config.OperatorConfig) (*operator.StartupManager, error) {
+func configureManager(ctx context.Context, k8sManager manager.Manager, operatorConfig *config.OperatorConfig) error {
 	clientSet, err := createEcosystemClientSet(k8sManager)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	startupManager, err := configureReconciler(ctx, k8sManager, clientSet, operatorConfig)
+	err = configureReconciler(ctx, k8sManager, clientSet, operatorConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to configure reconciler: %w", err)
+		return fmt.Errorf("failed to configure reconciler: %w", err)
 	}
 
 	err = addRunners(k8sManager, clientSet, operatorConfig)
 	if err != nil {
-		return startupManager, err
+		return err
 	}
 
 	// +kubebuilder:scaffold:builder
 	err = addChecks(k8sManager)
 	if err != nil {
-		return startupManager, fmt.Errorf("failed to add checks to the manager: %w", err)
+		return fmt.Errorf("failed to add checks to the manager: %w", err)
 	}
 
-	return startupManager, nil
+	return nil
 }
 
 func addRunners(k8sManager manager.Manager, clientSet componentClient.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) error {
@@ -161,12 +155,12 @@ func startK8sManager(ctx context.Context, k8sManager manager.Manager) error {
 	return nil
 }
 
-func configureReconciler(ctx context.Context, k8sManager manager.Manager, clientSet componentClient.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) (*operator.StartupManager, error) {
+func configureReconciler(ctx context.Context, k8sManager manager.Manager, clientSet componentClient.ComponentEcosystemInterface, operatorConfig *config.OperatorConfig) error {
 	eventRecorder := k8sManager.GetEventRecorderFor("k8s-component-operator")
 
 	helmRepoData, err := config.GetHelmRepositoryData(ctx, clientSet.CoreV1().ConfigMaps(operatorConfig.Namespace))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	operatorConfig.HelmRepositoryData = helmRepoData
 
@@ -184,22 +178,16 @@ func configureReconciler(ctx context.Context, k8sManager manager.Manager, client
 	componentReconciler := controllers.NewComponentReconciler(clientSet, helmClientFactory.NewHelmClient, eventRecorder, operatorConfig.Namespace, operatorConfig.HelmClientTimeoutMins, yamlSerializer, reader, operatorConfig.RequeueTime)
 	err = componentReconciler.SetupWithManager(k8sManager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup reconciler with manager: %w", err)
+		return fmt.Errorf("failed to setup reconciler with manager: %w", err)
 	}
 
 	healthReconcilers := health.NewController(operatorConfig.Namespace, clientSet)
 	err = healthReconcilers.SetupWithManager(k8sManager)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup health reconcilers with manager: %w", err)
+		return fmt.Errorf("failed to setup health reconcilers with manager: %w", err)
 	}
 
-	helmClient, err := helmClientFactory.NewHelmClient()
-	if err != nil {
-		return nil, err
-	}
-	startupManager := operator.NewStartupManager(helmClient, clientSet.ComponentV1Alpha1().Components(operatorConfig.Namespace))
-
-	return startupManager, nil
+	return nil
 }
 
 func createEcosystemClientSet(k8sManager manager.Manager) (*componentClient.EcosystemClientset, error) {
