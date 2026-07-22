@@ -142,7 +142,7 @@ func (cupm *ComponentUpgradeManager) handleHelmRelease(
 		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
 	// mark pending release as failed and reinstall
 	case release.Info.Status.IsPending():
-		err := handlePendingRelease(logger, component, ctx, chartSpec, cupm.helmClient, cupm.timeout)
+		err := handlePendingRelease(logger, component, ctx, cupm.helmClient, cupm.timeout)
 		if err != nil {
 			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to handle pending helm release for component %s", component.Spec.Name), err: err}
 		}

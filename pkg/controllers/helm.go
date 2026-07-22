@@ -6,12 +6,11 @@ import (
 	"time"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/go-logr/logr"
 )
 
 // handlePendingRelease sets the pending release as failed, waits for it to update
-func handlePendingRelease(logger logr.Logger, component *k8sv1.Component, helmCtx context.Context, chartSpec *client.ChartSpec, helmClient helmClient, timeout time.Duration) error {
+func handlePendingRelease(logger logr.Logger, component *k8sv1.Component, helmCtx context.Context, helmClient helmClient, timeout time.Duration) error {
 	logger.Info(fmt.Sprintf("marking pending release for component %q as failed before reinstall", component.Spec.Name))
 	err := helmClient.MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall")
 	if err != nil {

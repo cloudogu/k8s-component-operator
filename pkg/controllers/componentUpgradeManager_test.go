@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
@@ -420,10 +419,9 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 			Return(assert.AnError)
 
 		helmCtx := context.Background()
-		chartSpec := &client.ChartSpec{}
 
 		// when
-		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 10*time.Second)
+		err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 10*time.Second)
 
 		// then
 		require.Error(t, err)
@@ -441,10 +439,9 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 			Return(nil)
 
 		helmCtx := context.Background()
-		chartSpec := &client.ChartSpec{}
 
 		// when
-		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 1*time.Nanosecond)
+		err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 1*time.Nanosecond)
 
 		// then
 		require.Error(t, err)
@@ -466,10 +463,9 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 			Return(nil, assert.AnError)
 
 		helmCtx := context.Background()
-		chartSpec := &client.ChartSpec{}
 
 		// when
-		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 3*time.Second)
+		err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 3*time.Second)
 
 		// then
 		require.Error(t, err)

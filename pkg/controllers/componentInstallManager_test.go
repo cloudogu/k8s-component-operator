@@ -7,7 +7,6 @@ import (
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
-	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
@@ -553,10 +552,9 @@ func TestComponentInstallManager_handlePendingRelease_MarkFailedError(t *testing
 		Return(assert.AnError)
 
 	helmCtx := context.Background()
-	chartSpec := &client.ChartSpec{}
 
 	// when
-	err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 10*time.Second)
+	err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 10*time.Second)
 
 	// then
 	require.Error(t, err)
@@ -575,10 +573,9 @@ func TestComponentInstallManager_handlePendingRelease_TimeoutWhileWaiting(t *tes
 		Return(nil)
 
 	helmCtx := context.Background()
-	chartSpec := &client.ChartSpec{}
 
 	// when
-	err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 1*time.Nanosecond)
+	err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 1*time.Nanosecond)
 
 	// then
 	require.Error(t, err)
@@ -601,10 +598,9 @@ func TestComponentInstallManager_handlePendingRelease_GetReleaseError(t *testing
 		Return(nil, assert.AnError)
 
 	helmCtx := context.Background()
-	chartSpec := &client.ChartSpec{}
 
 	// when
-	err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 2*time.Second)
+	err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 2*time.Second)
 
 	// then
 	require.Error(t, err)
