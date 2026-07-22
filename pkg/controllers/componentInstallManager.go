@@ -10,7 +10,7 @@ import (
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
-	"helm.sh/helm/v3/pkg/release"
+	helmRelease "helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -97,7 +97,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// create a new context that does not get canceled immediately on SIGTERM
 	helmCtx := context.WithoutCancel(ctx)
 
-	rel, err := cim.helmClient.GetRelease(component.Spec.Name)
+	release, err := cim.helmClient.GetRelease(component.Spec.Name)
 
 	switch {
 	// install helm release if it does not exist
@@ -109,15 +109,18 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	// requeue if an error happens with the helm client
 	case err != nil:
 		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
-	// mark pending release as failed before reinstall
-	case rel.Info.Status.IsPending():
+	// mark pending release as failed and reinstall
+	case release.Info.Status.IsPending():
 		err := handlePendingRelease(logger, component, helmCtx, chartSpec, cim.helmClient, cim.timeout)
 		if err != nil {
 			return &genericRequeueableError{"failed to handle pending helm release for component " + component.Spec.Name, err}
 		}
+		if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+			return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
+		}
 	// do nothing if the release is already deployed
-	case rel.Info.Status != release.StatusDeployed:
-		logger.Info(fmt.Sprintf("Release found with status %q for component %q, trying to install/upgrade", rel.Info.Status, component.Spec.Name))
+	case release.Info.Status != helmRelease.StatusDeployed:
+		logger.Info(fmt.Sprintf("Release found with status %q for component %q, trying to install/upgrade", release.Info.Status, component.Spec.Name))
 		if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
 			return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 		}

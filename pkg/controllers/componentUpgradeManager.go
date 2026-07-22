@@ -9,7 +9,7 @@ import (
 	"github.com/cloudogu/k8s-component-operator/pkg/helm/client"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
 	"github.com/go-errors/errors"
-	"helm.sh/helm/v3/pkg/release"
+	helmRelease "helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 
 	k8sv1 "github.com/cloudogu/k8s-component-lib/api/v1"
@@ -80,9 +80,9 @@ func (cupm *ComponentUpgradeManager) Upgrade(ctx context.Context, component *k8s
 	// this allows self-upgrades
 	helmCtx := context.WithoutCancel(ctx)
 
-	rel, err := cupm.helmClient.GetRelease(component.Spec.Name)
+	release, err := cupm.helmClient.GetRelease(component.Spec.Name)
 
-	if err := cupm.handleHelmRelease(helmCtx, component, chartSpec, rel, err); err != nil {
+	if err := cupm.handleHelmRelease(helmCtx, component, chartSpec, release, err); err != nil {
 		return err
 	}
 
@@ -125,7 +125,7 @@ func (cupm *ComponentUpgradeManager) handleHelmRelease(
 	ctx context.Context,
 	component *k8sv1.Component,
 	chartSpec *client.ChartSpec,
-	rel *release.Release,
+	release *helmRelease.Release,
 	err error,
 ) error {
 	logger := log.FromContext(ctx)
@@ -140,11 +140,14 @@ func (cupm *ComponentUpgradeManager) handleHelmRelease(
 	// requeue if an error happens with the helm client
 	case err != nil:
 		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
-	// mark pending release as failed before reinstall
-	case rel.Info.Status.IsPending():
+	// mark pending release as failed and reinstall
+	case release.Info.Status.IsPending():
 		err := handlePendingRelease(logger, component, ctx, chartSpec, cupm.helmClient, cupm.timeout)
 		if err != nil {
 			return &genericRequeueableError{errMsg: fmt.Sprintf("failed to handle pending helm release for component %s", component.Spec.Name), err: err}
+		}
+		if err := cupm.helmClient.InstallOrUpgrade(ctx, chartSpec); err != nil {
+			return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
 		}
 	// upgrade release in all other cases
 	default:

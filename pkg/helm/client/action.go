@@ -12,7 +12,7 @@ import (
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/release"
+	helmRelease "helm.sh/helm/v3/pkg/release"
 )
 
 type provider struct {
@@ -76,22 +76,22 @@ func (p *provider) newRollbackRelease() rollbackReleaseAction {
 // prevent the release from becoming unrecoverable.
 // @param reason the reason why the release failed
 func (p *provider) markReleaseFailed(name string, reason string) error {
-	rel, err := p.Releases.Last(name)
+	release, err := p.Releases.Last(name)
 	if err != nil {
 		return fmt.Errorf("failed to get release %q: %w", name, err)
 	}
 
-	rel.Info.Status = release.StatusFailed
-	rel.Info.Description = reason
+	release.Info.Status = helmRelease.StatusFailed
+	release.Info.Description = reason
 
-	return p.Releases.Update(rel)
+	return p.Releases.Update(release)
 }
 
 type install struct {
 	*action.Install
 }
 
-func (i *install) install(ctx context.Context, chart *chart.Chart, values map[string]interface{}) (*release.Release, error) {
+func (i *install) install(ctx context.Context, chart *chart.Chart, values map[string]interface{}) (*helmRelease.Release, error) {
 	return i.RunWithContext(ctx, chart, values)
 }
 
@@ -103,7 +103,7 @@ type upgrade struct {
 	*action.Upgrade
 }
 
-func (u *upgrade) upgrade(ctx context.Context, releaseName string, chart *chart.Chart, values map[string]interface{}) (*release.Release, error) {
+func (u *upgrade) upgrade(ctx context.Context, releaseName string, chart *chart.Chart, values map[string]interface{}) (*helmRelease.Release, error) {
 	return u.RunWithContext(ctx, releaseName, chart, values)
 }
 
@@ -115,7 +115,7 @@ type uninstall struct {
 	*action.Uninstall
 }
 
-func (u *uninstall) uninstall(releaseName string) (*release.UninstallReleaseResponse, error) {
+func (u *uninstall) uninstall(releaseName string) (*helmRelease.UninstallReleaseResponse, error) {
 	return u.Run(releaseName)
 }
 
@@ -136,7 +136,7 @@ type listReleases struct {
 	*action.List
 }
 
-func (l *listReleases) listReleases() ([]*release.Release, error) {
+func (l *listReleases) listReleases() ([]*helmRelease.Release, error) {
 	return l.Run()
 }
 
@@ -160,7 +160,7 @@ type getRelease struct {
 	*action.Get
 }
 
-func (g *getRelease) getRelease(releaseName string) (*release.Release, error) {
+func (g *getRelease) getRelease(releaseName string) (*helmRelease.Release, error) {
 	return g.Run(releaseName)
 }
 

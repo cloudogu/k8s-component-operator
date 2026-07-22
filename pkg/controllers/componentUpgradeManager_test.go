@@ -477,36 +477,4 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 		assert.ErrorContains(t, err, "failed to get release while waiting for status update")
 	})
 
-	t.Run("fails when InstallOrUpgrade returns error after status is not pending anymore", func(t *testing.T) {
-		// given
-		logger := logr.Discard()
-		mockHelmClient := newMockHelmClient(t)
-
-		mockHelmClient.EXPECT().
-			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
-			Return(nil)
-
-		nonPendingRel := &release.Release{
-			Info: &release.Info{Status: release.StatusFailed},
-		}
-		mockHelmClient.EXPECT().
-			GetRelease(component.Spec.Name).
-			Return(nonPendingRel, nil).
-			Once()
-
-		helmCtx := context.Background()
-		chartSpec := &client.ChartSpec{}
-
-		mockHelmClient.EXPECT().
-			InstallOrUpgrade(helmCtx, chartSpec).
-			Return(assert.AnError)
-
-		// when
-		err := handlePendingRelease(logger, component, helmCtx, chartSpec, mockHelmClient, 10*time.Second)
-
-		// then
-		require.Error(t, err)
-		assert.IsType(t, &genericRequeueableError{}, err)
-		assert.ErrorContains(t, err, "failed to install chart for component ")
-	})
 }
