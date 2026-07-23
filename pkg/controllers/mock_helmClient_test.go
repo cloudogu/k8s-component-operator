@@ -3,10 +3,12 @@
 package controllers
 
 import (
-	context "context"
+	action "helm.sh/helm/v3/pkg/action"
+	chart "helm.sh/helm/v3/pkg/chart"
 
 	client "github.com/cloudogu/k8s-component-operator/pkg/helm/client"
-	chart "helm.sh/helm/v3/pkg/chart"
+
+	context "context"
 
 	mock "github.com/stretchr/testify/mock"
 
@@ -256,6 +258,64 @@ func (_c *mockHelmClient_GetLatestVersion_Call) RunAndReturn(run func(string) (s
 	return _c
 }
 
+// GetRelease provides a mock function with given fields: name
+func (_m *mockHelmClient) GetRelease(name string) (*release.Release, error) {
+	ret := _m.Called(name)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRelease")
+	}
+
+	var r0 *release.Release
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (*release.Release, error)); ok {
+		return rf(name)
+	}
+	if rf, ok := ret.Get(0).(func(string) *release.Release); ok {
+		r0 = rf(name)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*release.Release)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(name)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockHelmClient_GetRelease_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRelease'
+type mockHelmClient_GetRelease_Call struct {
+	*mock.Call
+}
+
+// GetRelease is a helper method to define mock.On call
+//   - name string
+func (_e *mockHelmClient_Expecter) GetRelease(name interface{}) *mockHelmClient_GetRelease_Call {
+	return &mockHelmClient_GetRelease_Call{Call: _e.mock.On("GetRelease", name)}
+}
+
+func (_c *mockHelmClient_GetRelease_Call) Run(run func(name string)) *mockHelmClient_GetRelease_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *mockHelmClient_GetRelease_Call) Return(_a0 *release.Release, _a1 error) *mockHelmClient_GetRelease_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockHelmClient_GetRelease_Call) RunAndReturn(run func(string) (*release.Release, error)) *mockHelmClient_GetRelease_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetReleaseValues provides a mock function with given fields: name, allValues
 func (_m *mockHelmClient) GetReleaseValues(name string, allValues bool) (map[string]interface{}, error) {
 	ret := _m.Called(name, allValues)
@@ -415,6 +475,111 @@ func (_c *mockHelmClient_ListDeployedReleases_Call) Return(_a0 []*release.Releas
 }
 
 func (_c *mockHelmClient_ListDeployedReleases_Call) RunAndReturn(run func() ([]*release.Release, error)) *mockHelmClient_ListDeployedReleases_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListReleasesByStateMask provides a mock function with given fields: _a0
+func (_m *mockHelmClient) ListReleasesByStateMask(_a0 action.ListStates) ([]*release.Release, error) {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListReleasesByStateMask")
+	}
+
+	var r0 []*release.Release
+	var r1 error
+	if rf, ok := ret.Get(0).(func(action.ListStates) ([]*release.Release, error)); ok {
+		return rf(_a0)
+	}
+	if rf, ok := ret.Get(0).(func(action.ListStates) []*release.Release); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*release.Release)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(action.ListStates) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// mockHelmClient_ListReleasesByStateMask_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListReleasesByStateMask'
+type mockHelmClient_ListReleasesByStateMask_Call struct {
+	*mock.Call
+}
+
+// ListReleasesByStateMask is a helper method to define mock.On call
+//   - _a0 action.ListStates
+func (_e *mockHelmClient_Expecter) ListReleasesByStateMask(_a0 interface{}) *mockHelmClient_ListReleasesByStateMask_Call {
+	return &mockHelmClient_ListReleasesByStateMask_Call{Call: _e.mock.On("ListReleasesByStateMask", _a0)}
+}
+
+func (_c *mockHelmClient_ListReleasesByStateMask_Call) Run(run func(_a0 action.ListStates)) *mockHelmClient_ListReleasesByStateMask_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(action.ListStates))
+	})
+	return _c
+}
+
+func (_c *mockHelmClient_ListReleasesByStateMask_Call) Return(_a0 []*release.Release, _a1 error) *mockHelmClient_ListReleasesByStateMask_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *mockHelmClient_ListReleasesByStateMask_Call) RunAndReturn(run func(action.ListStates) ([]*release.Release, error)) *mockHelmClient_ListReleasesByStateMask_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MarkReleaseAsFailed provides a mock function with given fields: name, reason
+func (_m *mockHelmClient) MarkReleaseAsFailed(name string, reason string) error {
+	ret := _m.Called(name, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkReleaseAsFailed")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(name, reason)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// mockHelmClient_MarkReleaseAsFailed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MarkReleaseAsFailed'
+type mockHelmClient_MarkReleaseAsFailed_Call struct {
+	*mock.Call
+}
+
+// MarkReleaseAsFailed is a helper method to define mock.On call
+//   - name string
+//   - reason string
+func (_e *mockHelmClient_Expecter) MarkReleaseAsFailed(name interface{}, reason interface{}) *mockHelmClient_MarkReleaseAsFailed_Call {
+	return &mockHelmClient_MarkReleaseAsFailed_Call{Call: _e.mock.On("MarkReleaseAsFailed", name, reason)}
+}
+
+func (_c *mockHelmClient_MarkReleaseAsFailed_Call) Run(run func(name string, reason string)) *mockHelmClient_MarkReleaseAsFailed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *mockHelmClient_MarkReleaseAsFailed_Call) Return(_a0 error) *mockHelmClient_MarkReleaseAsFailed_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *mockHelmClient_MarkReleaseAsFailed_Call) RunAndReturn(run func(string, string) error) *mockHelmClient_MarkReleaseAsFailed_Call {
 	_c.Call.Return(run)
 	return _c
 }

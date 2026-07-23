@@ -499,6 +499,53 @@ func (_c *MockClient_ListReleasesByStateMask_Call) RunAndReturn(run func(action.
 	return _c
 }
 
+// MarkReleaseAsFailed provides a mock function with given fields: name, reason
+func (_m *MockClient) MarkReleaseAsFailed(name string, reason string) error {
+	ret := _m.Called(name, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MarkReleaseAsFailed")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(name, reason)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_MarkReleaseAsFailed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MarkReleaseAsFailed'
+type MockClient_MarkReleaseAsFailed_Call struct {
+	*mock.Call
+}
+
+// MarkReleaseAsFailed is a helper method to define mock.On call
+//   - name string
+//   - reason string
+func (_e *MockClient_Expecter) MarkReleaseAsFailed(name interface{}, reason interface{}) *MockClient_MarkReleaseAsFailed_Call {
+	return &MockClient_MarkReleaseAsFailed_Call{Call: _e.mock.On("MarkReleaseAsFailed", name, reason)}
+}
+
+func (_c *MockClient_MarkReleaseAsFailed_Call) Run(run func(name string, reason string)) *MockClient_MarkReleaseAsFailed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_MarkReleaseAsFailed_Call) Return(_a0 error) *MockClient_MarkReleaseAsFailed_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_MarkReleaseAsFailed_Call) RunAndReturn(run func(string, string) error) *MockClient_MarkReleaseAsFailed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RollbackRelease provides a mock function with given fields: spec
 func (_m *MockClient) RollbackRelease(spec *ChartSpec) error {
 	ret := _m.Called(spec)

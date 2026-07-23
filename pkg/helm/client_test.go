@@ -578,6 +578,24 @@ func TestClient_GetChartSpecValues(t *testing.T) {
 	})
 }
 
+func TestClient_GetRelease(t *testing.T) {
+	t.Run("should call HelmClient", func(t *testing.T) {
+		// given
+		mockedHelmClient := NewMockHelmClient(t)
+		mockedHelmClient.EXPECT().GetRelease("releasename").Return(&release.Release{Name: "releasename"}, nil)
+
+		sut := &Client{
+			helmClient: mockedHelmClient,
+		}
+
+		// when
+		fetchedRelease, err := sut.GetRelease("releasename")
+
+		require.NoError(t, err)
+		require.Equal(t, "releasename", fetchedRelease.Name)
+	})
+}
+
 func TestClient_GetReleaseValues(t *testing.T) {
 	t.Run("should call HelmClient", func(t *testing.T) {
 		// given

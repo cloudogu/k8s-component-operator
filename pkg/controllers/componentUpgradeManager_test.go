@@ -3,12 +3,16 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/helm"
 	"github.com/cloudogu/k8s-component-operator/pkg/yaml"
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage/driver"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -59,6 +63,10 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			YamlSerializer: yaml.NewSerializer(),
 			Reader:         configMapRefReaderMock,
 		})
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusDeployed},
+		}
+		mockHelmClient.EXPECT().GetRelease("testComponent").Return(rel, nil)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, spec).Return(nil)
 
@@ -178,6 +186,10 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			YamlSerializer: yaml.NewSerializer(),
 			Reader:         configMapRefReaderMock,
 		})
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusDeployed},
+		}
+		mockHelmClient.EXPECT().GetRelease("testComponent").Return(rel, nil)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, spec).Return(assert.AnError)
 
@@ -192,6 +204,88 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 		require.ErrorIs(t, err, assert.AnError)
 		assert.IsType(t, err, &genericRequeueableError{})
 		assert.ErrorContains(t, err, "failed to upgrade chart for component testComponent:")
+	})
+
+	t.Run("should fail to get release", func(t *testing.T) {
+		ctx := context.Background()
+		component := &k8sv1.Component{
+			Spec: k8sv1.ComponentSpec{
+				Namespace:       "ecosystem",
+				Name:            "testComponent",
+				Version:         "1.0",
+				ValuesConfigRef: &k8sv1.Reference{},
+			},
+			Status: k8sv1.ComponentStatus{Status: "installed"},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
+
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
+		mockHelmClient := newMockHelmClient(t)
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			Timeout:        defaultHelmClientTimeoutMins,
+			YamlSerializer: yaml.NewSerializer(),
+			Reader:         configMapRefReaderMock,
+		})
+
+		mockHelmClient.EXPECT().GetRelease("testComponent").Return(nil, assert.AnError)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+
+		manager := &ComponentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
+		}
+		err := manager.Upgrade(ctx, component)
+
+		require.ErrorIs(t, err, assert.AnError)
+		assert.IsType(t, err, &genericRequeueableError{})
+		assert.ErrorContains(t, err, "failed to get release for component")
+	})
+
+	t.Run("should fail while installing non-existing component", func(t *testing.T) {
+		ctx := context.Background()
+		component := &k8sv1.Component{
+			Spec: k8sv1.ComponentSpec{
+				Namespace:       "ecosystem",
+				Name:            "testComponent",
+				Version:         "1.0",
+				ValuesConfigRef: &k8sv1.Reference{},
+			},
+			Status: k8sv1.ComponentStatus{Status: "installed"},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusUpgrading(ctx, component).Return(component, nil)
+
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
+		mockHelmClient := newMockHelmClient(t)
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			Timeout:        defaultHelmClientTimeoutMins,
+			YamlSerializer: yaml.NewSerializer(),
+			Reader:         configMapRefReaderMock,
+		})
+		mockHelmClient.EXPECT().GetRelease("testComponent").Return(nil, driver.ErrReleaseNotFound)
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, spec).Return(assert.AnError)
+
+		manager := &ComponentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
+		}
+		err := manager.Upgrade(ctx, component)
+		assert.IsType(t, err, &genericRequeueableError{})
+		assert.ErrorContains(t, err, "failed to upgrade chart for component")
 	})
 
 	t.Run("should fail to upgrade component on error while setting installed status", func(t *testing.T) {
@@ -224,6 +318,10 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			YamlSerializer: yaml.NewSerializer(),
 			Reader:         configMapRefReaderMock,
 		})
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusDeployed},
+		}
+		mockHelmClient.EXPECT().GetRelease("testComponent").Return(rel, nil)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, spec).Return(nil)
 
@@ -273,6 +371,10 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 			YamlSerializer: yaml.NewSerializer(),
 			Reader:         configMapRefReaderMock,
 		})
+		rel := &release.Release{
+			Info: &release.Info{Status: release.StatusDeployed},
+		}
+		mockHelmClient.EXPECT().GetRelease("testComponent").Return(rel, nil)
 		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
 		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, spec).Return(nil)
 
@@ -291,5 +393,156 @@ func Test_componentUpgradeManager_Upgrade(t *testing.T) {
 
 		require.ErrorIs(t, err, assert.AnError)
 		assert.ErrorContains(t, err, "failed to update health status for component")
+	})
+}
+
+func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
+	component := &k8sv1.Component{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testComponent",
+			Namespace: "ecosystem",
+		},
+		Spec: k8sv1.ComponentSpec{
+			Namespace: "ecosystem",
+			Name:      "testComponent",
+			Version:   "1.0.0",
+		},
+	}
+
+	t.Run("fails when MarkReleaseAsFailed returns error", func(t *testing.T) {
+		// given
+		logger := logr.Discard()
+		mockHelmClient := newMockHelmClient(t)
+
+		mockHelmClient.EXPECT().
+			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+			Return(assert.AnError)
+
+		helmCtx := context.Background()
+
+		// when
+		err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 10*time.Second)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to mark release as failed")
+	})
+
+	t.Run("fails on timeout while waiting for status update", func(t *testing.T) {
+		// given
+		logger := logr.Discard()
+		mockHelmClient := newMockHelmClient(t)
+
+		mockHelmClient.EXPECT().
+			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+			Return(nil)
+
+		helmCtx := context.Background()
+
+		// when
+		err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 1*time.Nanosecond)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "timed out waiting for release status update after marking as failed")
+	})
+
+	t.Run("fails when GetRelease returns error while waiting", func(t *testing.T) {
+		// given
+		logger := logr.Discard()
+		mockHelmClient := newMockHelmClient(t)
+
+		mockHelmClient.EXPECT().
+			MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall").
+			Return(nil)
+
+		mockHelmClient.EXPECT().
+			GetRelease(component.Spec.Name).
+			Return(nil, assert.AnError)
+
+		helmCtx := context.Background()
+
+		// when
+		err := handlePendingRelease(logger, component, helmCtx, mockHelmClient, 3*time.Second)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to get release while waiting for status update")
+	})
+
+}
+
+func TestComponentUpgradeManager_updateComponentVersion(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when GetLatestVersion returns error", func(t *testing.T) {
+		// given
+		component := &k8sv1.Component{
+			Spec: k8sv1.ComponentSpec{
+				Name:    "my-component",
+				Version: "",
+			},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().
+			GetLatestVersion(helm.GetHelmChartName(component)).
+			Return("", assert.AnError)
+
+		sut := &ComponentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+		}
+
+		// when
+		version, updatedComp, err := sut.updateComponentVersion(ctx, component)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to get latest version for component \"my-component\"")
+		assert.Empty(t, version)
+		assert.Nil(t, updatedComp)
+	})
+
+	t.Run("fails when UpdateExpectedComponentVersion returns error", func(t *testing.T) {
+		// given
+		component := &k8sv1.Component{
+			Spec: k8sv1.ComponentSpec{
+				Name:    "my-component",
+				Version: "",
+			},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().
+			UpdateExpectedComponentVersion(ctx, "my-component", "1.2.3").
+			// return the original component instead of nil to avoid nil-dereference in the code path
+			Return(component, assert.AnError)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().
+			GetLatestVersion(helm.GetHelmChartName(component)).
+			Return("1.2.3", nil)
+
+		sut := &ComponentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+		}
+
+		// when
+		version, updatedComp, err := sut.updateComponentVersion(ctx, component)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to update expected version for component \"my-component\"")
+		assert.Empty(t, version)
+		assert.Nil(t, updatedComp)
 	})
 }

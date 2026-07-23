@@ -17,6 +17,53 @@ func (_m *mockActionProvider) EXPECT() *mockActionProvider_Expecter {
 	return &mockActionProvider_Expecter{mock: &_m.Mock}
 }
 
+// markReleaseFailed provides a mock function with given fields: releaseName, reason
+func (_m *mockActionProvider) markReleaseFailed(releaseName string, reason string) error {
+	ret := _m.Called(releaseName, reason)
+
+	if len(ret) == 0 {
+		panic("no return value specified for markReleaseFailed")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(releaseName, reason)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// mockActionProvider_markReleaseFailed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'markReleaseFailed'
+type mockActionProvider_markReleaseFailed_Call struct {
+	*mock.Call
+}
+
+// markReleaseFailed is a helper method to define mock.On call
+//   - releaseName string
+//   - reason string
+func (_e *mockActionProvider_Expecter) markReleaseFailed(releaseName interface{}, reason interface{}) *mockActionProvider_markReleaseFailed_Call {
+	return &mockActionProvider_markReleaseFailed_Call{Call: _e.mock.On("markReleaseFailed", releaseName, reason)}
+}
+
+func (_c *mockActionProvider_markReleaseFailed_Call) Run(run func(releaseName string, reason string)) *mockActionProvider_markReleaseFailed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *mockActionProvider_markReleaseFailed_Call) Return(_a0 error) *mockActionProvider_markReleaseFailed_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *mockActionProvider_markReleaseFailed_Call) RunAndReturn(run func(string, string) error) *mockActionProvider_markReleaseFailed_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // newGetRelease provides a mock function with no fields
 func (_m *mockActionProvider) newGetRelease() getReleaseAction {
 	ret := _m.Called()

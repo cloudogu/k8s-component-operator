@@ -36,7 +36,7 @@ oder das Secret manuell erstellt werden:
 
 ## Lokalen Proxy in Kubernetes konfigurieren
 
-#### 1. Squid Proxy Server installieren
+#### 1. Squid-Proxy-Server installieren
 
 ```yaml
 apiVersion: v1
