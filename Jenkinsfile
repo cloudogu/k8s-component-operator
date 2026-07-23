@@ -39,6 +39,7 @@ node('docker') {
 
         stage('Lint') {
             lintDockerfile()
+            checkChangelog(changelog)
         }
 
         new Docker(this)

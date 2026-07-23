@@ -4,14 +4,15 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/spf13/pflag"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	fmtlog "log"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"github.com/spf13/pflag"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -283,6 +284,10 @@ func (c *HelmClient) UninstallRelease(spec *ChartSpec) error {
 // UninstallReleaseByName uninstalls a release identified by the provided 'name'.
 func (c *HelmClient) UninstallReleaseByName(name string) error {
 	return c.uninstallReleaseByName(name)
+}
+
+func (c *HelmClient) MarkReleaseAsFailed(name string, reason string) error {
+	return c.actions.markReleaseFailed(name, reason)
 }
 
 // install installs the provided chart.

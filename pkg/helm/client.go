@@ -164,6 +164,14 @@ func (c *Client) ListDeployedReleases() ([]*release.Release, error) {
 	return c.helmClient.ListDeployedReleases()
 }
 
+func (c *Client) ListReleasesByStateMask(states action.ListStates) ([]*release.Release, error) {
+	return c.helmClient.ListReleasesByStateMask(states)
+}
+
+func (c *Client) GetRelease(name string) (*release.Release, error) {
+	return c.helmClient.GetRelease(name)
+}
+
 // GetReleaseValues returns the (optionally, all computed) values for the specified release.
 func (c *Client) GetReleaseValues(name string, allValues bool) (map[string]interface{}, error) {
 	return c.helmClient.GetReleaseValues(name, allValues)
@@ -194,6 +202,10 @@ func (c *Client) GetDeployedReleaseVersion(ctx context.Context, name string) (st
 // GetChartSpecValues returns the additional values for the specified ChartSpec.
 func (c *Client) GetChartSpecValues(spec *client.ChartSpec) (map[string]interface{}, error) {
 	return c.helmClient.GetChartSpecValues(spec)
+}
+
+func (c *Client) MarkReleaseAsFailed(name string, reason string) error {
+	return c.helmClient.MarkReleaseAsFailed(name, reason)
 }
 
 func (c *Client) patchOciEndpoint(chartName string) string {
