@@ -1291,3 +1291,38 @@ func Test_configureTls(t *testing.T) {
 		})
 	}
 }
+
+func TestHelmClient_MarkReleaseAsFailed(t *testing.T) {
+	t.Run("should mark release as failed successfully", func(t *testing.T) {
+		// given
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().markReleaseFailed("test-release", "some-reason").Return(nil)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		err := sut.MarkReleaseAsFailed("test-release", "some-reason")
+
+		// then
+		require.NoError(t, err)
+	})
+
+	t.Run("should return error when provider fails", func(t *testing.T) {
+		// given
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().markReleaseFailed("test-release", "some-reason").Return(assert.AnError)
+
+		sut := &HelmClient{
+			actions: providerMock,
+		}
+
+		// when
+		err := sut.MarkReleaseAsFailed("test-release", "some-reason")
+
+		// then
+		require.Error(t, err)
+		assert.ErrorIs(t, err, assert.AnError)
+	})
+}
