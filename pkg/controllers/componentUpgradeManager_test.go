@@ -474,3 +474,75 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 	})
 
 }
+
+func TestComponentUpgradeManager_updateComponentVersion(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("fails when GetLatestVersion returns error", func(t *testing.T) {
+		// given
+		component := &k8sv1.Component{
+			Spec: k8sv1.ComponentSpec{
+				Name:    "my-component",
+				Version: "",
+			},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().
+			GetLatestVersion(helm.GetHelmChartName(component)).
+			Return("", assert.AnError)
+
+		sut := &ComponentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+		}
+
+		// when
+		version, updatedComp, err := sut.updateComponentVersion(ctx, component)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to get latest version for component \"my-component\"")
+		assert.Empty(t, version)
+		assert.Nil(t, updatedComp)
+	})
+
+	t.Run("fails when UpdateExpectedComponentVersion returns error", func(t *testing.T) {
+		// given
+		component := &k8sv1.Component{
+			Spec: k8sv1.ComponentSpec{
+				Name:    "my-component",
+				Version: "",
+			},
+		}
+
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().
+			UpdateExpectedComponentVersion(ctx, "my-component", "1.2.3").
+			// return the original component instead of nil to avoid nil-dereference in the code path
+			Return(component, assert.AnError)
+
+		mockHelmClient := newMockHelmClient(t)
+		mockHelmClient.EXPECT().
+			GetLatestVersion(helm.GetHelmChartName(component)).
+			Return("1.2.3", nil)
+
+		sut := &ComponentUpgradeManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+		}
+
+		// when
+		version, updatedComp, err := sut.updateComponentVersion(ctx, component)
+
+		// then
+		require.Error(t, err)
+		assert.IsType(t, &genericRequeueableError{}, err)
+		assert.ErrorContains(t, err, "failed to update expected version for component \"my-component\"")
+		assert.Empty(t, version)
+		assert.Nil(t, updatedComp)
+	})
+}
