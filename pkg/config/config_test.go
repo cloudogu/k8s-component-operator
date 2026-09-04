@@ -42,6 +42,38 @@ func TestNewOperatorConfig(t *testing.T) {
 		require.NotNil(t, operatorConfig)
 		assert.Equal(t, expectedNamespace, operatorConfig.Namespace)
 		assert.Equal(t, "0.1.0", operatorConfig.Version.Original())
+		assert.Equal(t, defaultChartCacheSize, operatorConfig.ChartCacheSize)
+	})
+	t.Run("Read chart cache size from env var", func(t *testing.T) {
+		// given
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "123")
+
+		// when
+		operatorConfig, err := NewOperatorConfig("0.1.0")
+
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, operatorConfig)
+		assert.Equal(t, 123, operatorConfig.ChartCacheSize)
+	})
+}
+
+func Test_readChartCacheSize(t *testing.T) {
+	t.Run("should use default when env var is not set", func(t *testing.T) {
+		_ = os.Unsetenv(ChartCacheSizeEnvironmentVariable)
+		assert.Equal(t, defaultChartCacheSize, readChartCacheSize())
+	})
+	t.Run("should use default when env var is not a number", func(t *testing.T) {
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "not-a-number")
+		assert.Equal(t, defaultChartCacheSize, readChartCacheSize())
+	})
+	t.Run("should use default when env var is not positive", func(t *testing.T) {
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "0")
+		assert.Equal(t, defaultChartCacheSize, readChartCacheSize())
+	})
+	t.Run("should read configured value", func(t *testing.T) {
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "10")
+		assert.Equal(t, 10, readChartCacheSize())
 	})
 }
 

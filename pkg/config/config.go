@@ -31,11 +31,16 @@ const (
 	runtimeLocal = "local"
 	// RequeueTimeInNanosecondsEnvironmentVariable is the name of the environment variable containing the configured requeueTime
 	RequeueTimeInNanosecondsEnvironmentVariable = "REQUEUE_TIME_IN_NANOSECONDS"
+	// ChartCacheSizeEnvironmentVariable is the name of the environment variable containing the configured chart cache size.
+	ChartCacheSizeEnvironmentVariable = "CHART_CACHE_SIZE"
 	// helmRepositoryConfigMapName is the name
 	helmRepositoryConfigMapName = "component-operator-helm-repository"
 )
 
 const defaultRequeueTime = time.Second * 3
+
+// defaultChartCacheSize is the number of distinct chart:version entries kept in the in-memory chart cache.
+const defaultChartCacheSize = 50
 
 var (
 	Stage               = StageProduction
@@ -113,6 +118,8 @@ type OperatorConfig struct {
 	HelmClientTimeoutMins  time.Duration
 	HealthSyncIntervalMins time.Duration
 	RequeueTime            time.Duration
+	// ChartCacheSize is the maximum number of chart:version entries kept in the in-memory chart cache.
+	ChartCacheSize int
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
@@ -150,7 +157,30 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 		HelmClientTimeoutMins:  readMinuteDurationEnv(envHelmClientTimeoutMins, defaultHelmClientTimeoutMins),
 		HealthSyncIntervalMins: readMinuteDurationEnv(envHealthSyncIntervalMins, defaultHealthSyncIntervalMins),
 		RequeueTime:            requeueTime,
+		ChartCacheSize:         readChartCacheSize(),
 	}, nil
+}
+
+// readChartCacheSize reads the configured chart cache size from the environment, falling back to defaultChartCacheSize.
+func readChartCacheSize() int {
+	valueString, err := getEnvVar(ChartCacheSizeEnvironmentVariable)
+	if err != nil {
+		logrus.Warningf("failed to read %s environment variable, using default value %d", ChartCacheSizeEnvironmentVariable, defaultChartCacheSize)
+		return defaultChartCacheSize
+	}
+
+	valueParsed, err := strconv.Atoi(valueString)
+	if err != nil {
+		logrus.Warningf("failed to parse %s environment variable, using default value %d", ChartCacheSizeEnvironmentVariable, defaultChartCacheSize)
+		return defaultChartCacheSize
+	}
+
+	if valueParsed <= 0 {
+		logrus.Warningf("parsed value (%d) of %s is smaller than 1, using default value %d", valueParsed, ChartCacheSizeEnvironmentVariable, defaultChartCacheSize)
+		return defaultChartCacheSize
+	}
+
+	return valueParsed
 }
 
 // GetHelmRepositoryData reads the repository data either from file or from a secret in the cluster.
