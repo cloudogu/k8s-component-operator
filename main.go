@@ -170,6 +170,7 @@ func configureReconciler(ctx context.Context, k8sManager manager.Manager, client
 		operatorConfig.HelmRepositoryData,
 		debug,
 		logging.FormattingLoggerWithName("helm-client", ctrl.Log.Info),
+		operatorConfig.ChartCacheSize,
 	)
 
 	yamlSerializer := yaml.NewSerializer()
