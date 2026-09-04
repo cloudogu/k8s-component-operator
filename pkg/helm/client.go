@@ -35,19 +35,34 @@ type ClientFactory struct {
 	helmRepoData *config.HelmRepositoryData
 	debug        bool
 	debugLog     action.DebugLog
+	// chartCache is created once and shared across all helm clients so that chart archives pulled in one reconcile
+	// remain available to later reconciles (e.g. retries) instead of being pulled from the registry again.
+	chartCache client.ChartCache
 }
 
-func NewClientFactory(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog) *ClientFactory {
+// NewClientFactory creates a ClientFactory. The chartCacheSize is the maximum number of chart:version entries kept in
+// the shared in-memory chart cache; if it is not positive, chart caching is disabled.
+func NewClientFactory(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog, chartCacheSize int) *ClientFactory {
 	return &ClientFactory{
 		namespace:    namespace,
 		helmRepoData: helmRepoData,
 		debug:        debug,
 		debugLog:     debugLog,
+		chartCache:   newChartCache(chartCacheSize),
 	}
 }
 
+// newChartCache creates the shared chart cache. A non-positive size disables caching (returns nil).
+func newChartCache(size int) client.ChartCache {
+	if size <= 0 {
+		return nil
+	}
+
+	return newLRUChartCache(size)
+}
+
 func (f *ClientFactory) NewHelmClient() (*Client, error) {
-	return NewClient(f.namespace, f.helmRepoData, f.debug, f.debugLog)
+	return NewClient(f.namespace, f.helmRepoData, f.debug, f.debugLog, f.chartCache)
 }
 
 // Client wraps the HelmClient with config.HelmRepositoryData
@@ -58,7 +73,7 @@ type Client struct {
 }
 
 // NewClient create a new instance of the helm client.
-func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog) (*Client, error) {
+func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug bool, debugLog action.DebugLog, chartCache client.ChartCache) (*Client, error) {
 	opt := &client.RestConfClientOptions{
 		Options: &client.Options{
 			Namespace:        namespace,
@@ -69,6 +84,7 @@ func NewClient(namespace string, helmRepoData *config.HelmRepositoryData, debug 
 			DebugLog:         debugLog,
 			PlainHttp:        helmRepoData.PlainHttp,
 			InsecureTls:      helmRepoData.InsecureTLS,
+			ChartCache:       chartCache,
 		},
 		RestConfig: ctrl.GetConfigOrDie(),
 	}

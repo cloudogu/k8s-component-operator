@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 			return &rest.Config{}
 		}
 
-		helmClient, err := NewClient(namespace, &config.HelmRepositoryData{PlainHttp: true}, false, nil)
+		helmClient, err := NewClient(namespace, &config.HelmRepositoryData{PlainHttp: true}, false, nil, nil)
 
 		require.NoError(t, err)
 		assert.NotNil(t, helmClient)
@@ -44,13 +44,24 @@ func TestNewClientFactory(t *testing.T) {
 		debugLog := func(string, ...interface{}) {}
 		helmRepoData := &config.HelmRepositoryData{PlainHttp: true}
 
-		actual := NewClientFactory("ecosystem", helmRepoData, true, debugLog)
+		actual := NewClientFactory("ecosystem", helmRepoData, true, debugLog, 50)
 
 		require.NotNil(t, actual)
 		assert.Equal(t, "ecosystem", actual.namespace)
 		assert.Same(t, helmRepoData, actual.helmRepoData)
 		assert.True(t, actual.debug)
 		assert.NotNil(t, actual.debugLog)
+		assert.NotNil(t, actual.chartCache)
+	})
+
+	t.Run("should create client factory without cache for non-positive cache size", func(t *testing.T) {
+		debugLog := func(string, ...interface{}) {}
+		helmRepoData := &config.HelmRepositoryData{PlainHttp: true}
+
+		actual := NewClientFactory("ecosystem", helmRepoData, true, debugLog, 0)
+
+		require.NotNil(t, actual)
+		assert.Nil(t, actual.chartCache)
 	})
 }
 
@@ -62,7 +73,7 @@ func TestClientFactory_NewHelmClient(t *testing.T) {
 			return &rest.Config{}
 		}
 
-		sut := NewClientFactory("ecosystem", &config.HelmRepositoryData{PlainHttp: true}, false, nil)
+		sut := NewClientFactory("ecosystem", &config.HelmRepositoryData{PlainHttp: true}, false, nil, 50)
 
 		actual, err := sut.NewHelmClient()
 
