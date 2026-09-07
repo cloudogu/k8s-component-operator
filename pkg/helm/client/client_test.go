@@ -1107,7 +1107,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -1133,7 +1133,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -1162,7 +1162,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.NoError(t, err)
@@ -1187,7 +1187,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.NoError(t, err)
@@ -1219,7 +1219,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.NoError(t, err)
@@ -1251,7 +1251,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.NoError(t, err)

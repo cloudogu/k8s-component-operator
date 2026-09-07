@@ -12,9 +12,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -311,7 +311,7 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec) (*release.Rel
 		client.Version = anyVersionConstraint
 	}
 
-	helmChart, _, err := c.GetChart(spec)
+	helmChart, _, err := c.GetChart(ctx, spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chart for release %q: %w", spec.ReleaseName, err)
 	}
@@ -351,7 +351,7 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec) (*release.Rel
 		client.Version = anyVersionConstraint
 	}
 
-	helmChart, _, err := c.GetChart(spec)
+	helmChart, _, err := c.GetChart(ctx, spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chart for release %q: %w", spec.ReleaseName, err)
 	}
@@ -408,7 +408,9 @@ func (c *HelmClient) uninstallReleaseByName(name string) error {
 // same version (e.g. the dependency check and the install within a single reconcile, or retries across reconciles) are
 // served from memory instead of pulling the chart from the registry again. A fresh chart object is loaded on every
 // call so that callers never share a mutable chart that Helm mutates in place during install/upgrade.
-func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
+func (c *HelmClient) GetChart(ctx context.Context, spec *ChartSpec) (*chart.Chart, string, error) {
+	logger := log.FromContext(ctx)
+
 	if spec.Version == "" {
 		spec.Version = anyVersionConstraint
 	}
@@ -421,7 +423,7 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 			if err != nil {
 				return nil, "", fmt.Errorf("failed to load cached chart %q: %w", cacheKey, err)
 			}
-			logrus.Debugf("Loaded chart %q from cache", spec.ChartName)
+			logger.Info("Loaded chart from cache", "chartName", spec.ChartName)
 			c.warnIfDeprecated(helmChart)
 			return helmChart, "", nil
 		}
@@ -438,6 +440,8 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load chart %q with version %q from path %q: %w", spec.ChartName, spec.Version, chartPath, err)
 	}
+
+	logger.Info("Loaded chart", "chartName", spec.ChartName, "chartPath", chartPath)
 
 	c.cacheChartArchive(cacheKey, chartPath)
 	c.warnIfDeprecated(helmChart)
