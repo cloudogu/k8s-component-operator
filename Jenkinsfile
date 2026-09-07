@@ -12,7 +12,7 @@ github = new GitHub(this, git)
 changelog = new Changelog(this)
 Docker docker = new Docker(this)
 gpg = new Gpg(this, docker)
-goVersion = "1.26.0"
+goVersion = "1.26.8"
 makefile = new Makefile(this)
 componentOperatorCrdVersion="1.11.0"
 
@@ -71,6 +71,10 @@ node('docker') {
 
                             stage("Lint helm") {
                                 make 'helm-lint'
+                            }
+
+                            stage("Go Vuln Check") {
+                            	make 'govulncheck'
                             }
                         }
 
