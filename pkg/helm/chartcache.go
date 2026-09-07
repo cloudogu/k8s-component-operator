@@ -44,7 +44,9 @@ func (c *lruChartCache) Get(key string) (value []byte, ok bool) {
 	}
 
 	c.order.MoveToFront(element)
-	return element.Value.(*cacheEntry).value, true
+
+	tCacheEntry, _ := element.Value.(*cacheEntry)
+	return tCacheEntry.value, true
 }
 
 // Add stores value under key as the most-recently-used entry and reports whether an entry was evicted to stay within
@@ -54,8 +56,10 @@ func (c *lruChartCache) Add(key string, value []byte) (evicted bool) {
 	defer c.mu.Unlock()
 
 	if element, ok := c.items[key]; ok {
-		element.Value.(*cacheEntry).value = value
+		tCacheEntry, _ := element.Value.(*cacheEntry)
+		tCacheEntry.value = value
 		c.order.MoveToFront(element)
+
 		return false
 	}
 
@@ -77,5 +81,7 @@ func (c *lruChartCache) removeOldest() {
 	}
 
 	c.order.Remove(oldest)
-	delete(c.items, oldest.Value.(*cacheEntry).key)
+	tCacheEntry, _ := oldest.Value.(*cacheEntry)
+
+	delete(c.items, tCacheEntry.key)
 }
