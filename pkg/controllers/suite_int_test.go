@@ -125,7 +125,7 @@ var _ = ginkgo.BeforeSuite(func() {
 			yamlSerializer: yaml.NewSerializer(),
 			reader:         configMapRefReaderMock,
 		},
-		requeueHandler: NewComponentRequeueHandler(componentClientSet, recorderMock, namespace, defaultRequeueTime),
+		requeueHandler: NewComponentRequeueHandler(componentClientSet, recorderMock, namespace),
 		namespace:      namespace,
 		timeout:        defaultHelmClientTimeoutMins,
 		yamlSerializer: yaml.NewSerializer(),
