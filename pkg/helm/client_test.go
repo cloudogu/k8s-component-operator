@@ -262,7 +262,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 		}
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(chartSpec).Return(nil, "", assert.AnError)
+		mockHelmClient.EXPECT().GetChart(testCtx, chartSpec).Return(nil, "", assert.AnError)
 
 		sut := &Client{
 			helmClient:   mockHelmClient,
@@ -301,7 +301,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 		}
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(chartSpec).Return(helmChart, "myPath", nil)
+		mockHelmClient.EXPECT().GetChart(testCtx, chartSpec).Return(helmChart, "myPath", nil)
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(nil, assert.AnError)
 
 		sut := &Client{
@@ -340,7 +340,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 		}
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(chartSpec).Return(helmChart, "myPath", nil)
+		mockHelmClient.EXPECT().GetChart(testCtx, chartSpec).Return(helmChart, "myPath", nil)
 		var deployedReleases []*release.Release
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
 
@@ -387,7 +387,7 @@ func TestClient_SatisfiesDependencies(t *testing.T) {
 		}
 
 		mockHelmClient := NewMockHelmClient(t)
-		mockHelmClient.EXPECT().GetChart(chartSpec).Return(helmChart, "myPath", nil)
+		mockHelmClient.EXPECT().GetChart(testCtx, chartSpec).Return(helmChart, "myPath", nil)
 		deployedReleases := []*release.Release{createRelease("k8s-etcd", "3.2.1")}
 		mockHelmClient.EXPECT().ListDeployedReleases().Return(deployedReleases, nil)
 
