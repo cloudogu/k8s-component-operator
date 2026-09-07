@@ -29,11 +29,11 @@ const (
 	runtimeEnvironmentVariable = "RUNTIME"
 	// runtimeLocal is the name for the local-runtime on a developer-machine
 	runtimeLocal = "local"
-	// RequeueTimeInNanosecondsEnvironmentVariable is the name of the environment variable containing the configured requeueTime
-	RequeueTimeInNanosecondsEnvironmentVariable = "REQUEUE_TIME_IN_NANOSECONDS"
-	// MaxRequeueTimeInNanosecondsEnvironmentVariable is the name of the environment variable containing the configured
+	// BaseRequeueTimeInSecondsEnvironmentVariable is the name of the environment variable containing the configured initial requeueTime
+	BaseRequeueTimeInSecondsEnvironmentVariable = "BASE_REQUEUE_TIME_IN_SECONDS"
+	// MaxRequeueTimeInSecondsEnvironmentVariable is the name of the environment variable containing the configured
 	// maximum requeueTime, i.e. the cap for the exponential reconciliation backoff.
-	MaxRequeueTimeInNanosecondsEnvironmentVariable = "MAX_REQUEUE_TIME_IN_NANOSECONDS"
+	MaxRequeueTimeInSecondsEnvironmentVariable = "MAX_REQUEUE_TIME_IN_SECONDS"
 	// ChartCacheSizeEnvironmentVariable is the name of the environment variable containing the configured chart cache size.
 	ChartCacheSizeEnvironmentVariable = "CHART_CACHE_SIZE"
 	// helmRepositoryConfigMapName is the name
@@ -310,7 +310,7 @@ func readMinuteDurationEnv(env string, defaultValue time.Duration) time.Duration
 }
 
 func readReconcilerRequeueTime() (time.Duration, error) {
-	requeueTimeString, err := getEnvVar(RequeueTimeInNanosecondsEnvironmentVariable)
+	requeueTimeString, err := getEnvVar(BaseRequeueTimeInSecondsEnvironmentVariable)
 	if err != nil {
 		return defaultRequeueTime, newEnvVarError(envVarNamespace, err)
 	}
@@ -318,19 +318,20 @@ func readReconcilerRequeueTime() (time.Duration, error) {
 	if err != nil {
 		return defaultRequeueTime, err
 	}
-	return time.Duration(requeueTime), nil
+
+	return time.Duration(requeueTime) * time.Second, nil
 }
 
 func readMaxReconcilerRequeueTime() (time.Duration, error) {
-	maxRequeueTimeString, err := getEnvVar(MaxRequeueTimeInNanosecondsEnvironmentVariable)
+	maxRequeueTimeString, err := getEnvVar(MaxRequeueTimeInSecondsEnvironmentVariable)
 	if err != nil {
-		return defaultMaxRequeueTime, newEnvVarError(MaxRequeueTimeInNanosecondsEnvironmentVariable, err)
+		return defaultMaxRequeueTime, newEnvVarError(MaxRequeueTimeInSecondsEnvironmentVariable, err)
 	}
 	maxRequeueTime, err := strconv.ParseFloat(maxRequeueTimeString, 64)
 	if err != nil {
 		return defaultMaxRequeueTime, err
 	}
-	return time.Duration(maxRequeueTime), nil
+	return time.Duration(maxRequeueTime) * time.Second, nil
 }
 
 func newEnvVarError(envVar string, err error) error {

@@ -48,6 +48,12 @@ spec:
                   name: ces-proxy
                   key: url
                   optional: true
+            - name: BASE_REQUEUE_TIME_IN_SECONDS
+              value: "{{ .Values.manager.env.baseRequeueTimeInSeconds | default "3" }}"
+            - name: MaxRequeueTimeInSecondsEnvironmentVariable
+              value: "{{ .Values.manager.env.maxRequeueTimeInSeconds | default "180" }}"
+            - name: CHART_CACHE_SIZE
+              value: "{{ .Values.manager.env.chartCacheSize | default "50" }}"
           image: "{{ .Values.manager.image.registry }}/{{ .Values.manager.image.repository }}:{{ .Values.manager.image.tag }}"
           imagePullPolicy: {{ .Values.manager.imagePullPolicy | default "IfNotPresent"}}
           livenessProbe:

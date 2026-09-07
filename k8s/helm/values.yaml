@@ -13,6 +13,12 @@ manager:
     helmClientTimeoutMins: "15"
     rollbackReleaseTimeoutMins: "15"
     healthSyncIntervalMins: "2"
+    # baseRequeueTimeInSeconds is the base delay (floor) for the exponential reconciliation backoff
+    baseRequeueTimeInSeconds: "3"
+    # maxRequeueTimeInSeconds is the cap for the exponential reconciliation backoff
+    maxRequeueTimeInSeconds: "180"
+    # chartCacheSize is the maximum number of chart:version entries kept in the in-memory chart cache
+    chartCacheSize: "50"
   resourceLimits:
     memory: 105M
   resourceRequests:
