@@ -12,6 +12,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
@@ -420,6 +421,7 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 			if err != nil {
 				return nil, "", fmt.Errorf("failed to load cached chart %q: %w", cacheKey, err)
 			}
+			logrus.Debugf("Loaded chart %q from cache", spec.ChartName)
 			c.warnIfDeprecated(helmChart)
 			return helmChart, "", nil
 		}
