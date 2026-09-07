@@ -50,7 +50,7 @@ spec:
                   optional: true
             - name: BASE_REQUEUE_TIME_IN_SECONDS
               value: "{{ .Values.manager.env.baseRequeueTimeInSeconds | default "3" }}"
-            - name: MaxRequeueTimeInSecondsEnvironmentVariable
+            - name: MAX_REQUEUE_TIME_IN_SECONDS
               value: "{{ .Values.manager.env.maxRequeueTimeInSeconds | default "180" }}"
             - name: CHART_CACHE_SIZE
               value: "{{ .Values.manager.env.chartCacheSize | default "50" }}"
