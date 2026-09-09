@@ -9,7 +9,7 @@ require (
 	github.com/bombsimon/logrusr/v2 v2.0.1
 	github.com/cloudogu/cesapp-lib v0.18.2
 	github.com/cloudogu/k8s-apply-lib v0.5.0
-	github.com/cloudogu/k8s-component-lib v0.0.0-20260907202541-c05ac6122b95
+	github.com/cloudogu/k8s-component-lib v1.15.0
 	github.com/cloudogu/retry-lib v0.1.0
 	github.com/go-errors/errors v1.5.1
 	github.com/go-logr/logr v1.4.3

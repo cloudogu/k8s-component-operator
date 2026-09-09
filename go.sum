@@ -44,8 +44,8 @@ github.com/cloudogu/cesapp-lib v0.18.2 h1:S89A8WrDi51iYutCnMdIZ24lMrDmIBCbYUIHhs
 github.com/cloudogu/cesapp-lib v0.18.2/go.mod h1:8EIoGAI5WcwQH803FGjwF0I4sNPPcyTW8YPDtwdi+FM=
 github.com/cloudogu/k8s-apply-lib v0.5.0 h1:XeQKwTgT8FIozpqyPO/b09LAenPswBilmatw/+1L4fI=
 github.com/cloudogu/k8s-apply-lib v0.5.0/go.mod h1:jR/+7q47O5gb++4gVsmEElT8/EJoi+Msw2dVzArTPW0=
-github.com/cloudogu/k8s-component-lib v0.0.0-20260907202541-c05ac6122b95 h1:3aAJJuxr3fWe0D5E6AA/UyaZ3JvASvR74MoKKOGwckE=
-github.com/cloudogu/k8s-component-lib v0.0.0-20260907202541-c05ac6122b95/go.mod h1:DxOHPQu4g+HBD4p6bR21k/oGLdlnCjUgOzr9ONblTk8=
+github.com/cloudogu/k8s-component-lib v1.15.0 h1:xfwwnMdNPOcADBex0ZRTPF/JdWxHJyvlUrUeZamRISc=
+github.com/cloudogu/k8s-component-lib v1.15.0/go.mod h1:DxOHPQu4g+HBD4p6bR21k/oGLdlnCjUgOzr9ONblTk8=
 github.com/cloudogu/retry-lib v0.1.0 h1:gaAmtyjUqgHbxfCWMeUn0qnGbDH4TtZVSQkbZ1Nq6eI=
 github.com/cloudogu/retry-lib v0.1.0/go.mod h1:iG9y6zx8oJZT5ULtl9koZkYJLRsqam/2mTU+rgjxQ0g=
 github.com/coreos/go-systemd/v22 v22.7.0 h1:LAEzFkke61DFROc7zNLX/WA2i5J8gYqe0rSj9KI28KA=
