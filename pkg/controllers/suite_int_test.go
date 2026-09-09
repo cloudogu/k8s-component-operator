@@ -125,11 +125,13 @@ var _ = ginkgo.BeforeSuite(func() {
 			yamlSerializer: yaml.NewSerializer(),
 			reader:         configMapRefReaderMock,
 		},
-		requeueHandler: NewComponentRequeueHandler(componentClientSet, recorderMock, namespace),
-		namespace:      namespace,
-		timeout:        defaultHelmClientTimeoutMins,
-		yamlSerializer: yaml.NewSerializer(),
-		reader:         configMapRefReaderMock,
+		requeueHandler:  NewComponentRequeueHandler(componentClientSet, recorderMock, namespace),
+		namespace:       namespace,
+		timeout:         defaultHelmClientTimeoutMins,
+		yamlSerializer:  yaml.NewSerializer(),
+		reader:          configMapRefReaderMock,
+		baseRequeueTime: 3 * time.Second,
+		maxRequeueTime:  3 * time.Second,
 	}
 
 	err = reconciler.SetupWithManager(k8sManager)
