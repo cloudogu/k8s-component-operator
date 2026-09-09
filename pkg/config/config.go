@@ -319,6 +319,10 @@ func readReconcilerRequeueTime() (time.Duration, error) {
 		return defaultRequeueTime, err
 	}
 
+	if requeueTime <= 0 {
+		return defaultRequeueTime, fmt.Errorf("%s must be >0", BaseRequeueTimeInSecondsEnvironmentVariable)
+	}
+
 	return time.Duration(requeueTime) * time.Second, nil
 }
 
@@ -327,10 +331,16 @@ func readMaxReconcilerRequeueTime() (time.Duration, error) {
 	if err != nil {
 		return defaultMaxRequeueTime, newEnvVarError(MaxRequeueTimeInSecondsEnvironmentVariable, err)
 	}
+
 	maxRequeueTime, err := strconv.ParseFloat(maxRequeueTimeString, 64)
 	if err != nil {
 		return defaultMaxRequeueTime, err
 	}
+
+	if maxRequeueTime <= 0 {
+		return defaultMaxRequeueTime, fmt.Errorf("%s must be >0", MaxRequeueTimeInSecondsEnvironmentVariable)
+	}
+
 	return time.Duration(maxRequeueTime) * time.Second, nil
 }
 
