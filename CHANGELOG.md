@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Update the SonarQube project version during releases to reset the new-code baseline
+
 ## [v1.15.0] - 2026-09-10
 ### Changed
 - [#121] Implementation of an LRU cache for Helm charts to prevent peak loads in the Harbor registry
