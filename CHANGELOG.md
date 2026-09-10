@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.15.0] - 2026-09-10
+### Changed
+- [#121] Implementation of an LRU cache for Helm charts to prevent peak loads in the Harbor registry
+- [#121] Use exponential backoff with cap for reconciliation of components 
+- [#121] Update go version to 1.26.8 and dependencies
+
 ## [v1.14.1] - 2026-07-23
 ### Added
 - [#116] continue installing components when the component operator restarts while installing/upgrading

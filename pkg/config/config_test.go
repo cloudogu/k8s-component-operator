@@ -42,6 +42,38 @@ func TestNewOperatorConfig(t *testing.T) {
 		require.NotNil(t, operatorConfig)
 		assert.Equal(t, expectedNamespace, operatorConfig.Namespace)
 		assert.Equal(t, "0.1.0", operatorConfig.Version.Original())
+		assert.Equal(t, defaultChartCacheSize, operatorConfig.ChartCacheSize)
+	})
+	t.Run("Read chart cache size from env var", func(t *testing.T) {
+		// given
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "123")
+
+		// when
+		operatorConfig, err := NewOperatorConfig("0.1.0")
+
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, operatorConfig)
+		assert.Equal(t, 123, operatorConfig.ChartCacheSize)
+	})
+}
+
+func Test_readChartCacheSize(t *testing.T) {
+	t.Run("should use default when env var is not set", func(t *testing.T) {
+		_ = os.Unsetenv(ChartCacheSizeEnvironmentVariable)
+		assert.Equal(t, defaultChartCacheSize, readChartCacheSize())
+	})
+	t.Run("should use default when env var is not a number", func(t *testing.T) {
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "not-a-number")
+		assert.Equal(t, defaultChartCacheSize, readChartCacheSize())
+	})
+	t.Run("should use default when env var is not positive", func(t *testing.T) {
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "0")
+		assert.Equal(t, defaultChartCacheSize, readChartCacheSize())
+	})
+	t.Run("should read configured value", func(t *testing.T) {
+		t.Setenv(ChartCacheSizeEnvironmentVariable, "10")
+		assert.Equal(t, 10, readChartCacheSize())
 	})
 }
 
@@ -251,6 +283,144 @@ func TestHelmRepositoryData_URL(t *testing.T) {
 		Schema:   "oci",
 	}
 	assert.Equal(t, "oci://example.com", actual.URL())
+}
+
+func Test_readReconcilerRequeueTime(t *testing.T) {
+	tests := []struct {
+		name         string
+		setEnvVar    bool
+		envVarValue  string
+		want         time.Duration
+		wantErr      bool
+		wantErrMatch string
+	}{
+		{
+			name:         "should fail when env var is not set",
+			setEnvVar:    false,
+			want:         defaultRequeueTime,
+			wantErr:      true,
+			wantErrMatch: "environment variable " + BaseRequeueTimeInSecondsEnvironmentVariable + " must be set",
+		},
+		{
+			name:         "should fail when env var is not a number",
+			setEnvVar:    true,
+			envVarValue:  "not-a-number",
+			want:         defaultRequeueTime,
+			wantErr:      true,
+			wantErrMatch: "invalid syntax",
+		},
+		{
+			name:         "should fail when env var is zero",
+			setEnvVar:    true,
+			envVarValue:  "0",
+			want:         defaultRequeueTime,
+			wantErr:      true,
+			wantErrMatch: BaseRequeueTimeInSecondsEnvironmentVariable + " must be >0",
+		},
+		{
+			name:         "should fail when env var is negative",
+			setEnvVar:    true,
+			envVarValue:  "-5",
+			want:         defaultRequeueTime,
+			wantErr:      true,
+			wantErrMatch: BaseRequeueTimeInSecondsEnvironmentVariable + " must be >0",
+		},
+		{
+			name:        "should read configured positive value",
+			setEnvVar:   true,
+			envVarValue: "5",
+			want:        5 * time.Second,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setEnvVar {
+				t.Setenv(BaseRequeueTimeInSecondsEnvironmentVariable, tt.envVarValue)
+			} else {
+				_ = os.Unsetenv(BaseRequeueTimeInSecondsEnvironmentVariable)
+			}
+
+			result, err := readReconcilerRequeueTime()
+
+			assert.Equal(t, tt.want, result)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.wantErrMatch)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_readMaxReconcilerRequeueTime(t *testing.T) {
+	tests := []struct {
+		name         string
+		setEnvVar    bool
+		envVarValue  string
+		want         time.Duration
+		wantErr      bool
+		wantErrMatch string
+	}{
+		{
+			name:         "should fail when env var is not set",
+			setEnvVar:    false,
+			want:         defaultMaxRequeueTime,
+			wantErr:      true,
+			wantErrMatch: "environment variable " + MaxRequeueTimeInSecondsEnvironmentVariable + " must be set",
+		},
+		{
+			name:         "should fail when env var is not a number",
+			setEnvVar:    true,
+			envVarValue:  "not-a-number",
+			want:         defaultMaxRequeueTime,
+			wantErr:      true,
+			wantErrMatch: "invalid syntax",
+		},
+		{
+			name:         "should fail when env var is zero",
+			setEnvVar:    true,
+			envVarValue:  "0",
+			want:         defaultMaxRequeueTime,
+			wantErr:      true,
+			wantErrMatch: MaxRequeueTimeInSecondsEnvironmentVariable + " must be >0",
+		},
+		{
+			name:         "should fail when env var is negative",
+			setEnvVar:    true,
+			envVarValue:  "-5",
+			want:         defaultMaxRequeueTime,
+			wantErr:      true,
+			wantErrMatch: MaxRequeueTimeInSecondsEnvironmentVariable + " must be >0",
+		},
+		{
+			name:        "should read configured positive value",
+			setEnvVar:   true,
+			envVarValue: "10",
+			want:        10 * time.Second,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setEnvVar {
+				t.Setenv(MaxRequeueTimeInSecondsEnvironmentVariable, tt.envVarValue)
+			} else {
+				_ = os.Unsetenv(MaxRequeueTimeInSecondsEnvironmentVariable)
+			}
+
+			result, err := readMaxReconcilerRequeueTime()
+
+			assert.Equal(t, tt.want, result)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, tt.wantErrMatch)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 func Test_readMinuteDurationEnv(t *testing.T) {

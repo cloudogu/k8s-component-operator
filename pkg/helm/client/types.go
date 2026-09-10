@@ -42,6 +42,17 @@ type Options struct {
 	PlainHttp bool
 	// InsecureTls allows invalid or selfsigned certificates to be used. This option may be overridden by PlainHttp which forces HTTP traffic.
 	InsecureTls bool
+	// ChartCache is an optional cache for chart archives keyed by "chartName:version". If nil, chart caching is disabled.
+	ChartCache ChartCache
+}
+
+// ChartCache caches raw chart archive bytes keyed by "chartName:version" to avoid repeated registry pulls of the same
+// chart version. Implementations must be safe for concurrent use.
+type ChartCache interface {
+	// Get returns the cached chart archive bytes for the given key and whether the key was present.
+	Get(key string) (value []byte, ok bool)
+	// Add stores the chart archive bytes for the given key and reports whether an entry was evicted.
+	Add(key string, value []byte) (evicted bool)
 }
 
 // RESTClientOption is a function that can be used to set the RESTClientOptions of a HelmClient.
@@ -64,6 +75,8 @@ type HelmClient struct {
 	actions  actionProvider
 	output   io.Writer
 	DebugLog action.DebugLog
+	// chartCache caches raw chart archive bytes keyed by "chartName:version". If nil, chart caching is disabled.
+	chartCache ChartCache
 }
 
 type HelmTemplateOptions struct {

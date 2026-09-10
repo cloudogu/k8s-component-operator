@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 
@@ -1105,7 +1107,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -1131,7 +1133,7 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.Error(t, err)
@@ -1160,13 +1162,119 @@ func TestHelmClient_GetChart(t *testing.T) {
 		}
 
 		// when
-		actualChart, chartPath, err := sut.GetChart(spec)
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
 
 		// then
 		require.NoError(t, err)
 		assert.NotEmpty(t, actualChart)
 		assert.Equal(t, "testdata/deprecated-chart", chartPath)
 	})
+	t.Run("should serve chart from cache without pulling from registry on cache hit", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			Version:     "1.0.0",
+			ReleaseName: "test-release",
+		}
+		_, archiveBytes := mustPackageChart(t, "testdata/test-chart")
+
+		cacheMock := NewMockChartCache(t)
+		cacheMock.EXPECT().Get("test-chart:1.0.0").Return(archiveBytes, true)
+
+		// no action provider is set: a cache hit must not touch the registry via locateChart
+		sut := &HelmClient{
+			chartCache: cacheMock,
+		}
+
+		// when
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
+
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, actualChart)
+		assert.Equal(t, "test-chart", actualChart.Metadata.Name)
+		assert.Empty(t, chartPath)
+	})
+	t.Run("should pull and cache chart archive on cache miss", func(t *testing.T) {
+		// given
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			Version:     "1.0.0",
+			ReleaseName: "test-release",
+		}
+		archivePath, archiveBytes := mustPackageChart(t, "testdata/test-chart")
+
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", "1.0.0", (*cli.EnvSettings)(nil)).Return(archivePath, nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		cacheMock := NewMockChartCache(t)
+		cacheMock.EXPECT().Get("test-chart:1.0.0").Return(nil, false)
+		cacheMock.EXPECT().Add("test-chart:1.0.0", archiveBytes).Return(false)
+
+		sut := &HelmClient{
+			actions:    providerMock,
+			chartCache: cacheMock,
+		}
+
+		// when
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
+
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, actualChart)
+		assert.Equal(t, "test-chart", actualChart.Metadata.Name)
+		assert.Equal(t, archivePath, chartPath)
+	})
+	t.Run("should still return chart when caching the archive fails", func(t *testing.T) {
+		// given a located chart path that is a directory, so reading the archive for caching fails
+		spec := &ChartSpec{
+			ChartName:   "test-chart",
+			Version:     "1.0.0",
+			ReleaseName: "test-release",
+		}
+
+		locateMock := newMockLocateChartAction(t)
+		locateMock.EXPECT().locateChart("test-chart", "1.0.0", (*cli.EnvSettings)(nil)).Return("testdata/test-chart", nil)
+		providerMock := newMockActionProvider(t)
+		providerMock.EXPECT().newLocateChart().Return(locateMock)
+
+		cacheMock := NewMockChartCache(t)
+		cacheMock.EXPECT().Get("test-chart:1.0.0").Return(nil, false)
+		// Add must not be called because reading the archive from a directory path fails
+
+		sut := &HelmClient{
+			actions:    providerMock,
+			chartCache: cacheMock,
+			DebugLog:   func(format string, v ...interface{}) {},
+		}
+
+		// when
+		actualChart, chartPath, err := sut.GetChart(testCtx, spec)
+
+		// then
+		require.NoError(t, err)
+		require.NotNil(t, actualChart)
+		assert.Equal(t, "testdata/test-chart", chartPath)
+	})
+}
+
+// mustPackageChart loads the chart at srcDir and packages it into a .tgz archive in a temp directory, returning the
+// archive path and its raw bytes.
+func mustPackageChart(t *testing.T, srcDir string) (archivePath string, archiveBytes []byte) {
+	t.Helper()
+
+	helmChart, err := loader.Load(srcDir)
+	require.NoError(t, err)
+
+	archivePath, err = chartutil.Save(helmChart, t.TempDir())
+	require.NoError(t, err)
+
+	archiveBytes, err = os.ReadFile(archivePath)
+	require.NoError(t, err)
+
+	return archivePath, archiveBytes
 }
 
 func Test_getProxyTransportIfConfigured(t *testing.T) {
