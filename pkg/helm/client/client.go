@@ -521,6 +521,7 @@ func mergeUpgradeOptions(chartSpec *ChartSpec, upgradeOptions *action.Upgrade) {
 	upgradeOptions.Atomic = chartSpec.Atomic
 	upgradeOptions.CleanupOnFail = chartSpec.CleanupOnFail
 	upgradeOptions.PostRenderer = chartSpec.PostRenderer
+	//upgradeOptions.Force = true
 }
 
 // mergeUninstallReleaseOptions merges values of the provided chart to helm uninstall options used by the client.

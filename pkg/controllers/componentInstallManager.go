@@ -110,7 +110,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	case err != nil:
 		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
 	// mark pending release as failed and reinstall
-	case release.Info.Status.IsPending():
+	case release.Info.Status.IsPending(), release.Info.Status == helmRelease.StatusUninstalling:
 		err := handlePendingRelease(logger, component, helmCtx, cim.helmClient, cim.timeout)
 		if err != nil {
 			return &genericRequeueableError{"failed to handle pending helm release for component " + component.Spec.Name, err}
