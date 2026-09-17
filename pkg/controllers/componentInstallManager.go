@@ -110,10 +110,19 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 	case err != nil:
 		return &genericRequeueableError{"failed to get release for component " + component.Spec.Name, err}
 	// mark pending release as failed and reinstall
-	case release.Info.Status.IsPending(), release.Info.Status == helmRelease.StatusUninstalling:
+	case release.Info.Status.IsPending():
 		err := handlePendingRelease(logger, component, helmCtx, cim.helmClient, cim.timeout)
 		if err != nil {
 			return &genericRequeueableError{"failed to handle pending helm release for component " + component.Spec.Name, err}
+		}
+		if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
+			return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
+		}
+	// mark uninstalling release as failed and reinstall
+	case release.Info.Status == helmRelease.StatusUninstalling:
+		err := handleUninstallingRelease(logger, component, helmCtx, cim.helmClient, cim.timeout)
+		if err != nil {
+			return &genericRequeueableError{"failed to handle uninstalling helm release for component " + component.Spec.Name, err}
 		}
 		if err := cim.helmClient.InstallOrUpgrade(helmCtx, chartSpec); err != nil {
 			return &genericRequeueableError{"failed to install chart for component " + component.Spec.Name, err}
