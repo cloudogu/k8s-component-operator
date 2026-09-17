@@ -29,13 +29,25 @@ const (
 	runtimeEnvironmentVariable = "RUNTIME"
 	// runtimeLocal is the name for the local-runtime on a developer-machine
 	runtimeLocal = "local"
-	// RequeueTimeInNanosecondsEnvironmentVariable is the name of the environment variable containing the configured requeueTime
-	RequeueTimeInNanosecondsEnvironmentVariable = "REQUEUE_TIME_IN_NANOSECONDS"
+	// BaseRequeueTimeInSecondsEnvironmentVariable is the name of the environment variable containing the configured initial requeueTime
+	BaseRequeueTimeInSecondsEnvironmentVariable = "BASE_REQUEUE_TIME_IN_SECONDS"
+	// MaxRequeueTimeInSecondsEnvironmentVariable is the name of the environment variable containing the configured
+	// maximum requeueTime, i.e. the cap for the exponential reconciliation backoff.
+	MaxRequeueTimeInSecondsEnvironmentVariable = "MAX_REQUEUE_TIME_IN_SECONDS"
+	// ChartCacheSizeEnvironmentVariable is the name of the environment variable containing the configured chart cache size.
+	ChartCacheSizeEnvironmentVariable = "CHART_CACHE_SIZE"
 	// helmRepositoryConfigMapName is the name
 	helmRepositoryConfigMapName = "component-operator-helm-repository"
 )
 
+// defaultRequeueTime is the base delay (floor) for the exponential reconciliation backoff.
 const defaultRequeueTime = time.Second * 3
+
+// defaultMaxRequeueTime is the cap for the exponential reconciliation backoff.
+const defaultMaxRequeueTime = time.Minute * 3
+
+// defaultChartCacheSize is the number of distinct chart:version entries kept in the in-memory chart cache.
+const defaultChartCacheSize = 50
 
 var (
 	Stage               = StageProduction
@@ -112,7 +124,12 @@ type OperatorConfig struct {
 	HelmRepositoryData     *HelmRepositoryData `json:"helm_repository"`
 	HelmClientTimeoutMins  time.Duration
 	HealthSyncIntervalMins time.Duration
-	RequeueTime            time.Duration
+	// RequeueTime is the base delay (floor) for the exponential reconciliation backoff.
+	RequeueTime time.Duration
+	// MaxRequeueTime is the cap for the exponential reconciliation backoff.
+	MaxRequeueTime time.Duration
+	// ChartCacheSize is the maximum number of chart:version entries kept in the in-memory chart cache.
+	ChartCacheSize int
 }
 
 // NewOperatorConfig creates a new operator config by reading values from the environment variables
@@ -144,13 +161,42 @@ func NewOperatorConfig(version string) (*OperatorConfig, error) {
 		log.Error(err, fmt.Sprintf("failed to read requeue time. Using default requeue time %s", defaultRequeueTime))
 	}
 
+	maxRequeueTime, err := readMaxReconcilerRequeueTime()
+	if err != nil {
+		log.Error(err, fmt.Sprintf("failed to read max requeue time. Using default max requeue time %s", defaultMaxRequeueTime))
+	}
+
 	return &OperatorConfig{
 		Namespace:              namespace,
 		Version:                parsedVersion,
 		HelmClientTimeoutMins:  readMinuteDurationEnv(envHelmClientTimeoutMins, defaultHelmClientTimeoutMins),
 		HealthSyncIntervalMins: readMinuteDurationEnv(envHealthSyncIntervalMins, defaultHealthSyncIntervalMins),
 		RequeueTime:            requeueTime,
+		MaxRequeueTime:         maxRequeueTime,
+		ChartCacheSize:         readChartCacheSize(),
 	}, nil
+}
+
+// readChartCacheSize reads the configured chart cache size from the environment, falling back to defaultChartCacheSize.
+func readChartCacheSize() int {
+	valueString, err := getEnvVar(ChartCacheSizeEnvironmentVariable)
+	if err != nil {
+		logrus.Warningf("failed to read %s environment variable, using default value %d", ChartCacheSizeEnvironmentVariable, defaultChartCacheSize)
+		return defaultChartCacheSize
+	}
+
+	valueParsed, err := strconv.Atoi(valueString)
+	if err != nil {
+		logrus.Warningf("failed to parse %s environment variable, using default value %d", ChartCacheSizeEnvironmentVariable, defaultChartCacheSize)
+		return defaultChartCacheSize
+	}
+
+	if valueParsed <= 0 {
+		logrus.Warningf("parsed value (%d) of %s is smaller than 1, using default value %d", valueParsed, ChartCacheSizeEnvironmentVariable, defaultChartCacheSize)
+		return defaultChartCacheSize
+	}
+
+	return valueParsed
 }
 
 // GetHelmRepositoryData reads the repository data either from file or from a secret in the cluster.
@@ -264,7 +310,7 @@ func readMinuteDurationEnv(env string, defaultValue time.Duration) time.Duration
 }
 
 func readReconcilerRequeueTime() (time.Duration, error) {
-	requeueTimeString, err := getEnvVar(RequeueTimeInNanosecondsEnvironmentVariable)
+	requeueTimeString, err := getEnvVar(BaseRequeueTimeInSecondsEnvironmentVariable)
 	if err != nil {
 		return defaultRequeueTime, newEnvVarError(envVarNamespace, err)
 	}
@@ -272,7 +318,30 @@ func readReconcilerRequeueTime() (time.Duration, error) {
 	if err != nil {
 		return defaultRequeueTime, err
 	}
-	return time.Duration(requeueTime), nil
+
+	if requeueTime <= 0 {
+		return defaultRequeueTime, fmt.Errorf("%s must be >0", BaseRequeueTimeInSecondsEnvironmentVariable)
+	}
+
+	return time.Duration(requeueTime) * time.Second, nil
+}
+
+func readMaxReconcilerRequeueTime() (time.Duration, error) {
+	maxRequeueTimeString, err := getEnvVar(MaxRequeueTimeInSecondsEnvironmentVariable)
+	if err != nil {
+		return defaultMaxRequeueTime, newEnvVarError(MaxRequeueTimeInSecondsEnvironmentVariable, err)
+	}
+
+	maxRequeueTime, err := strconv.ParseFloat(maxRequeueTimeString, 64)
+	if err != nil {
+		return defaultMaxRequeueTime, err
+	}
+
+	if maxRequeueTime <= 0 {
+		return defaultMaxRequeueTime, fmt.Errorf("%s must be >0", MaxRequeueTimeInSecondsEnvironmentVariable)
+	}
+
+	return time.Duration(maxRequeueTime) * time.Second, nil
 }
 
 func newEnvVarError(envVar string, err error) error {

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -89,6 +91,7 @@ func newClient(options *Options, clientGetter genericclioptions.RESTClientGetter
 		actions:     actionProvider,
 		DebugLog:    debugLog,
 		output:      options.Output,
+		chartCache:  options.ChartCache,
 	}, nil
 }
 
@@ -308,7 +311,7 @@ func (c *HelmClient) install(ctx context.Context, spec *ChartSpec) (*release.Rel
 		client.Version = anyVersionConstraint
 	}
 
-	helmChart, _, err := c.GetChart(spec)
+	helmChart, _, err := c.GetChart(ctx, spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chart for release %q: %w", spec.ReleaseName, err)
 	}
@@ -348,7 +351,7 @@ func (c *HelmClient) upgrade(ctx context.Context, spec *ChartSpec) (*release.Rel
 		client.Version = anyVersionConstraint
 	}
 
-	helmChart, _, err := c.GetChart(spec)
+	helmChart, _, err := c.GetChart(ctx, spec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chart for release %q: %w", spec.ReleaseName, err)
 	}
@@ -400,12 +403,33 @@ func (c *HelmClient) uninstallReleaseByName(name string) error {
 }
 
 // GetChart returns a chart matching the provided chart name and options.
-func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
-	locateAction := c.actions.newLocateChart()
+//
+// If a chart cache is configured, the chart archive is cached by "chartName:version" so that repeated calls for the
+// same version (e.g. the dependency check and the install within a single reconcile, or retries across reconciles) are
+// served from memory instead of pulling the chart from the registry again. A fresh chart object is loaded on every
+// call so that callers never share a mutable chart that Helm mutates in place during install/upgrade.
+func (c *HelmClient) GetChart(ctx context.Context, spec *ChartSpec) (*chart.Chart, string, error) {
+	logger := log.FromContext(ctx)
 
 	if spec.Version == "" {
 		spec.Version = anyVersionConstraint
 	}
+
+	cacheKey := fmt.Sprintf("%s:%s", spec.ChartName, spec.Version)
+
+	if c.chartCache != nil {
+		if cachedArchive, ok := c.chartCache.Get(cacheKey); ok {
+			helmChart, err := loader.LoadArchive(bytes.NewReader(cachedArchive))
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to load cached chart %q: %w", cacheKey, err)
+			}
+			logger.Info("Loaded chart from cache", "chartName", spec.ChartName)
+			c.warnIfDeprecated(helmChart)
+			return helmChart, "", nil
+		}
+	}
+
+	locateAction := c.actions.newLocateChart()
 
 	chartPath, err := locateAction.locateChart(spec.ChartName, spec.Version, c.Settings)
 	if err != nil {
@@ -417,11 +441,35 @@ func (c *HelmClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 		return nil, "", fmt.Errorf("failed to load chart %q with version %q from path %q: %w", spec.ChartName, spec.Version, chartPath, err)
 	}
 
+	logger.Info("Loaded chart", "chartName", spec.ChartName, "chartPath", chartPath)
+
+	c.cacheChartArchive(cacheKey, chartPath)
+	c.warnIfDeprecated(helmChart)
+
+	return helmChart, chartPath, nil
+}
+
+// cacheChartArchive stores the freshly downloaded chart archive at chartPath under cacheKey, if a cache is configured.
+// Caching failures are non-fatal: the chart has already been loaded successfully, so a failed cache write only means the
+// next call pulls the chart again.
+func (c *HelmClient) cacheChartArchive(cacheKey, chartPath string) {
+	if c.chartCache == nil {
+		return
+	}
+
+	archive, err := os.ReadFile(chartPath)
+	if err != nil {
+		c.DebugLog("failed to read chart archive %q for caching: %s", chartPath, err)
+		return
+	}
+
+	c.chartCache.Add(cacheKey, archive)
+}
+
+func (c *HelmClient) warnIfDeprecated(helmChart *chart.Chart) {
 	if helmChart.Metadata.Deprecated {
 		c.DebugLog("WARNING: This chart (%q) is deprecated", helmChart.Metadata.Name)
 	}
-
-	return helmChart, chartPath, err
 }
 
 // chartExists checks whether a chart is already installed

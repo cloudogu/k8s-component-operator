@@ -3,9 +3,6 @@ package controllers
 import (
 	"context"
 	"testing"
-	"time"
-
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -58,13 +55,15 @@ func Test_componentRequeueHandler_Handle(t *testing.T) {
 		clientSetMock := newMockComponentEcosystemInterface(t)
 		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
 
-		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock}
+		recorderMock := newMockEventRecorder(t)
+		recorderMock.EXPECT().Eventf(component, "Warning", "Requeue", "Failed to requeue component %s.", component.GetName())
 
-		requeueErrMock := newMockRequeuableError(t)
-		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything, mock.Anything).Return(30 * time.Second)
+		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock, recorder: recorderMock}
+
+		requeueErr := &genericRequeueableError{"failed to upgrade", assert.AnError}
 
 		// when
-		actual, err := sut.Handle(testCtx, "", component, requeueErrMock, "upgrading")
+		actual, err := sut.Handle(testCtx, "", component, requeueErr, "upgrading")
 
 		// then
 		require.Error(t, err)
@@ -73,7 +72,7 @@ func Test_componentRequeueHandler_Handle(t *testing.T) {
 
 		assert.Equal(t, reconcile.Result{Requeue: false, RequeueAfter: 0}, actual)
 	})
-	t.Run("should succeed", func(t *testing.T) {
+	t.Run("should return the original error so controller-runtime requeues with backoff", func(t *testing.T) {
 		// given
 		component := createComponent("k8s-dogu-operator", "official", "1.2.3")
 
@@ -86,21 +85,20 @@ func Test_componentRequeueHandler_Handle(t *testing.T) {
 		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
 
 		recorderMock := newMockEventRecorder(t)
-		recorderMock.EXPECT().Eventf(component, "Normal", "Requeue", "Falling back to component status %s: Trying again in %s.", "upgrading", "1s")
+		recorderMock.EXPECT().Eventf(component, "Normal", "Requeue", "Requeueing component %s with backoff.", component.GetName())
 
 		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock, recorder: recorderMock}
 
-		requeueErrMock := newMockRequeuableError(t)
-		requeueErrMock.EXPECT().GetRequeueTime(mock.Anything, mock.Anything).Return(time.Second)
-		requeueErrMock.EXPECT().Error().Return("my error")
+		requeueErr := &genericRequeueableError{"my error", assert.AnError}
 
 		// when
-		actual, err := sut.Handle(testCtx, "", component, requeueErrMock, "upgrading")
+		actual, err := sut.Handle(testCtx, "", component, requeueErr, "upgrading")
 
 		// then
-		require.NoError(t, err)
-
-		assert.Equal(t, reconcile.Result{Requeue: true, RequeueAfter: 1000000000}, actual)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, requeueErr)
+		assert.Equal(t, "upgrading", component.Status.Status)
+		assert.Equal(t, reconcile.Result{Requeue: false, RequeueAfter: 0}, actual)
 	})
 }
 
@@ -115,31 +113,4 @@ func createComponent(name, namespace, version string) *v1.Component {
 			Version:   version,
 		},
 	}
-}
-
-func Test_componentRequeueHandler_noLongerHandleRequeueing(t *testing.T) {
-	t.Run("reset requeue time to avoid further requeueing", func(t *testing.T) {
-		// given
-		finishedComponent := &v1.Component{Status: v1.ComponentStatus{
-			Status:           "installed",
-			RequeueTimeNanos: 3000}}
-
-		componentInterfaceMock := newMockComponentInterface(t)
-		componentInterfaceMock.EXPECT().Get(testCtx, finishedComponent.Name, mock.Anything).Return(finishedComponent, nil)
-		componentInterfaceMock.EXPECT().UpdateStatus(testCtx, finishedComponent, metav1.UpdateOptions{}).Return(finishedComponent, nil)
-		componentClientGetterMock := newMockComponentV1Alpha1Interface(t)
-		componentClientGetterMock.EXPECT().Components(testNamespace).Return(componentInterfaceMock)
-		clientSetMock := newMockComponentEcosystemInterface(t)
-		clientSetMock.EXPECT().ComponentV1Alpha1().Return(componentClientGetterMock)
-
-		sut := &componentRequeueHandler{namespace: testNamespace, clientSet: clientSetMock}
-
-		// when
-		actual, err := sut.noLongerHandleRequeueing(testCtx, finishedComponent)
-
-		// then
-		require.NoError(t, err)
-		assert.Equal(t, ctrl.Result{}, actual)
-		assert.Equal(t, time.Duration(0), finishedComponent.Status.RequeueTimeNanos)
-	})
 }

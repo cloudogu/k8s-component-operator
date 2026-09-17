@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.26.0 AS builder
+FROM golang:1.26.8 AS builder
 
 ENV GOPRIVATE=github.com/cloudogu/cesapp/v5
 
@@ -35,7 +35,7 @@ RUN make compile-generic
 FROM gcr.io/distroless/static:nonroot
 LABEL maintainer="hello@cloudogu.com" \
       NAME="k8s-component-operator" \
-      VERSION="1.14.1"
+      VERSION="1.15.0"
 
 WORKDIR /
 COPY --from=builder /workspace/target/k8s-component-operator .

@@ -25,7 +25,7 @@ type Client interface {
 	GetChartSpecValues(spec *ChartSpec) (map[string]interface{}, error)
 	UninstallRelease(spec *ChartSpec) error
 	UninstallReleaseByName(name string) error
-	GetChart(spec *ChartSpec) (*chart.Chart, string, error)
+	GetChart(ctx context.Context, spec *ChartSpec) (*chart.Chart, string, error)
 	TagResolver
 	MarkReleaseAsFailed(name string, reason string) error
 }

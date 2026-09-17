@@ -25,6 +25,7 @@ import (
 
 const testNamespace = "testtestNamespace"
 const testRequeueTime = time.Second
+const testMaxRequeueTime = 3 * time.Minute
 
 func TestNewComponentReconciler(t *testing.T) {
 	// given
@@ -39,7 +40,7 @@ func TestNewComponentReconciler(t *testing.T) {
 	mockRecorder := newMockEventRecorder(t)
 
 	// when
-	manager := NewComponentReconciler(clientSetMock, newHelmClientFunc, mockRecorder, testNamespace, defaultHelmClientTimeoutMins, yaml.NewSerializer(), configMapRefReaderMock, testRequeueTime)
+	manager := NewComponentReconciler(clientSetMock, newHelmClientFunc, mockRecorder, testNamespace, defaultHelmClientTimeoutMins, yaml.NewSerializer(), configMapRefReaderMock, testRequeueTime, testMaxRequeueTime)
 
 	// then
 	require.NotNil(t, manager)
@@ -437,7 +438,6 @@ func Test_componentReconciler_Reconcile(t *testing.T) {
 
 		mockRecorder := newMockEventRecorder(t)
 		mockRecorder.EXPECT().Event(component, "Warning", "Deinstallation", "Deinstallation failed. Reason: assert.AnError general error for testing")
-		mockRecorder.EXPECT().Eventf(component, "Warning", "Requeue", "Failed to requeue the %s.", "deinstallation").Return()
 
 		manager := NewMockComponentManager(t)
 		manager.EXPECT().Delete(testCtx, component).Return(assert.AnError)

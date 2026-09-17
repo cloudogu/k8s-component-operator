@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	"github.com/cloudogu/k8s-component-operator/pkg/health"
 	"helm.sh/helm/v3/pkg/action"
@@ -100,13 +99,6 @@ type componentEcosystemInterface interface {
 
 type componentInterface interface {
 	componentClient.ComponentInterface
-}
-
-// requeuableError indicates that the current error requires the operator to requeue the component.
-type requeuableError interface {
-	error
-	// GetRequeueTime returns the time to wait before the next reconciliation.
-	GetRequeueTime(requeueTimeNanos time.Duration, defaultRequeueTimeNanos time.Duration) time.Duration
 }
 
 //nolint:unused

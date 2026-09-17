@@ -26,9 +26,9 @@ func (_m *MockClient) EXPECT() *MockClient_Expecter {
 	return &MockClient_Expecter{mock: &_m.Mock}
 }
 
-// GetChart provides a mock function with given fields: spec
-func (_m *MockClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
-	ret := _m.Called(spec)
+// GetChart provides a mock function with given fields: ctx, spec
+func (_m *MockClient) GetChart(ctx context.Context, spec *ChartSpec) (*chart.Chart, string, error) {
+	ret := _m.Called(ctx, spec)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetChart")
@@ -37,25 +37,25 @@ func (_m *MockClient) GetChart(spec *ChartSpec) (*chart.Chart, string, error) {
 	var r0 *chart.Chart
 	var r1 string
 	var r2 error
-	if rf, ok := ret.Get(0).(func(*ChartSpec) (*chart.Chart, string, error)); ok {
-		return rf(spec)
+	if rf, ok := ret.Get(0).(func(context.Context, *ChartSpec) (*chart.Chart, string, error)); ok {
+		return rf(ctx, spec)
 	}
-	if rf, ok := ret.Get(0).(func(*ChartSpec) *chart.Chart); ok {
-		r0 = rf(spec)
+	if rf, ok := ret.Get(0).(func(context.Context, *ChartSpec) *chart.Chart); ok {
+		r0 = rf(ctx, spec)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*chart.Chart)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(*ChartSpec) string); ok {
-		r1 = rf(spec)
+	if rf, ok := ret.Get(1).(func(context.Context, *ChartSpec) string); ok {
+		r1 = rf(ctx, spec)
 	} else {
 		r1 = ret.Get(1).(string)
 	}
 
-	if rf, ok := ret.Get(2).(func(*ChartSpec) error); ok {
-		r2 = rf(spec)
+	if rf, ok := ret.Get(2).(func(context.Context, *ChartSpec) error); ok {
+		r2 = rf(ctx, spec)
 	} else {
 		r2 = ret.Error(2)
 	}
@@ -69,14 +69,15 @@ type MockClient_GetChart_Call struct {
 }
 
 // GetChart is a helper method to define mock.On call
+//   - ctx context.Context
 //   - spec *ChartSpec
-func (_e *MockClient_Expecter) GetChart(spec interface{}) *MockClient_GetChart_Call {
-	return &MockClient_GetChart_Call{Call: _e.mock.On("GetChart", spec)}
+func (_e *MockClient_Expecter) GetChart(ctx interface{}, spec interface{}) *MockClient_GetChart_Call {
+	return &MockClient_GetChart_Call{Call: _e.mock.On("GetChart", ctx, spec)}
 }
 
-func (_c *MockClient_GetChart_Call) Run(run func(spec *ChartSpec)) *MockClient_GetChart_Call {
+func (_c *MockClient_GetChart_Call) Run(run func(ctx context.Context, spec *ChartSpec)) *MockClient_GetChart_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*ChartSpec))
+		run(args[0].(context.Context), args[1].(*ChartSpec))
 	})
 	return _c
 }
@@ -86,7 +87,7 @@ func (_c *MockClient_GetChart_Call) Return(_a0 *chart.Chart, _a1 string, _a2 err
 	return _c
 }
 
-func (_c *MockClient_GetChart_Call) RunAndReturn(run func(*ChartSpec) (*chart.Chart, string, error)) *MockClient_GetChart_Call {
+func (_c *MockClient_GetChart_Call) RunAndReturn(run func(context.Context, *ChartSpec) (*chart.Chart, string, error)) *MockClient_GetChart_Call {
 	_c.Call.Return(run)
 	return _c
 }

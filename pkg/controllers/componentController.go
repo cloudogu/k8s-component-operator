@@ -21,6 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"k8s.io/client-go/util/workqueue"
 )
 
 type operation string
@@ -76,10 +78,14 @@ type ComponentReconciler struct {
 	yamlSerializer            yaml.Serializer
 	reader                    configMapRefReader
 	configMapInterface        configMapInterface
+	// baseRequeueTime is the base delay (floor) for the exponential reconciliation backoff.
+	baseRequeueTime time.Duration
+	// maxRequeueTime is the cap for the exponential reconciliation backoff.
+	maxRequeueTime time.Duration
 }
 
-func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient newHelmClientFunc, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration) *ComponentReconciler {
-	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace, requeueTime)
+func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient newHelmClientFunc, recorder record.EventRecorder, namespace string, timeout time.Duration, yamlSerializer yaml.Serializer, reader configMapRefReader, requeueTime time.Duration, maxRequeueTime time.Duration) *ComponentReconciler {
+	componentRequeueHandler := NewComponentRequeueHandler(clientSet, recorder, namespace)
 
 	return &ComponentReconciler{
 		clientSet: clientSet,
@@ -103,6 +109,8 @@ func NewComponentReconciler(clientSet componentEcosystemInterface, newHelmClient
 		reader:             reader,
 		timeout:            timeout,
 		configMapInterface: clientSet.CoreV1().ConfigMaps(namespace),
+		baseRequeueTime:    requeueTime,
+		maxRequeueTime:     maxRequeueTime,
 	}
 }
 
@@ -205,40 +213,25 @@ func (r *ComponentReconciler) performOperation(
 	// on self-upgrade of the component-operator this event might not get send, because the operator is already shutting down
 	r.recorder.Event(component, eventType, eventReason, message)
 
-	result, handleErr := r.requeueHandler.Handle(ctx, contextMessageOnError, component, operationError, requeueStatus)
-	if handleErr != nil {
-		r.recorder.Eventf(component, corev1.EventTypeWarning, RequeueEventReason,
-			"Failed to requeue the %s.", strings.ToLower(eventReason))
-		return requeueWithError(fmt.Errorf("failed to handle requeue: %w", handleErr))
-	}
-
-	return requeueOrFinishOperation(result)
+	// Handle returns the original error for requeueable failures so controller-runtime re-enqueues the
+	// request through the workqueue rate limiter (exponential backoff). A nil error finishes the operation.
+	return r.requeueHandler.Handle(ctx, contextMessageOnError, component, operationError, requeueStatus)
 }
 
 // requeueWithError is a syntax sugar function to express that every non-nil error will result in a requeue
-// operation.
+// operation. Requeueable errors are re-enqueued by controller-runtime through the workqueue rate limiter
+// (exponential backoff).
 //
-// Use requeueOrFinishOperation() if the reconciler should requeue the operation because of the result instead of an
-// error.
 // Use finishOperation() if the reconciler should not requeue the operation.
 func requeueWithError(err error) (ctrl.Result, error) {
 	return ctrl.Result{}, err
-}
-
-// requeueOrFinishOperation is a syntax sugar function to express that the there is no error to handle but the result
-// controls whether the current operation should be finished or requeued.
-//
-// Use requeueWithError() if the reconciler should requeue the operation because of a non-nil error.
-// Use finishOperation() if the reconciler should not requeue the operation.
-func requeueOrFinishOperation(result ctrl.Result) (ctrl.Result, error) {
-	return result, nil
 }
 
 // finishOperation is a syntax sugar function to express that the current operation should be finished and not be
 // requeued. This can happen if the operation was successful or even if an unhandleable error occurred which prevents
 // requeueing.
 //
-// Use requeueOrFinishOperation() or requeueWithError() if the reconciler should requeue the operation.
+// Use requeueWithError() if the reconciler should requeue the operation because of a non-nil error.
 func finishOperation() (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
@@ -249,6 +242,11 @@ func (r *ComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	options := controller.TypedOptions[reconcile.Request]{
 		SkipNameValidation: controllerOptions.SkipNameValidation,
 		RecoverPanic:       controllerOptions.RecoverPanic,
+		// Per-item exponential backoff for reconciliation retries: baseRequeueTime -> maxRequeueTime cap.
+		// Deliberately NOT wrapped in a global BucketRateLimiter: at our scale (<=50 components) an
+		// aggregate throughput cap never binds. If component counts grow into the hundreds, wrap this in
+		// workqueue.NewTypedMaxOfRateLimiter together with a BucketRateLimiter.
+		RateLimiter: workqueue.NewTypedItemExponentialFailureRateLimiter[reconcile.Request](r.baseRequeueTime, r.maxRequeueTime),
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
