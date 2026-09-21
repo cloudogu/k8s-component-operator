@@ -11,73 +11,72 @@ import (
 )
 
 // handlePendingRelease sets the pending release as failed, waits for it to update
-func handlePendingRelease(logger logr.Logger, component *k8sv1.Component, helmCtx context.Context, helmClient helmClient, timeout time.Duration) error {
+func handlePendingRelease(logger logr.Logger, component *k8sv1.Component, ctx context.Context, helmClient helmClient, timeout time.Duration) error {
 	logger.Info(fmt.Sprintf("marking pending release for component %q as failed before reinstall", component.Spec.Name))
+
 	err := helmClient.MarkReleaseAsFailed(component.Spec.Name, "failing pending release before reinstall")
 	if err != nil {
 		return &genericRequeueableError{"failed to mark release as failed", err}
 	}
-	waitCtx, cancel := context.WithTimeout(helmCtx, timeout)
-	defer cancel()
 
-	done := false
-	for !done {
-		select {
-		case <-waitCtx.Done():
-			return &genericRequeueableError{
-				"timed out waiting for release status update after marking as failed",
-				waitCtx.Err(),
-			}
-		case <-time.After(2 * time.Second):
-			updatedRelease, getErr := helmClient.GetRelease(component.Spec.Name)
-			if getErr != nil {
-				return &genericRequeueableError{
-					"failed to get release while waiting for status update",
-					getErr,
-				}
-			}
-
-			if !updatedRelease.Info.Status.IsPending() {
-				logger.Info(fmt.Sprintf("release status for component %q updated to %q", component.Spec.Name, updatedRelease.Info.Status))
-				done = true
-			}
-		}
+	releaseStatus, err := waitForReleaseStatusUpdate(ctx, timeout, helmClient, component.Spec.Name, func(status helmRelease.Status) bool {
+		return !status.IsPending()
+	})
+	if err != nil {
+		return err
 	}
+	logger.Info(fmt.Sprintf("release status for component %q updated to %q", component.Spec.Name, releaseStatus))
+
 	return nil
 }
 
 // handleUninstallingRelease sets the uninstalling release as failed, waits for it to update
-func handleUninstallingRelease(logger logr.Logger, component *k8sv1.Component, helmCtx context.Context, helmClient helmClient, timeout time.Duration) error {
+func handleUninstallingRelease(logger logr.Logger, component *k8sv1.Component, ctx context.Context, helmClient helmClient, timeout time.Duration) error {
 	logger.Info(fmt.Sprintf("marking uninstalling release for component %q as failed before reinstall", component.Spec.Name))
+
 	err := helmClient.MarkReleaseAsFailed(component.Spec.Name, "failing uninstalling release before reinstall")
 	if err != nil {
 		return &genericRequeueableError{"failed to mark release as failed", err}
 	}
-	waitCtx, cancel := context.WithTimeout(helmCtx, timeout)
+
+	releaseStatus, err := waitForReleaseStatusUpdate(ctx, timeout, helmClient, component.Spec.Name, func(status helmRelease.Status) bool {
+		return status != helmRelease.StatusUninstalling
+	})
+	if err != nil {
+		return err
+	}
+	logger.Info(fmt.Sprintf("release status for component %q updated to %q", component.Spec.Name, releaseStatus))
+
+	return nil
+}
+
+func waitForReleaseStatusUpdate(
+	ctx context.Context,
+	timeout time.Duration,
+	helmClient helmClient,
+	releaseName string,
+	statusCheckFn func(status helmRelease.Status) bool,
+) (helmRelease.Status, error) {
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	done := false
-	for !done {
+	for {
 		select {
 		case <-waitCtx.Done():
-			return &genericRequeueableError{
-				"timed out waiting for release status update after marking as failed",
-				waitCtx.Err(),
-			}
+			return "", &genericRequeueableError{"Timeout while getting the Helm release", waitCtx.Err()}
 		case <-time.After(2 * time.Second):
-			updatedRelease, getErr := helmClient.GetRelease(component.Spec.Name)
-			if getErr != nil {
-				return &genericRequeueableError{
-					"failed to get release while waiting for status update",
-					getErr,
-				}
+			release, err := helmClient.GetRelease(releaseName)
+			if err != nil {
+				return "", &genericRequeueableError{"Error while getting the Helm release", err}
 			}
 
-			if updatedRelease.Info.Status != helmRelease.StatusUninstalling {
-				logger.Info(fmt.Sprintf("release status for component %q updated to %q", component.Spec.Name, updatedRelease.Info.Status))
-				done = true
+			if statusCheckFn(release.Info.Status) {
+				return release.Info.Status, nil
 			}
 		}
 	}
+}
+
+func markReleaseAsFailed() error {
 	return nil
 }
