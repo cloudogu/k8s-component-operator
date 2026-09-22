@@ -446,7 +446,7 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.IsType(t, &genericRequeueableError{}, err)
-		assert.ErrorContains(t, err, "timed out waiting for release status update after marking as failed")
+		assert.ErrorContains(t, err, "Timeout while getting the Helm release")
 	})
 
 	t.Run("fails when GetRelease returns error while waiting", func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestComponentUpgradeManager_handlePendingRelease(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.IsType(t, &genericRequeueableError{}, err)
-		assert.ErrorContains(t, err, "failed to get release while waiting for status update")
+		assert.ErrorContains(t, err, "Error while getting the Helm release")
 	})
 
 }
