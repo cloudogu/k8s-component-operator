@@ -30,22 +30,22 @@ func handlePendingRelease(logger logr.Logger, component *k8sv1.Component, ctx co
 	return nil
 }
 
-// handleUninstallingRelease sets the uninstalling release as failed, waits for it to update
-func handleUninstallingRelease(logger logr.Logger, component *k8sv1.Component, ctx context.Context, helmClient helmClient, timeout time.Duration) error {
-	logger.Info(fmt.Sprintf("marking uninstalling release for component %q as failed before reinstall", component.Spec.Name))
+// markUninstallingReleaseAsFailed sets the uninstalling release as failed, waits for it to update
+func markUninstallingReleaseAsFailed(logger logr.Logger, componentName string, ctx context.Context, helmClient helmClient, timeout time.Duration) error {
+	logger.Info(fmt.Sprintf("marking uninstalling release for component %q as failed before reinstall", componentName))
 
-	err := helmClient.MarkReleaseAsFailed(component.Spec.Name, "failing uninstalling release before reinstall")
+	err := helmClient.MarkReleaseAsFailed(componentName, "failing uninstalling release before reinstall")
 	if err != nil {
 		return &genericRequeueableError{"failed to mark release as failed", err}
 	}
 
-	releaseStatus, err := waitForReleaseStatusUpdate(ctx, timeout, helmClient, component.Spec.Name, func(status helmRelease.Status) bool {
+	releaseStatus, err := waitForReleaseStatusUpdate(ctx, timeout, helmClient, componentName, func(status helmRelease.Status) bool {
 		return status != helmRelease.StatusUninstalling
 	})
 	if err != nil {
 		return err
 	}
-	logger.Info(fmt.Sprintf("release status for component %q updated to %q", component.Spec.Name, releaseStatus))
+	logger.Info(fmt.Sprintf("release status for component %q updated to %q", componentName, releaseStatus))
 
 	return nil
 }
@@ -75,8 +75,4 @@ func waitForReleaseStatusUpdate(
 			}
 		}
 	}
-}
-
-func markReleaseAsFailed() error {
-	return nil
 }

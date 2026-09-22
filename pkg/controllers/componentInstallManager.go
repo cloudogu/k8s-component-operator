@@ -120,7 +120,7 @@ func (cim *ComponentInstallManager) Install(ctx context.Context, component *k8sv
 		}
 	// mark uninstalling release as failed and reinstall
 	case release.Info.Status == helmRelease.StatusUninstalling:
-		err := handleUninstallingRelease(logger, component, helmCtx, cim.helmClient, cim.timeout)
+		err := markUninstallingReleaseAsFailed(logger, component.Spec.Name, helmCtx, cim.helmClient, cim.timeout)
 		if err != nil {
 			return &genericRequeueableError{"failed to handle uninstalling helm release for component " + component.Spec.Name, err}
 		}
