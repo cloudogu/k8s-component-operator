@@ -343,6 +343,55 @@ func Test_componentInstallManager_Install(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("If the helm release has the status 'uninstalling' set the status to 'failed' and reinstall the component", func(t *testing.T) {
+		// given
+		mockComponentClient := newMockComponentInterface(t)
+		mockComponentClient.EXPECT().UpdateStatusInstalling(testCtx, component).Return(component, nil)
+		mockComponentClient.EXPECT().AddFinalizer(testCtx, component, "component-finalizer").Return(component, nil)
+		mockComponentClient.EXPECT().UpdateStatusInstalled(ctxWithoutCancel, component).Return(component, nil)
+
+		mockHealthManager := newMockHealthManager(t)
+		mockHealthManager.EXPECT().UpdateComponentHealthWithInstalledVersion(testCtx, component.Spec.Name, namespace, "0.1.0").Return(nil)
+
+		mockHelmClient := newMockHelmClient(t)
+		configMapRefReaderMock := newMockConfigMapRefReader(t)
+		configMapRefReaderMock.EXPECT().GetValues(testCtx, &k8sv1.Reference{}).Return("", nil)
+
+		spec, _ := helm.GetHelmChartSpec(testCtx, component, helm.HelmChartCreationOpts{
+			HelmClient:     mockHelmClient,
+			YamlSerializer: yaml.NewSerializer(),
+			Timeout:        defaultHelmClientTimeoutMins,
+			Reader:         configMapRefReaderMock,
+		})
+
+		mockHelmClient.EXPECT().SatisfiesDependencies(testCtx, spec).Return(nil)
+
+		uninstallingRelease := &release.Release{
+			Info: &release.Info{Status: release.StatusPendingInstall},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(uninstallingRelease, nil).Once()
+		mockHelmClient.EXPECT().MarkReleaseAsFailed(component.Name, mock.Anything).Return(nil)
+		failedRelease := &release.Release{
+			Info: &release.Info{Status: release.StatusFailed},
+		}
+		mockHelmClient.EXPECT().GetRelease(component.Name).Return(failedRelease, nil).Once()
+		mockHelmClient.EXPECT().InstallOrUpgrade(mock.Anything, spec).Return(nil)
+
+		sut := ComponentInstallManager{
+			componentClient: mockComponentClient,
+			helmClient:      mockHelmClient,
+			healthManager:   mockHealthManager,
+			timeout:         defaultHelmClientTimeoutMins,
+			reader:          configMapRefReaderMock,
+		}
+
+		// when
+		err := sut.Install(testCtx, component)
+
+		// then
+		require.NoError(t, err)
+	})
+
 	t.Run("failed set status installed", func(t *testing.T) {
 		// given
 		mockComponentClient := newMockComponentInterface(t)
@@ -580,7 +629,7 @@ func TestComponentInstallManager_handlePendingRelease_TimeoutWhileWaiting(t *tes
 	// then
 	require.Error(t, err)
 	assert.IsType(t, &genericRequeueableError{}, err)
-	assert.ErrorContains(t, err, "timed out waiting for release status update after marking as failed")
+	assert.ErrorContains(t, err, "Timeout while getting the Helm release")
 }
 
 func TestComponentInstallManager_handlePendingRelease_GetReleaseError(t *testing.T) {
@@ -605,5 +654,5 @@ func TestComponentInstallManager_handlePendingRelease_GetReleaseError(t *testing
 	// then
 	require.Error(t, err)
 	assert.IsType(t, &genericRequeueableError{}, err)
-	assert.ErrorContains(t, err, "failed to get release while waiting for status update")
+	assert.ErrorContains(t, err, "Error while getting the Helm release")
 }
