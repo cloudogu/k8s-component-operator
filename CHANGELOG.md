@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.15.1] - 2026-09-28
+### Fixed
+- [#123] If the Helm client can't delete resources during a rollback, the installation gets stuck 
+  in the `uninstalling` state. To prevent this, we reinstall the component.
+
 ## [v1.15.0] - 2026-09-10
 ### Changed
 - [#121] Implementation of an LRU cache for Helm charts to prevent peak loads in the Harbor registry
