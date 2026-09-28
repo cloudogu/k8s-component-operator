@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - [#123] If the Helm client can't delete resources during a rollback, the installation gets stuck 
-  in the `uninstalling` state. To Prevent this, we reinstall the component.
+  in the `uninstalling` state. To prevent this, we reinstall the component.
 
 ## [v1.15.0] - 2026-09-10
 ### Changed
