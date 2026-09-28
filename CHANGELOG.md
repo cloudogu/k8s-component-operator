@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [v1.15.1] - 2026-09-28
 ### Fixed
 - [#123] If the Helm client can't delete resources during a rollback, the installation gets stuck 
   in the `uninstalling` state. To prevent this, we reinstall the component.
